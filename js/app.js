@@ -469,10 +469,10 @@ function renderDT(tab){
         html += '</div>';
         // Botones
         html += '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">';
-        html += '<button onclick="generarInformeVisual(''+id+'',''+inf.id+'')" style="background:#1a1a2e;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600;letter-spacing:.04em;white-space:nowrap;">📄 PDF</button>';
+        html += '<button onclick="generarInformeVisual(&quot;'+id+'&quot;,&quot;'+inf.id+'&quot;)" style="background:#1a1a2e;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600;letter-spacing:.04em;white-space:nowrap;">📄 PDF</button>';
         html += '<div style="display:flex;gap:4px;">';
-        html += '<button onclick="abrirGestorClips(''+inf.id+'',''+id+'')" style="background:rgba(124,111,240,.1);border:0.5px solid rgba(124,111,240,.3);border-radius:5px;padding:4px 8px;font-size:10px;cursor:pointer;color:#7C6FF0;font-family:inherit;">▶ Clips'+(clips.length?' ('+clips.length+')':'')+'</button>';
-        html += '<button onclick="deleteInforme(''+inf.id+'')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:4px;">×</button>';
+        html += '<button onclick="abrirGestorClips(&quot;'+inf.id+'&quot;,&quot;'+id+'&quot;)" style="background:rgba(124,111,240,.1);border:0.5px solid rgba(124,111,240,.3);border-radius:5px;padding:4px 8px;font-size:10px;cursor:pointer;color:#7C6FF0;font-family:inherit;">▶ Clips'+(clips.length?' ('+clips.length+')':'')+'</button>';
+        html += '<button onclick="deleteInforme(&quot;'+inf.id+'&quot;)" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:4px;">×</button>';
         html += '</div></div>';
         html += '</div>'; // end header row
 
@@ -504,7 +504,7 @@ function renderDT(tab){
         html += '<div style="'+CARD+'padding:.875rem;margin-bottom:8px;">';
         html += '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">'+fmtDate(o.fecha)+' · '+o.partido+'</div>';
         html += '<div style="font-size:12px;line-height:1.6;">'+o.texto+'</div>';
-        html += '<button onclick="delObs(''+o.id+'')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;margin-top:4px;padding:0;">Eliminar</button>';
+        html += '<button onclick="delObs(&quot;'+o.id+'&quot;)" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;margin-top:4px;padding:0;">Eliminar</button>';
         html += '</div>';
       });
     }
