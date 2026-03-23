@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Mi Panel · Analista Individual</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --bg:#0a0f1e;--bg2:#111827;--bg3:#1a2235;
+      --text:#ffffff;--text2:#94a3b8;--text3:#64748b;
+      --border:rgba(255,255,255,0.08);
+      --green:#1D9E75;--blue:#378ADD;--amber:#E07B00;--red:#D85A30;--purple:#7C6FF7;
+      --radius:12px;--radius-sm:8px;
+    }
+    body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding-bottom:2rem;}
+    .loading{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:12px;color:var(--text2);font-size:14px;}
+    .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* HEADER */
+    .header{background:linear-gradient(135deg,#1a0a2e 0%,#0d1b2a 50%,#0a1628 100%);padding:2rem 1.25rem 1.5rem;position:relative;overflow:hidden;}
+    .header::before{content:'';position:absolute;top:-50%;right:-20%;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(124,111,247,0.15) 0%,transparent 70%);}
+    .hdr-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(124,111,247,0.15);border:1px solid rgba(124,111,247,0.3);border-radius:99px;padding:4px 12px;font-size:11px;color:var(--purple);font-weight:600;letter-spacing:.05em;margin-bottom:1rem;}
+    .hdr-nombre{font-size:28px;font-weight:700;margin-bottom:4px;}
+    .hdr-meta{font-size:13px;color:var(--text2);}
+    .hdr-nota{position:absolute;top:1.5rem;right:1.25rem;text-align:center;}
+    .hdr-nota-num{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;border:3px solid;}
+    .hdr-nota-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:4px;}
+
+    /* TABS */
+    .tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+    .tabs::-webkit-scrollbar{display:none;}
+    .tab{flex:1;min-width:80px;padding:.875rem .5rem;font-size:12px;font-weight:500;color:var(--text3);text-align:center;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;}
+    .tab.active{color:var(--purple);border-bottom-color:var(--purple);}
+    .tab-icon{font-size:16px;display:block;margin-bottom:2px;}
+
+    /* PÁGINAS */
+    .page{display:none;padding:1.25rem;}
+    .page.active{display:block;}
+
+    /* SECCIÓN */
+    .section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:.875rem;}
+    .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;display:flex;align-items:center;gap:6px;}
+    .section-title span{font-size:14px;}
+
+    /* FASE BADGE */
+    .fase-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:.05em;}
+
+    /* OBJETIVO */
+    .obj-item{display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--border);}
+    .obj-item:last-child{border-bottom:none;}
+    .obj-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+    .obj-text{font-size:13px;line-height:1.5;flex:1;}
+
+    /* BARRA DE FASE */
+    .fase-row{margin-bottom:.875rem;}
+    .fase-row-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+    .fase-row-label{font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;}
+    .fase-row-val{font-size:13px;font-weight:700;}
+    .bar-bg{height:8px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;}
+    .bar-fill{height:8px;border-radius:99px;transition:width .8s ease;}
+
+    /* ESTRELLAS */
+    .stars{display:flex;gap:2px;}
+    .star-filled{color:#F5A623;}
+    .star-empty{color:rgba(255,255,255,0.15);}
+
+    /* ASPECTO */
+    .aspecto-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+    .aspecto-row:last-child{border-bottom:none;}
+
+    /* POSITIVO / MEJORA */
+    .tag-pos{background:rgba(29,158,117,0.15);border:1px solid rgba(29,158,117,0.3);border-radius:var(--radius-sm);padding:.875rem;margin-bottom:.625rem;}
+    .tag-neg{background:rgba(216,90,48,0.15);border:1px solid rgba(216,90,48,0.3);border-radius:var(--radius-sm);padding:.875rem;margin-bottom:.625rem;}
+    .tag-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+    .tag-text{font-size:13px;line-height:1.6;}
+
+    /* MICRO */
+    .mic-chip{display:inline-flex;align-items:center;font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(124,111,247,0.15);border:1px solid rgba(124,111,247,0.25);color:var(--purple);margin:3px;}
+
+    /* HISTORIAL */
+    .hist-item{background:var(--bg3);border-radius:var(--radius-sm);padding:.875rem;margin-bottom:.625rem;display:flex;align-items:center;gap:12px;}
+    .hist-nota{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;border:2px solid;}
+    .hist-info{flex:1;}
+    .hist-partido{font-size:13px;font-weight:500;}
+    .hist-fecha{font-size:11px;color:var(--text3);margin-top:2px;}
+
+    /* RECOMENDACION */
+    .reco{background:linear-gradient(135deg,rgba(124,111,247,0.1),rgba(55,138,221,0.1));border:1px solid rgba(124,111,247,0.2);border-radius:var(--radius-sm);padding:.875rem;margin-bottom:.625rem;}
+    .reco-text{font-size:13px;line-height:1.7;}
+
+    /* FRASE */
+    .frase{background:linear-gradient(135deg,rgba(29,158,117,0.1),rgba(55,138,221,0.1));border:1px solid rgba(29,158,117,0.2);border-radius:var(--radius);padding:1.25rem;text-align:center;margin-bottom:.875rem;}
+    .frase-text{font-size:15px;font-weight:500;line-height:1.6;font-style:italic;}
+    .frase-autor{font-size:11px;color:var(--text3);margin-top:8px;}
+
+    /* NOTA GRANDE */
+    .nota-grande{text-align:center;padding:1.5rem 0;}
+    .nota-num{font-size:72px;font-weight:800;line-height:1;}
+    .nota-sub{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-top:8px;}
+
+    /* FOOTER */
+    .footer{text-align:center;padding:1.5rem;color:var(--text3);font-size:11px;margin-top:1rem;}
+
+    /* EMPTY */
+    .empty{text-align:center;padding:2.5rem 1rem;color:var(--text3);font-size:13px;}
+
+    /* PRE PARTIDO HERO */
+    .pre-hero{background:linear-gradient(135deg,rgba(224,123,0,0.15),rgba(216,90,48,0.1));border:1px solid rgba(224,123,0,0.25);border-radius:var(--radius);padding:1.25rem;margin-bottom:.875rem;text-align:center;}
+    .pre-hero-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);margin-bottom:6px;}
+    .pre-hero-title{font-size:20px;font-weight:700;margin-bottom:4px;}
+    .pre-hero-sub{font-size:12px;color:var(--text2);}
+
+    @media(max-width:400px){
+      .hdr-nombre{font-size:22px;}
+      .nota-num{font-size:56px;}
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-loading" class="loading">
+  <div class="spinner"></div>
+  <div>Cargando tu panel...</div>
+</div>
+
+<div id="app" style="display:none;">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="hdr-badge">⚽ Panel del Jugador</div>
+    <div class="hdr-nombre" id="jug-nombre">—</div>
+    <div class="hdr-meta" id="jug-meta">—</div>
+    <div class="hdr-nota" id="hdr-nota-wrap" style="display:none;">
+      <div class="hdr-nota-num" id="hdr-nota-num">—</div>
+      <div class="hdr-nota-lbl" id="hdr-nota-lbl">Último partido</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('pre')">
+      <span class="tab-icon">🎯</span>Pre-partido
+    </button>
+    <button class="tab" onclick="switchTab('post')">
+      <span class="tab-icon">📊</span>Post-partido
+    </button>
+    <button class="tab" onclick="switchTab('historial')">
+      <span class="tab-icon">📋</span>Historial
+    </button>
+    <button class="tab" onclick="switchTab('micros')">
+      <span class="tab-icon">✦</span>Mis conceptos
+    </button>
+  </div>
+
+  <!-- PRE-PARTIDO -->
+  <div class="page active" id="tab-pre">
+    <div class="pre-hero">
+      <div class="pre-hero-label">Preparación</div>
+      <div class="pre-hero-title">Antes de salir al campo</div>
+      <div class="pre-hero-sub" id="pre-partido-name">Próximo partido</div>
+    </div>
+    <div id="pre-frase"></div>
+    <div id="pre-objetivos"></div>
+    <div id="pre-micros-clave"></div>
+    <div id="pre-recos"></div>
+    <div class="footer">Panel preparado por <strong>Omar Cortés Ferrero</strong> · Analista Individual</div>
+  </div>
+
+  <!-- POST-PARTIDO -->
+  <div class="page" id="tab-post">
+    <div id="post-content"></div>
+    <div class="footer">Panel preparado por <strong>Omar Cortés Ferrero</strong> · Analista Individual</div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="page" id="tab-historial">
+    <div id="hist-content"></div>
+    <div class="footer">Panel preparado por <strong>Omar Cortés Ferrero</strong> · Analista Individual</div>
+  </div>
+
+  <!-- MIS CONCEPTOS -->
+  <div class="page" id="tab-micros">
+    <div id="mics-content"></div>
+    <div class="footer">Panel preparado por <strong>Omar Cortés Ferrero</strong> · Analista Individual</div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://ghxwdauwrzupjmrujcns.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
+
+const FASES_CONFIG = {
+  OF:{label:'Fase ofensiva',color:'#1D9E75',bg:'rgba(29,158,117,0.15)'},
+  DE:{label:'Fase defensiva',color:'#378ADD',bg:'rgba(55,138,221,0.15)'},
+  TO:{label:'T. ofensiva',color:'#E07B00',bg:'rgba(224,123,0,0.15)'},
+  TD:{label:'T. defensiva',color:'#D85A30',bg:'rgba(216,90,48,0.15)'},
+  GEN:{label:'General',color:'#7C6FF7',bg:'rgba(124,111,247,0.15)'},
+};
+
+const FRASES_PRE = [
+  'Hoy no salgas a obedecer. Sal a decidir.',
+  'Cada decisión que tomes en el campo es tuya. Confía en lo que has trabajado.',
+  'El partido es la consecuencia del entrenamiento. Ya hiciste el trabajo.',
+  'No busques el balón. Busca el espacio. El balón vendrá.',
+  'El mejor jugador no es el más rápido. Es el que antes entiende lo que va a pasar.',
+  'Hoy aplica lo que sabes. No lo que te digan.',
+];
+const FRASES_POST = [
+  'El que se hace preguntas siempre llega más lejos.',
+  'Cada partido enseña algo. Lo importante es escuchar.',
+  'La mejora no es casualidad. Es consecuencia de mirar hacia adentro.',
+  'El talento se entrena. La comprensión del juego también.',
+  'Un error visto es un error que no se repite.',
+  'Hoy fuiste un poco mejor que ayer. Eso es suficiente.',
+];
+
+let DB, jug, objetivos, informes, microconceptos;
+
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const jugId = params.get('id');
+  if(!jugId) { showError('Falta el ID del jugador en la URL.'); return; }
+
+  try {
+    DB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const [jr, or, ir, mr] = await Promise.all([
+      DB.from('jugadores').select('*').eq('id', jugId).single(),
+      DB.from('objetivos').select('*').eq('jugador_id', jugId),
+      DB.from('informes_partido').select('*').eq('jugador_id', jugId).order('fecha', {ascending:false}).limit(10),
+      DB.from('microconceptos').select('*'),
+    ]);
+    if(jr.error || !jr.data) { showError('Jugador no encontrado.'); return; }
+    jug = jr.data;
+    objetivos = or.data || [];
+    informes = ir.data || [];
+    microconceptos = mr.data || [];
+
+    renderAll();
+    document.getElementById('app-loading').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  } catch(e) {
+    showError('Error de conexión: ' + e.message);
+  }
+}
+
+function showError(msg) {
+  document.getElementById('app-loading').innerHTML = `<div style="color:#D85A30;font-size:14px;text-align:center;padding:2rem;">${msg}</div>`;
+}
+
+function fmtDate(d) { if(!d) return ''; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
+
+function stars(n, max=5) {
+  return Array.from({length:max},(_,i)=>
+    `<span class="${i<Math.round(n)?'star-filled':'star-empty'}">★</span>`
+  ).join('');
+}
+
+function notaColor(n) {
+  return n>=8?'#1D9E75':n>=6?'#E07B00':n>=4?'#D85A30':'#64748b';
+}
+function notaLabel(n) {
+  return n>=8?'MUY BUENO':n>=6?'CORRECTO':n>=4?'REGULAR':'A MEJORAR';
+}
+
+function renderAll() {
+  // Header
+  document.getElementById('jug-nombre').textContent = jug.nombre;
+  document.getElementById('jug-meta').textContent = `${jug.posicion} · ${jug.equipo||''} · ${jug.categoria||''}`;
+
+  // Nota última en header
+  const lastInf = informes[0];
+  if(lastInf && lastInf.nota_decimal) {
+    const n = parseFloat(lastInf.nota_decimal);
+    const nc = notaColor(n);
+    const wrap = document.getElementById('hdr-nota-wrap');
+    const num = document.getElementById('hdr-nota-num');
+    const lbl = document.getElementById('hdr-nota-lbl');
+    num.textContent = n.toFixed(1);
+    num.style.color = nc;
+    num.style.borderColor = nc;
+    lbl.style.color = nc;
+    wrap.style.display = 'block';
+  }
+
+  renderPre();
+  renderPost();
+  renderHistorial();
+  renderMisConceptos();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((el,i) => {
+    el.classList.toggle('active', ['pre','post','historial','micros'][i] === tab);
+  });
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+
+// ─── PRE-PARTIDO ───
+function renderPre() {
+  const frase = FRASES_PRE[Math.floor(Math.random() * FRASES_PRE.length)];
+  document.getElementById('pre-frase').innerHTML = `
+    <div class="frase">
+      <div class="frase-text">"${frase}"</div>
+      <div class="frase-autor">— Omar Cortés Ferrero · Analista Individual</div>
+    </div>`;
+
+  // Objetivos por fase
+  const obsFases = {};
+  objetivos.forEach(o => {
+    if(!obsFases[o.fase]) obsFases[o.fase] = [];
+    obsFases[o.fase].push(o);
+  });
+
+  let objHtml = '';
+  if(objetivos.length) {
+    objHtml = `<div class="section">
+      <div class="section-title"><span>🎯</span>Tus objetivos esta semana</div>`;
+    Object.entries(obsFases).forEach(([fase, objs]) => {
+      const fc = FASES_CONFIG[fase] || FASES_CONFIG.GEN;
+      objHtml += `<div style="margin-bottom:.75rem;">
+        <div style="display:inline-flex;align-items:center;gap:6px;background:${fc.bg};border-radius:99px;padding:3px 10px;margin-bottom:8px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:${fc.color};"></div>
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:${fc.color};">${fc.label}</span>
+        </div>`;
+      objs.forEach(o => {
+        objHtml += `<div class="obj-item">
+          <div class="obj-dot" style="background:${fc.color};"></div>
+          <div class="obj-text">${o.texto}</div>
+        </div>`;
+      });
+      objHtml += `</div>`;
+    });
+    objHtml += `</div>`;
+  } else {
+    objHtml = `<div class="section"><div class="empty">Sin objetivos asignados todavía.</div></div>`;
+  }
+  document.getElementById('pre-objetivos').innerHTML = objHtml;
+
+  // Microconceptos clave (los de su posición, top 5)
+  const micsPos = microconceptos.filter(m => m.posicion === jug.posicion).slice(0, 6);
+  if(micsPos.length) {
+    document.getElementById('pre-micros-clave').innerHTML = `
+      <div class="section">
+        <div class="section-title"><span>✦</span>Conceptos clave para recordar</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          ${micsPos.map(m => `<span class="mic-chip">${m.titulo}</span>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  // Recomendaciones del analista (último informe → mejoras)
+  const lastInf = informes[0];
+  if(lastInf && (lastInf.mejoras || lastInf.msb || lastInf.mcb)) {
+    document.getElementById('pre-recos').innerHTML = `
+      <div class="section">
+        <div class="section-title"><span>💡</span>Recomendaciones del analista</div>
+        ${lastInf.mejoras ? `<div class="reco"><div class="reco-text">${lastInf.mejoras}</div></div>` : ''}
+        ${lastInf.mcb ? `<div style="margin-bottom:.5rem;"><div style="font-size:10px;font-weight:700;color:#1D9E75;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">MCB — Con balón</div><div style="font-size:12px;line-height:1.6;color:var(--text2);">${lastInf.mcb}</div></div>` : ''}
+        ${lastInf.msb ? `<div><div style="font-size:10px;font-weight:700;color:#378ADD;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">MSB — Sin balón</div><div style="font-size:12px;line-height:1.6;color:var(--text2);">${lastInf.msb}</div></div>` : ''}
+      </div>`;
+  }
+}
+
+// ─── POST-PARTIDO ───
+function renderPost() {
+  const inf = informes[0];
+  if(!inf) {
+    document.getElementById('post-content').innerHTML = `<div class="empty" style="padding:4rem 1rem;">Todavía no tienes informes de partido.<br>Tu analista los publicará después de cada partido.</div>`;
+    return;
+  }
+
+  const nota = parseFloat(inf.nota_decimal) || parseInt(inf.valoracion) || 0;
+  const nc = notaColor(nota);
+  const nl = notaLabel(nota);
+
+  let starsData = {};
+  try { starsData = inf.estrellas_json ? JSON.parse(inf.estrellas_json) : {}; } catch(e){}
+
+  function avgFase(key) {
+    const vals = (starsData[key]||[]).filter(v=>v>0);
+    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+  }
+
+  const ASPECTOS = {
+    MCB:['Ubicación en espacios','Aspecto técnico: pases','Aspecto técnico: controles','Toma de decisiones','Desmarques y movilidad','Personalidad','Duelos ganados'],
+    MSB:['Posición defensiva','Presión al poseedor','Coberturas y ayudas','Anticipación','Duelos individuales','Concentración','Activación tras pérdida'],
+    TDA:['Reacción tras recuperación','Velocidad de transición','Apoyo al portador','Aprovechamiento del espacio','Limpiar zona'],
+    TAD:['Reacción tras pérdida','Repliegue','Presión inmediata','Organización defensiva','Falta táctica'],
+  };
+
+  const fasesBloques = [
+    {key:'MCB',label:'Momento con balón',color:'#1D9E75',bg:'rgba(29,158,117,0.1)',border:'rgba(29,158,117,0.25)',textKey:'mcb'},
+    {key:'MSB',label:'Momento sin balón',color:'#378ADD',bg:'rgba(55,138,221,0.1)',border:'rgba(55,138,221,0.25)',textKey:'msb'},
+    {key:'TDA',label:'Transición defensa → ataque',color:'#E07B00',bg:'rgba(224,123,0,0.1)',border:'rgba(224,123,0,0.25)',textKey:'tda'},
+    {key:'TAD',label:'Transición ataque → defensa',color:'#D85A30',bg:'rgba(216,90,48,0.1)',border:'rgba(216,90,48,0.25)',textKey:'tad'},
+  ];
+
+  const frase = FRASES_POST[Math.floor(Math.random() * FRASES_POST.length)];
+
+  let html = `
+    <!-- NOTA GLOBAL -->
+    <div class="section" style="text-align:center;padding:1.75rem;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:.875rem;">${inf.partido} · ${fmtDate(inf.fecha)}</div>
+      <div class="nota-num" style="color:${nc};">${nota ? nota.toFixed(1) : '—'}</div>
+      <div class="nota-sub" style="color:${nc};">${nota ? nl : 'Sin valorar'}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px;">sobre 10 · media de todas las fases</div>
+    </div>
+
+    <!-- BARRAS POR FASE -->
+    <div class="section">
+      <div class="section-title"><span>📊</span>Valoración por fase</div>
+      ${fasesBloques.map(f => {
+        const avg = avgFase(f.key);
+        const pct = avg > 0 ? (avg / 5 * 100).toFixed(0) : 0;
+        return `<div class="fase-row">
+          <div class="fase-row-header">
+            <div class="fase-row-label">
+              <span style="width:8px;height:8px;border-radius:50%;background:${f.color};display:inline-block;"></span>
+              <span style="font-size:12px;">${f.label}</span>
+            </div>
+            <div class="fase-row-val" style="color:${avg>0?f.color:'var(--text3)'};">${avg > 0 ? avg.toFixed(1)+'/5' : '—'}</div>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${f.color};"></div></div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- POSITIVOS Y MEJORAS -->
+    ${(inf.positivos || inf.mejoras) ? `<div class="section">
+      <div class="section-title"><span>✓</span>Análisis del partido</div>
+      ${inf.positivos ? `<div class="tag-pos"><div class="tag-label" style="color:#1D9E75;">✓ Lo que hiciste bien</div><div class="tag-text">${inf.positivos}</div></div>` : ''}
+      ${inf.mejoras ? `<div class="tag-neg"><div class="tag-label" style="color:#D85A30;">△ En lo que trabajar</div><div class="tag-text">${inf.mejoras}</div></div>` : ''}
+    </div>` : ''}
+
+    <!-- DETALLE POR FASE -->
+    ${fasesBloques.filter(f => {
+      const vals = (starsData[f.key]||[]).filter(v=>v>0);
+      return vals.length > 0 || inf[f.textKey];
+    }).map(f => {
+      const vals = starsData[f.key] || [];
+      const aspectos = ASPECTOS[f.key] || [];
+      const filledRows = aspectos.map((asp,i) => ({asp, val:vals[i]||0})).filter(r=>r.val>0);
+      return `<div class="section">
+        <div class="section-title">
+          <span style="background:${f.bg};color:${f.color};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid ${f.border};">${f.key.replace('TDA','TD-A').replace('TAD','TA-D')}</span>
+          ${f.label}
+        </div>
+        ${filledRows.map(r => `
+          <div class="aspecto-row">
+            <div style="flex:1;color:var(--text2);">${r.asp}</div>
+            <div class="stars">${stars(r.val)}</div>
+          </div>`).join('')}
+        ${inf[f.textKey] ? `<div style="margin-top:10px;font-size:12px;line-height:1.7;color:var(--text2);border-top:1px solid var(--border);padding-top:10px;">${inf[f.textKey]}</div>` : ''}
+      </div>`;
+    }).join('')}
+
+    <!-- OBJETIVOS CON NOTA -->
+    ${inf.objetivos_trabajados ? `<div class="section">
+      <div class="section-title"><span>🎯</span>Tus objetivos en este partido</div>
+      ${inf.objetivos_trabajados.split(' | ').filter(Boolean).map(o => {
+        const hasStars = o.includes('★');
+        const txt = o.replace(/\s*\(\d\/5★\)/, '').trim();
+        const starMatch = o.match(/\((\d)\/5★\)/);
+        const starVal = starMatch ? parseInt(starMatch[1]) : 0;
+        return `<div class="obj-item">
+          <div class="obj-dot" style="background:#7C6FF7;"></div>
+          <div style="flex:1;"><div class="obj-text">${txt}</div>
+          ${starVal ? `<div class="stars" style="margin-top:3px;">${stars(starVal)}</div>` : ''}</div>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+
+    <!-- MICROCONCEPTOS -->
+    ${inf.microconceptos_obs ? `<div class="section">
+      <div class="section-title"><span>✦</span>Conceptos observados</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;">
+        ${inf.microconceptos_obs.split(',').filter(Boolean).map(m=>`<span class="mic-chip">${m.trim()}</span>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <!-- NOTAS DEL ANALISTA -->
+    ${inf.notas ? `<div class="section">
+      <div class="section-title"><span>📝</span>Nota del analista</div>
+      <div style="font-size:13px;line-height:1.7;color:var(--text2);font-style:italic;">${inf.notas}</div>
+    </div>` : ''}
+
+    <!-- FRASE -->
+    <div class="frase">
+      <div class="frase-text">"${frase}"</div>
+      <div class="frase-autor">— Omar Cortés Ferrero · Analista Individual</div>
+    </div>`;
+
+  document.getElementById('post-content').innerHTML = html;
+}
+
+// ─── HISTORIAL ───
+function renderHistorial() {
+  if(!informes.length) {
+    document.getElementById('hist-content').innerHTML = `<div class="empty" style="padding:4rem 1rem;">Sin historial todavía.</div>`;
+    return;
+  }
+
+  const html = `
+    <div style="padding-top:.5rem;">
+      ${informes.map(inf => {
+        const nota = parseFloat(inf.nota_decimal) || parseInt(inf.valoracion) || 0;
+        const nc = notaColor(nota);
+        return `<div class="hist-item">
+          <div class="hist-nota" style="color:${nc};border-color:${nc};">${nota ? nota.toFixed(1) : '—'}</div>
+          <div class="hist-info">
+            <div class="hist-partido">${inf.partido}</div>
+            <div class="hist-fecha">${fmtDate(inf.fecha)}${inf.resultado?' · '+inf.resultado:''}</div>
+            ${inf.microconceptos_obs ? `<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:3px;">${inf.microconceptos_obs.split(',').slice(0,3).filter(Boolean).map(m=>`<span class="mic-chip" style="font-size:10px;padding:2px 7px;">${m.trim()}</span>`).join('')}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  document.getElementById('hist-content').innerHTML = html;
+}
+
+// ─── MIS CONCEPTOS ───
+function renderMisConceptos() {
+  const micsPos = microconceptos.filter(m => m.posicion === jug.posicion);
+  if(!micsPos.length) {
+    document.getElementById('mics-content').innerHTML = `<div class="empty" style="padding:4rem 1rem;">Sin microconceptos para tu posición todavía.</div>`;
+    return;
+  }
+
+  const FASES_M = [
+    {id:'OF',label:'Fase ofensiva',color:'#1D9E75',bg:'rgba(29,158,117,0.1)'},
+    {id:'DE',label:'Fase defensiva',color:'#378ADD',bg:'rgba(55,138,221,0.1)'},
+    {id:'TO',label:'T. ofensiva',color:'#E07B00',bg:'rgba(224,123,0,0.1)'},
+    {id:'TD',label:'T. defensiva',color:'#D85A30',bg:'rgba(216,90,48,0.1)'},
+  ];
+
+  let html = `<div style="margin-bottom:.875rem;"><div style="font-size:12px;color:var(--text3);margin-bottom:.875rem;">Conceptos de tu posición: <strong style="color:var(--text);">${jug.posicion}</strong> (${micsPos.length} conceptos)</div></div>`;
+
+  FASES_M.forEach(fc => {
+    const mf = micsPos.filter(m => m.fase === fc.id).sort((a,b) => a.titulo.localeCompare(b.titulo,'es'));
+    if(!mf.length) return;
+    html += `<div class="section">
+      <div class="section-title">
+        <span style="background:${fc.bg};color:${fc.color};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;">${fc.id}</span>
+        ${fc.label}
+        <span style="margin-left:auto;font-size:11px;color:var(--text3);">${mf.length}</span>
+      </div>
+      ${mf.map(m => `
+        <div style="padding:7px 0;border-bottom:1px solid var(--border);">
+          <div style="font-size:13px;margin-bottom:${m.descripcion?'4px':'0'};">${m.titulo}</div>
+          ${m.descripcion ? `<div style="font-size:11px;color:var(--text3);line-height:1.5;">${m.descripcion}</div>` : ''}
+          ${m.video_url ? `<div style="margin-top:4px;"><span class="mic-chip" style="font-size:10px;padding:2px 7px;">▶ Clip disponible</span></div>` : ''}
+        </div>`).join('')}
+    </div>`;
+  });
+
+  document.getElementById('mics-content').innerHTML = html;
+}
+
+function renderClipsJugador(infId) {
+  const infClips = clips.filter(c => c.informe_id === infId);
+  if(!infClips.length) return '';
+  const TIPOS = {
+    general: { label: 'General', color: '#7C6FF0' },
+    positivo: { label: '✓ Positivo', color: '#1D9E75' },
+    mejorar: { label: '△ A mejorar', color: '#D85A30' },
+    referencia: { label: '★ Referencia', color: '#E07B00' },
+  };
+  return `<div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:1rem 1.25rem .75rem;border-bottom:0.5px solid var(--border);">
+      <div class="card-title" style="margin:0;">▶ Clips del partido (${infClips.length})</div>
+    </div>
+    ${infClips.map(c => {
+      const tipo = TIPOS[c.tipo] || TIPOS.general;
+      const isDrive = c.url.includes('drive.google.com');
+      const embedUrl = isDrive ? c.url.replace('/view','').replace(/\?.*$/,'') + '/preview' : c.url;
+      return `<div style="padding:1rem 1.25rem;border-bottom:0.5px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:.75rem;">
+          <span style="font-size:10px;padding:2px 8px;border-radius:99px;background:${tipo.color}20;color:${tipo.color};border:0.5px solid ${tipo.color}30;">${tipo.label}</span>
+          <span style="font-size:12px;font-weight:500;color:var(--text);">${c.titulo}</span>
+        </div>
+        ${isDrive
+          ? `<div style="width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;"><iframe src="${embedUrl}" width="100%" height="100%" style="border:none;" allowfullscreen allow="autoplay"></iframe></div>`
+          : `<video controls playsinline style="width:100%;border-radius:8px;max-height:240px;background:#000;" src="${c.url}"></video>`
+        }
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+init();
+</script>
+</body>
+</html>
