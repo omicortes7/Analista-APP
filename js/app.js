@@ -3050,3 +3050,100 @@ window.addEventListener('load', () => {
   }
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
+
+// ─── GUARDAR INFORME DE PARTIDO ───
+async function saveInforme() {
+  const jugId = state.currentJugador;
+  const jug = state.jugadores.find(x => x.id === jugId);
+  if(!jug) return;
+
+  const partido = document.getElementById('inf-partido')?.value.trim();
+  if(!partido) { showToast('Escribe el nombre del partido'); return; }
+
+  const nota = calcNotaGlobal();
+  const stars = window._stars || {};
+  const micTags = window._micTags || [];
+  const objIds = window._objIds || [];
+
+  // Construir texto de objetivos trabajados
+  const objs = getObjJugador(jugId);
+  const objTextos = objs.map((o,i) => {
+    const v = (stars.OBJ||[])[i]||0;
+    return v > 0 ? o.texto + ' (' + v + '★)' : null;
+  }).filter(Boolean).join(', ');
+
+  const data = {
+    jugador_id: jugId,
+    partido,
+    fecha: document.getElementById('inf-fecha')?.value || new Date().toISOString().slice(0,10),
+    rival: document.getElementById('inf-rival')?.value.trim() || '',
+    resultado: document.getElementById('inf-resultado')?.value.trim() || '',
+    nota_decimal: nota || null,
+    estrellas_json: JSON.stringify(stars),
+    mcb: document.getElementById('inf-mcb')?.value.trim() || '',
+    msb: document.getElementById('inf-msb')?.value.trim() || '',
+    tda: document.getElementById('inf-tda')?.value.trim() || '',
+    tad: document.getElementById('inf-tad')?.value.trim() || '',
+    microconceptos_obs: micTags.join(', '),
+    objetivos_trabajados: objTextos,
+    notas: document.getElementById('inf-notas')?.value.trim() || '',
+  };
+
+  showToast('Guardando...');
+  const { data: saved, error } = await DB.from('informes_partido').insert(data).select();
+  if(error) { showToast('Error: ' + error.message); return; }
+
+  // Añadir al estado local
+  state.informesPartido.unshift(saved[0]);
+
+  // Limpiar formulario
+  window._stars = {};
+  window._micTags = [];
+  document.querySelectorAll('.star').forEach(s => s.style.color = '#ddd');
+  document.getElementById('inf-partido').value = '';
+  document.getElementById('inf-rival').value = '';
+  document.getElementById('inf-resultado').value = '';
+  document.getElementById('nota-global').textContent = '—';
+  document.getElementById('nota-global').style.color = 'var(--text3)';
+  ['mcb','msb','tda','tad','notas'].forEach(k => {
+    const el = document.getElementById('inf-'+k);
+    if(el) el.value = '';
+  });
+  document.getElementById('inf-mic-tags').innerHTML = '';
+  ['avg-MCB','avg-MSB','avg-TDA','avg-TAD'].forEach(k => {
+    const el = document.getElementById(k);
+    if(el) el.textContent = '';
+  });
+
+  showToast('✓ Informe guardado');
+  renderInicio();
+
+  // Ir al historial para ver el informe guardado
+  setTimeout(() => switchDT('historial'), 400);
+}
+
+// ─── ELIMINAR INFORME ───
+async function deleteInforme(infId) {
+  if(!confirm('¿Eliminar este informe?')) return;
+  await DB.from('informes_partido').delete().eq('id', infId);
+  state.informesPartido = state.informesPartido.filter(x => x.id !== infId);
+  renderInicio();
+  // Refrescar la pestaña activa
+  const tab = document.querySelector('#mdj .dtab.active')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1];
+  if(tab) renderDT(tab);
+  else renderDT('historial');
+  showToast('Informe eliminado');
+}
+
+// ─── VER INFORME (resumen modal) ───
+function verInforme(infId) {
+  const inf = state.informesPartido.find(x => x.id === infId);
+  if(!inf) return;
+  const jugId = inf.jugador_id;
+  // Ir al historial y hacer scroll al informe
+  switchDT('historial');
+  setTimeout(() => {
+    const el = document.querySelector(`[data-inf-id="${infId}"]`);
+    if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 200);
+}
