@@ -837,6 +837,7 @@ function getAllTareas() {
   const base = TAREAS.map(t => ({...t, _src:'base'}));
   const cadete = TAREAS_CADETE.map(t => ({...t, _src:'cadete'}));
   const barca = (typeof TAREAS_BARCA !== 'undefined' ? TAREAS_BARCA : []).map(t => ({...t, _src:'barca'}));
+  const omar = (typeof TAREAS_OMAR !== 'undefined' ? TAREAS_OMAR : []).map(t => ({...t, _src:'omar'}));
   const plantillas = PLANTILLAS_CAT.map(p => ({
     id: p.id, _src:'plantilla', t: p.titulo, pos: '', fase: '',
     cat: p.cat, catLabel: p.catLabel, edad: p.edad,
@@ -847,7 +848,7 @@ function getAllTareas() {
     _isPlantilla: true
   }));
   const custom = loadTareasCustomArr();
-  return [...base, ...cadete, ...barca, ...plantillas, ...custom];
+  return [...base, ...cadete, ...barca, ...omar, ...plantillas, ...custom];
 }
 
 function loadTareasCustomArr() {
@@ -905,6 +906,7 @@ function openTareaUnificada(id, src) {
   if(src==='base') t = TAREAS.find(x=>String(x.id)===String(id));
   if(src==='cadete') t = TAREAS_CADETE.find(x=>String(x.id)===String(id));
   if(src==='barca') t = TAREAS_BARCA.find(x=>String(x.id)===String(id));
+  if(src==='omar') t = TAREAS_OMAR.find(x=>String(x.id)===String(id));
   if(src==='plantilla') t = PLANTILLAS_CAT.find(x=>String(x.id)===String(id));
   if(src==='custom') t = loadTareasCustomArr().find(x=>String(x.id)===String(id));
   if(!t) { // fallback buscar en todos
@@ -3147,3 +3149,156 @@ function verInforme(infId) {
     if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 200);
 }
+
+// ─── TAREAS DE OMAR (marzo 2026) ───
+const TAREAS_OMAR = [
+  // BLOQUE A — POSESIÓN 3 CUADRADOS EN VERTICAL
+  {
+    id:'omar_01a', cat:'cadete', catLabel:'Defensas', edad:'Todas',
+    pos:'Central', fase:'OF', color:'#378ADD', bg:'#E6F1FB',
+    t:'Posesión 3 cuadrados en vertical — Defensas',
+    j:'4-5', d:'4min', i:'Media',
+    desc:'Circular el balón entre tres cuadrados verticales con salida limpia desde zona baja. Entrena la toma de decisión del defensa con balón bajo presión.',
+    des:'4-5 jugadores. Tres cuadrados de 6x6 alineados verticalmente. El jugador del cuadrado inferior tiene el balón (central o lateral). Un jugador presiona (rota cada 2 min). El balón debe pasar obligatoriamente por el cuadrado medio — no se puede saltar un cuadrado. Si el presionador roba, el que lo perdió pasa a presionar. Series de 4 minutos.',
+    var:'Máximo 2 toques en cuadrado inferior (simula presión alta rival). El jugador del cuadrado medio debe orientar el cuerpo antes de recibir. Añadir segundo presionador: 2v3 simultáneo.',
+    neurociencia:'La construcción bajo presión activa los circuitos de toma de decisión en condiciones de estrés. Repetir el patrón (recibir-escanear-decidir) en espacio reducido mieliniza la respuesta rápida.',
+    preg:[
+      {p:'Cuando tienes el balón en el cuadrado inferior con presión encima, ¿qué miras primero — el compañero del medio o el del alto?', razon:'Identifica la jerarquía de escaneo del jugador.'},
+      {p:'¿Cómo te posicionas en el cuadrado medio para que el que tiene el balón pueda encontrarte siempre?', razon:'Trabaja la disponibilidad y el perfil de recepción.'},
+      {p:'Cuando el presionador te cierra, ¿qué decides — conservar, volver atrás o arriesgar el pase al siguiente?', razon:'Metacognición de la decisión bajo presión.'}
+    ],
+    mics:['Apoyo de seguridad por detrás','Conducción hacia intervalos para fijar','Salida de balón bajo presión','Orientación corporal en recepción']
+  },
+  {
+    id:'omar_01b', cat:'cadete', catLabel:'Medios', edad:'Todas',
+    pos:'Pivote', fase:'OF', color:'#E07B00', bg:'#FAEEDA',
+    t:'Posesión 3 cuadrados en vertical — Medios',
+    j:'4-5', d:'4min', i:'Media',
+    desc:'El cuadrado central es la zona de decisión. El medio que recibe ahí lee si progresar o conservar. Entrena la recepción entre líneas y la decisión inmediata.',
+    des:'4-5 jugadores. Tres cuadrados de 7x7 alineados verticalmente. El jugador del cuadrado central es el protagonista: recibe desde abajo y decide si conservar, devolver o progresar al cuadrado alto. Un jugador presiona en el cuadrado central únicamente. El balón debe pasar siempre por el cuadrado central — no hay pase directo de bajo a alto. Series de 4 minutos. Rotación del presionador cada 2 minutos.',
+    var:'El jugador del cuadrado central solo tiene 2 toques antes de decidir. El presionador puede salir del cuadrado central para interceptar el pase de llegada. Condición: el pase al cuadrado alto debe ser en profundidad, nunca lateral.',
+    neurociencia:'La decisión entre progresión y conservación activa el córtex prefrontal dorsolateral. El entrenamiento repetido en este dilema construye automatismos de lectura del espacio disponible.',
+    preg:[
+      {p:'Antes de recibir en el cuadrado central, ¿ya tienes decidido lo que vas a hacer o decides cuando el balón llega?', razon:'Evalúa si el escaneo previo es efectivo.'},
+      {p:'¿Cuándo decides devolver el balón hacia abajo y cuándo progresas hacia arriba? ¿Qué ves para tomar esa decisión?', razon:'Identifica los indicadores visuales que usa para decidir.'},
+      {p:'Cuando el presionador te anticipa el pase de llegada, ¿cómo cambias tu posición para seguir siendo opción?', razon:'Adaptación táctica en tiempo real.'}
+    ],
+    mics:['Escaneos','Perfil recibiendo de espaldas para poder jugar fácil','Recibir en cuadrados para superar línea de medios con el pase','Decisión de progresión vs conservación']
+  },
+  {
+    id:'omar_01c', cat:'cadete', catLabel:'Ofensivos', edad:'Todas',
+    pos:'Delantero', fase:'OF', color:'#FF3366', bg:'#FCEBEB',
+    t:'Posesión 3 cuadrados en vertical — Ofensivos',
+    j:'4-5', d:'4min', i:'Media-Alta',
+    desc:'El cuadrado alto es la zona de finalización. El jugador que recibe ahí gira, protege y crea. Entrena recepción de espaldas, giro y asociación rápida en zona de ataque.',
+    des:'4-5 jugadores. Tres cuadrados de 7x7 alineados verticalmente. El jugador del cuadrado alto es el delantero referencia: recibe desde el medio, protege y asocia. Un jugador hace de defensor en el cuadrado alto — presión desde atrás. Completar 5 pases en el cuadrado alto después de que el balón haya llegado desde abajo. Si el defensor recupera, el que perdió pasa a defender. Series de 4 minutos.',
+    var:'El delantero del cuadrado alto solo puede girar hacia un lado (trabaja el giro hacia el lado débil). El defensor puede interceptar el pase de llegada. Añadir segundo defensor en cuadrado alto: 2v3, protección y asociación bajo presión real.',
+    neurociencia:'La recepción de espaldas y el giro bajo presión requieren integración propioceptiva y visual simultánea. La repetición en espacio limitado automatiza el "feel" del defensor detrás.',
+    preg:[
+      {p:'Cuando el balón está en el cuadrado inferior, ¿ya estás preparando tu movimiento de recepción o esperas a que el pase salga?', razon:'Evalúa la anticipación del movimiento.'},
+      {p:'Cuando recibes con el defensor encima, ¿qué parte de tu cuerpo usas primero para proteger el balón?', razon:'Analiza la técnica instintiva de protección.'},
+      {p:'¿Cuándo decides girar y cuándo decides asociar de vuelta? ¿Qué te da esa información?', razon:'Metacognición de la lectura del defensor.'}
+    ],
+    mics:['Atacar espalda de centrales con desmarque','Si vengo es porque voy','Recepción de espaldas y protección del balón','Giro bajo presión defensiva']
+  },
+
+  // BLOQUE B — POSESIÓN TRES ZONAS CON SALIDA CONDICIONADA
+  {
+    id:'omar_02a', cat:'cadete', catLabel:'Defensas', edad:'Todas',
+    pos:'Central', fase:'OF', color:'#378ADD', bg:'#E6F1FB',
+    t:'Posesión tres zonas con salida condicionada — Defensas',
+    j:'4-5', d:'5min', i:'Media',
+    desc:'Posesión en tres zonas reducidas. Entrena la salida de balón hacia zona media — la decisión más difícil para un defensa: cuándo y cómo progresar cuando hay presión encima.',
+    des:'4-5 jugadores. Campo de 20x15 pasos dividido en 3 zonas de 20x5. El balón empieza siempre en Zona A. Para puntuar, el balón debe llegar a Zona C habiendo pasado por Zona B. Un jugador presiona en Zona A. 1 punto por cada vez que el balón llega limpio a Zona C. Series de 5 minutos.',
+    var:'Máximo 3 toques en Zona A. El pase de Zona A a Zona B debe ser obligatoriamente al pie del compañero — no al espacio. Añadir segundo presionador en Zona B para replicar presión media rival.',
+    neurociencia:'La progresión por fases obliga al jugador a construir un mapa mental del espacio disponible antes de actuar. Entrena la visión periférica y la toma de decisión secuencial.',
+    preg:[
+      {p:'Cuando tienes el balón en Zona A con presión encima, ¿qué opción buscas primero?', razon:'Jerarquía de opciones del defensa con balón.'},
+      {p:'¿Cómo sabes que es el momento de intentar llegar a Zona B? ¿Qué tiene que pasar antes?', razon:'Identifica el indicador de progresión.'},
+      {p:'Si el compañero de Zona B no está disponible, ¿qué haces? ¿Conservas, cambias el juego o buscas otra vía?', razon:'Gestión de la opción alternativa.'}
+    ],
+    mics:['Apoyo de seguridad por detrás','Conducción hacia intervalos para fijar','Salida de balón estructurada desde zona defensiva','Cambio de orientación cuando la opción directa está cerrada']
+  },
+  {
+    id:'omar_02b', cat:'cadete', catLabel:'Medios', edad:'Todas',
+    pos:'Interior', fase:'OF', color:'#A855F7', bg:'#EEEDFE',
+    t:'Posesión tres zonas con salida condicionada — Medios',
+    j:'4-5', d:'5min', i:'Media',
+    desc:'La Zona B es el territorio del medio. Recibe desde atrás y decide si mantener o progresar. Entrena la lectura de cuándo el espacio en Zona C está disponible para dar el pase final.',
+    des:'4-5 jugadores. Campo de 20x18 pasos dividido en 3 zonas de 20x6. El medio protagonista vive en Zona B. Recibe desde Zona A y decide progresar a Zona C o conservar. Un jugador presiona en Zona B. Para puntuar: secuencia A→B→C completada. El medio de Zona B tiene que ser el nexo obligatorio. Series de 5 minutos.',
+    var:'El medio de Zona B solo tiene 3 toques para decidir. El presionador puede salir de Zona B para interceptar el pase de llegada. Condición avanzada: el pase a Zona C solo es válido si el receptor está en movimiento cuando recibe.',
+    neurociencia:'El medio entre líneas necesita procesar dos informaciones simultáneas: lo que hay detrás (Zona A) y lo que hay delante (Zona C). Esta doble visión se entrena con repetición y feedback inmediato.',
+    preg:[
+      {p:'¿Miras Zona C antes de recibir en Zona B o solo después de tener el balón?', razon:'Evalúa si el escaneo es pre o post recepción.'},
+      {p:'¿Cuándo decides que Zona C no está disponible y conservas? ¿Qué señal te lo dice?', razon:'Identifica el indicador de no-progresión.'},
+      {p:'Cuando devuelves a Zona A, ¿es porque no había opción o porque no te atreviste a arriesgar?', razon:'Diferencia entre decisión táctica y limitación mental.'}
+    ],
+    mics:['Escaneos','Percepción de espacios antes de recibir','Lectura de líneas de pase desde zona media','Timing de la progresión']
+  },
+  {
+    id:'omar_02c', cat:'cadete', catLabel:'Ofensivos', edad:'Todas',
+    pos:'Extremo', fase:'OF', color:'#FF6B35', bg:'#FAECE7',
+    t:'Posesión tres zonas con salida condicionada — Ofensivos',
+    j:'4-5', d:'5min', i:'Media-Alta',
+    desc:'La Zona C es su zona — pero solo pueden atacarla si el balón ha pasado por Zona B. Entrena el movimiento previo del atacante para crear el espacio para recibir en condiciones de finalizar.',
+    des:'4-5 jugadores. Campo de 20x18 pasos dividido en 3 zonas de 20x6. Los atacantes trabajan principalmente en Zona C. Un jugador en Zona B hace de enlace. Un defensor en Zona C presiona. Para puntuar: recepción en Zona C con el cuerpo orientado hacia adelante y pase o remate en un máximo de 2 toques. Series de 5 minutos.',
+    var:'El atacante de Zona C debe hacer un movimiento de alejamiento antes de pedir el balón (desmarque de ruptura). El defensor de Zona C puede salir a interceptar el pase de llegada. Solo puntúa si el remate o pase final es con el pie no dominante.',
+    neurociencia:'El desmarque previo a la recepción activa el sistema motor planificado — el atacante programa el movimiento de recepción antes de que el balón salga. Entrena la anticipación motriz.',
+    preg:[
+      {p:'¿Cuándo y cómo haces el movimiento para crear el espacio en Zona C?', razon:'Identifica la señal que activa el desmarque.'},
+      {p:'Cuando el balón llega a Zona B, ¿ya estás en posición o todavía te estás moviendo?', razon:'Evalúa el timing del movimiento previo.'},
+      {p:'Si el defensor te anticipa el espacio, ¿tienes un movimiento alternativo o te quedas parado?', razon:'Adaptabilidad del desmarque.'}
+    ],
+    mics:['Rupturas a la espalda de la línea defensiva','Desmarque desde segunda altura','Generar arrastres','Movimiento previo a la recepción en profundidad']
+  },
+
+  // BLOQUE C — TRANSICIONES EN TRES CARRILES
+  {
+    id:'omar_03a', cat:'cadete', catLabel:'Defensas', edad:'Todas',
+    pos:'Central', fase:'TD', color:'#D85A30', bg:'#FAECE7',
+    t:'Transiciones en tres carriles — Defensas',
+    j:'4-5', d:'6min', i:'Alta',
+    desc:'Transición defensiva. Un defensa ataca al espacio y otro defiende un 1v1 inmediato cuando termina. Replica el momento más exigente: pasar de atacar a defender sin tiempo de recuperación.',
+    des:'4-5 jugadores en parejas rotantes (uno ataca, uno defiende, resto espera). El atacante sale en sprint a un cono de 15 pasos, da la vuelta y viene hacia mini-portería. El defensor sale en sprint diagonal a un cono exterior y vuelve — cuando regresa, el atacante ya viene con balón. 1v1: el defensor frena al atacante que llega con ventaja de posición. El que defiende bien suma 1 punto. Rotación tras cada 1v1. Series de 6 minutos.',
+    var:'Sin sprint previo: transición directa, menos fatiga, más foco en la técnica defensiva del 1v1. El cono del defensor más alejado: más ventaja para el atacante. Condición: el defensor no puede entrar en el área hasta que el atacante haya superado la línea central.',
+    neurociencia:'La transición ataque→defensa bajo fatiga activa los mecanismos de inhibición cognitiva — el jugador debe frenar el impulso ofensivo y activar el modo defensivo. Se entrena con repetición y bajo carga física real.',
+    preg:[
+      {p:'Cuando llegas al 1v1 después del sprint, ¿frenas bien antes de encarar al atacante o llegas con demasiada inercia?', razon:'Evalúa el control motor bajo fatiga.'},
+      {p:'¿Qué parte del cuerpo del atacante miras para anticipar hacia dónde va?', razon:'Identifica los indicadores visuales del defensor.'},
+      {p:'Cuando estás cansado, ¿qué cambia en tu manera de defender el 1v1?', razon:'Metacognición de la resistencia técnica.'}
+    ],
+    mics:['Transición de ataque a defensa','1v1 defensivo bajo fatiga','Frenada y posicionamiento defensivo tras sprint','Resistencia técnica bajo fatiga']
+  },
+  {
+    id:'omar_03b', cat:'cadete', catLabel:'Medios', edad:'Todas',
+    pos:'Pivote', fase:'TO', color:'#00D4AA', bg:'rgba(0,212,170,0.08)',
+    t:'Transiciones en tres carriles — Medios',
+    j:'4-5', d:'5min', i:'Alta',
+    desc:'Combina un 2v2 en zona central con transición inmediata al perder o recuperar. El medio entrena la velocidad de lectura del cambio de fase.',
+    des:'4-5 jugadores. Espacio de 20x15 pasos con dos mini-porterías. 2v2 central. El quinto jugador es comodín con el equipo que tiene el balón. Cuando hay gol o el balón sale, el que perdió activa transición defensiva: tiene 3 segundos para volver a su posición. El equipo que recupera no puede esperar — ataca inmediatamente. Series de 5 minutos continuos.',
+    var:'Sin tiempo de recuperación: el ataque del rival empieza en el instante exacto de la recuperación. El comodín solo puede tocar el balón una vez por posesión. Gol válido solo si hay al menos un compañero en posición de ataque.',
+    neurociencia:'El cambio de fase (ataque↔defensa) es el momento de mayor carga cognitiva en el fútbol. Entrenar específicamente ese instante de transición activa la flexibilidad cognitiva y los mecanismos de inhibición/activación.',
+    preg:[
+      {p:'¿En qué momento exacto decides que has perdido el balón y hay que defender?', razon:'Identifica el indicador de cambio de fase.'},
+      {p:'Cuando recuperas el balón, ¿tu primera mirada es al compañero más cercano o al espacio más libre?', razon:'Jerarquía visual en la transición ofensiva.'},
+      {p:'¿Eres más rápido en la transición ofensiva o en la defensiva? ¿Por qué crees que hay diferencia?', razon:'Autoconocimiento táctico.'}
+    ],
+    mics:['Velocidad de lectura del cambio de fase','Transición ofensiva: de defender a atacar en 1-2 acciones','Reacción tras recuperación','Reacción tras pérdida']
+  },
+  {
+    id:'omar_03c', cat:'cadete', catLabel:'Ofensivos', edad:'Todas',
+    pos:'Delantero', fase:'TO', color:'#FF3366', bg:'#FCEBEB',
+    t:'Transiciones en tres carriles — Ofensivos',
+    j:'4-5', d:'6min', i:'Alta',
+    desc:'Transición ofensiva. El atacante recibe el balón después de un sprint y tiene que atacar el 1v1 o crear la superioridad inmediata. Replica el contraataque real.',
+    des:'4-5 jugadores. Espacio de 25x20 pasos con portería grande. El atacante sale en sprint a un cono de 20 pasos, da la vuelta y recibe del compañero. El defensor sale en sprint diagonal — llega ligeramente tarde. 1v1 con portero: el atacante tiene ventaja posicional. Si hay 5 jugadores: dos atacantes salen, uno recibe y uno apoya — 2v1 con portero. Series de 6 minutos con rotación.',
+    var:'El atacante solo tiene 4 segundos desde que recibe para finalizar. El defensor sale al mismo tiempo que el atacante (mismo cansancio, mayor igualdad). Variante 2v1: el segundo atacante viene desde banda — el que recibe decide si asocia o va solo.',
+    neurociencia:'El contraataque exige la máxima velocidad de procesamiento — cuerpo en fatiga, espacio disponible, defensor descolocado, portero a leer. La repetición bajo estas condiciones entrena la decisión automática en el momento del contraataque.',
+    preg:[
+      {p:'Cuando recibes el balón después del sprint, ¿ya sabes lo que vas a hacer antes de que llegue el balón?', razon:'Evalúa si la anticipación cognitiva supera la fatiga física.'},
+      {p:'En el 1v1 con el defensor cansado, ¿qué tipo de regate o movimiento te funciona mejor? ¿Por qué?', razon:'Autoconocimiento del repertorio ofensivo.'},
+      {p:'En la variante 2v1, ¿cuándo decides que es mejor ir solo y cuándo dar el pase?', razon:'Lectura de la superioridad numérica.'}
+    ],
+    mics:['Ataque al espacio tras transición','Si vengo es porque voy','Finalización bajo fatiga','Decisión de ir solo vs asociar en superioridad']
+  },
+];
