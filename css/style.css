@@ -260,3 +260,108 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0,0,0,.3);
 }
+
+/* ═══════════════════════════════
+   REDISEÑO VISUAL — v10.1
+   ═══════════════════════════════ */
+
+/* STATS — colores por tipo */
+.stat { position: relative; overflow: hidden; transition: transform .15s; }
+.stat:hover { transform: translateY(-1px); }
+.stat::before { content:''; position:absolute; top:0; right:0; width:3px; height:100%; border-radius:0 var(--radius) var(--radius) 0; }
+.stat.s-blue::before { background: #378ADD; }
+.stat.s-green::before { background: #1D9E75; }
+.stat.s-purple::before { background: #7C6FF0; }
+.stat.s-amber::before { background: #E07B00; }
+.stat.s-blue .stat-num { color: #378ADD; }
+.stat.s-green .stat-num { color: #1D9E75; }
+.stat.s-purple .stat-num { color: #7C6FF0; }
+.stat.s-amber .stat-num { color: #E07B00; }
+.stat-label { font-size: 11px; color: var(--text2); margin-top: 3px; }
+
+/* CARDS — hover más marcado */
+.card { transition: border-color .15s, box-shadow .15s, transform .15s; }
+.card:hover { border-color: var(--border2); box-shadow: 0 2px 12px rgba(0,0,0,.07); transform: translateY(-1px); }
+
+/* SECTION LABELS rediseñados */
+.sl {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text3);
+  margin-bottom: .75rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sl::after {
+  content: '';
+  flex: 1;
+  height: 0.5px;
+  background: var(--border);
+}
+
+/* TOPBAR en secciones principales */
+.section-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.section-topbar .page-title { margin: 0; }
+
+/* JUGADORES — grid mejorado */
+.grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+/* INFORME — fases cards */
+.fase-card-v2 {
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 0.5px solid;
+}
+
+/* FILTROS DE POSICIÓN — pills */
+.pos-pill {
+  padding: 5px 12px;
+  border-radius: 99px;
+  font-size: 11px;
+  cursor: pointer;
+  border: 0.5px solid var(--border2);
+  background: none;
+  color: var(--text2);
+  font-family: inherit;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.pos-pill:hover { background: var(--bg2); }
+.pos-pill.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+/* INFORMES — nota circle */
+.nota-circle-v2 {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1.5px solid;
+}
+
+/* FADE IN suave al cargar secciones */
+.page.active { animation: fadeInPage .2s ease; }
+@keyframes fadeInPage {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* SIDEBAR — sección labels más visibles */
+.nav-section { font-size: 9px; color: rgba(255,255,255,0.18); text-transform: uppercase; letter-spacing: .12em; padding: .875rem 1.5rem .25rem; font-weight: 800; }
+
+/* MODAL — mejora del header */
+.modal-header { padding-bottom: 1rem; border-bottom: 0.5px solid var(--border); margin-bottom: 1.25rem; }
+.modal-title { font-size: 15px; font-weight: 700; }
