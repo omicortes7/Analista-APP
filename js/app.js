@@ -69,6 +69,8 @@ async function loadAll() {
   state.microconceptos = m.data||[];
   state.informesPartido = inf.data||[];
   state.clipsInforme = cl.data||[];
+  const plRes = await DB.from('planes_partido').select('*').order('created_at',{ascending:false});
+  state.planesPartido = plRes.data||[];
   // Cargar clips de microconceptos
   try {
     const { data: mcData } = await DB.from('clips_microconcepto').select('*').order('created_at');
@@ -236,7 +238,7 @@ async function saveJugador(){
     const r2=new FileReader();
     foto_jugador=await new Promise(res=>{r2.onload=e=>res(e.target.result);r2.readAsDataURL(ff2.files[0]);});
   }
-  const data={nombre,posicion:document.getElementById('npp').value,equipo:document.getElementById('npe').value.trim(),categoria:document.getElementById('npc').value,sesion_fecha:document.getElementById('nps').value||null,logo_club,foto_jugador};
+  const data={nombre,posicion:document.getElementById('npp').value,equipo:document.getElementById('npe').value.trim(),categoria:document.getElementById('npc').value,sesion_fecha:document.getElementById('nps').value||null,logo_club,foto_jugador,email_jugador:document.getElementById('npe-mail')?.value.trim()||''};
   const{data:res,error}=await DB.from('jugadores').insert(data).select();
   if(error){showToast('Error al guardar');return;}
   state.jugadores.unshift(res[0]);
@@ -257,7 +259,7 @@ function openJug(id){
 }
 
 function switchDT(tab){
-  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','partidos','sesion','informe','historial','tareas'][i]===tab));
+  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','partidos','sesion','informe','historial','tareas','plan'][i]===tab));
   renderDT(tab);
 }
 
@@ -601,6 +603,9 @@ function renderDT(tab){
       '<button class="btn-outline" style="width:100%;font-size:12px;" onclick="closeModal(\'mdj\');goTo(\'tareas\')">Ver biblioteca completa de tareas →</button></div>';
   }
 
+  if(tab==='plan'){
+    renderPlanSection();
+  }
 }
 
 function setModoPartido(modo) {
@@ -3352,3 +3357,46 @@ const TAREAS_OMAR = [
     mics:['Ataque al espacio tras transición','Si vengo es porque voy','Finalización bajo fatiga','Decisión de ir solo vs asociar en superioridad']
   },
 ];
+
+// ─── PLAN DE PARTIDO (desde app analista → va al jugador) ───
+
+function renderPlanSection() {
+  const id = state.currentJugador;
+  if(!id) return;
+  const planes = (state.planesPartido||[]).filter(p => p.jugador_id === id);
+  const body = document.getElementById('djbody');
+  if(!body) return;
+  const SI='width:100%;height:36px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;background:var(--bg);color:var(--text);outline:none;box-sizing:border-box;';
+  const TA='width:100%;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px;font-size:12px;background:var(--bg);color:var(--text);resize:vertical;font-family:inherit;outline:none;line-height:1.6;box-sizing:border-box;';
+  const CARD='background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:.875rem;';
+  body.innerHTML=`
+    <div style="${CARD}">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">Nuevo plan de partido</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Fecha</label><input type="date" id="plan-fecha" style="${SI}" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Rival</label><input type="text" id="plan-rival" placeholder="Nombre del rival" style="${SI}"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Puntos del plan (uno por línea)</div>
+      <textarea id="plan-items" placeholder="Trabaja la anticipación bajo presión&#10;Busca el espacio entre pivote e interior&#10;En transición, sprint inmediato al espacio..." style="${TA}height:110px;margin-bottom:8px;"></textarea>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Notas adicionales</div>
+      <textarea id="plan-notas" placeholder="Contexto, rival, condiciones del partido..." style="${TA}height:55px;margin-bottom:10px;"></textarea>
+      <button class="btn" style="width:100%;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;letter-spacing:.03em;" onclick="savePlanPartido('${id}')">📤 Enviar plan al jugador</button>
+    </div>
+    ${planes.length?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.75rem;">Planes anteriores</div>
+    ${planes.map(p=>`<div style="${CARD}padding:.875rem;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:13px;font-weight:600;">${p.rival||'Partido'}</div><div style="font-size:10px;color:var(--text3);">${p.fecha||''}</div></div>${(p.items||[]).map((item,i)=>`<div style="display:flex;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border);"><div style="color:var(--blue);font-size:11px;font-weight:700;min-width:18px;">${i+1}</div><div style="font-size:12px;color:var(--text2);">${item}</div></div>`).join('')}</div>`).join('')}`:''}`;
+}
+
+async function savePlanPartido(jugId) {
+  const fecha=document.getElementById('plan-fecha')?.value;
+  const rival=document.getElementById('plan-rival')?.value.trim()||'';
+  const itemsRaw=document.getElementById('plan-items')?.value.trim()||'';
+  const notas=document.getElementById('plan-notas')?.value.trim()||'';
+  if(!itemsRaw){showToast('Escribe al menos un punto del plan');return;}
+  const items=itemsRaw.split('\n').filter(Boolean);
+  const{data,error}=await DB.from('planes_partido').insert({jugador_id:jugId,fecha,rival,items,notas}).select();
+  if(error){showToast('Error: '+error.message);return;}
+  if(!state.planesPartido)state.planesPartido=[];
+  state.planesPartido.unshift(data[0]);
+  showToast('✓ Plan enviado al jugador');
+  renderPlanSection();
+}
