@@ -3400,3 +3400,70 @@ async function savePlanPartido(jugId) {
   showToast('✓ Plan enviado al jugador');
   renderPlanSection();
 }
+
+// ─── EDITAR JUGADOR ───
+function abrirEditarJugador() {
+  const id = state.currentJugador;
+  const j = state.jugadores.find(x => x.id === id);
+  if(!j) return;
+  document.getElementById('ej-nombre').value = j.nombre||'';
+  document.getElementById('ej-pos').value = j.posicion||'Central';
+  document.getElementById('ej-equipo').value = j.equipo||'';
+  document.getElementById('ej-cat').value = j.categoria||'Cadete';
+  document.getElementById('ej-sesion').value = j.sesion_fecha||'';
+  document.getElementById('ej-email').value = j.email_jugador||'';
+  openModal('modal-edit-jug');
+}
+
+async function guardarEdicionJugador() {
+  const id = state.currentJugador;
+  const j = state.jugadores.find(x => x.id === id);
+  if(!j) return;
+
+  const nombre = document.getElementById('ej-nombre').value.trim();
+  if(!nombre) { showToast('El nombre es obligatorio'); return; }
+
+  const updates = {
+    nombre,
+    posicion: document.getElementById('ej-pos').value,
+    equipo: document.getElementById('ej-equipo').value.trim(),
+    categoria: document.getElementById('ej-cat').value,
+    sesion_fecha: document.getElementById('ej-sesion').value || null,
+    email_jugador: document.getElementById('ej-email').value.trim(),
+  };
+
+  // Foto nueva
+  const fotoFile = document.getElementById('ej-foto')?.files?.[0];
+  if(fotoFile) {
+    const r = new FileReader();
+    updates.foto_jugador = await new Promise(res => { r.onload = e => res(e.target.result); r.readAsDataURL(fotoFile); });
+  }
+
+  // Logo nuevo
+  const logoFile = document.getElementById('ej-logo')?.files?.[0];
+  if(logoFile) {
+    const r2 = new FileReader();
+    updates.logo_club = await new Promise(res => { r2.onload = e => res(e.target.result); r2.readAsDataURL(logoFile); });
+  }
+
+  const { error } = await DB.from('jugadores').update(updates).eq('id', id);
+  if(error) { showToast('Error: ' + error.message); return; }
+
+  // Actualizar estado local
+  Object.assign(j, updates);
+  closeModal('modal-edit-jug');
+
+  // Actualizar header del modal
+  const pc = AV_COLORS[j.posicion]||{bg:'#eee',color:'#666'};
+  document.getElementById('djn').textContent = j.nombre;
+  document.getElementById('djm').textContent = `${j.posicion} · ${j.equipo||''} · ${j.categoria||''}`;
+
+  renderJugadores();
+  renderInicio();
+  showToast('✓ Jugador actualizado');
+
+  // Mostrar confirmación de email si se puso
+  if(updates.email_jugador) {
+    setTimeout(() => showToast(`✓ Vinculado con ${updates.email_jugador}`), 1500);
+  }
+}
