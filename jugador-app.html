@@ -2,177 +2,34 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Mi Panel · Analista</title>
-<script>
-// Cargar Supabase dinámicamente para garantizar que está disponible
-</script>
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Panel</title>
 <style>
-:root {
-  --bg:#0d1117; --bg2:#161b22; --bg3:#1c2128; --card:#21262d;
-  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.15);
-  --text:#e6edf3; --text2:#8b949e; --text3:#484f58;
-  --green:#3fb950; --blue:#58a6ff; --amber:#d29922;
-  --red:#f85149; --purple:#a371f7; --pink:#f778ba;
-  --radius:12px; --radius-sm:8px;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;margin:0 auto;position:relative;}
-
-/* ── LOGIN ── */
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--card:#21262d;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);--text:#e6edf3;--text2:#8b949e;--text3:#484f58;--green:#3fb950;--blue:#58a6ff;--amber:#d29922;--red:#f85149;--purple:#a371f7;--radius:12px;--radius-sm:8px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;margin:0 auto;}
 #login-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;}
-.login-logo{width:68px;height:68px;border-radius:20px;background:linear-gradient(135deg,#1D9E75,#0f6e56);display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;box-shadow:0 8px 24px rgba(29,158,117,0.3);}
-.login-title{font-size:26px;font-weight:800;margin-bottom:6px;letter-spacing:-.02em;}
+.login-logo{width:68px;height:68px;border-radius:20px;background:linear-gradient(135deg,#1D9E75,#0f6e56);display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;}
+.login-title{font-size:26px;font-weight:800;margin-bottom:6px;}
 .login-sub{font-size:14px;color:var(--text2);margin-bottom:2rem;text-align:center;}
 .login-card{width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:1.5rem;}
 .fl{font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500;display:block;}
 .fi{width:100%;height:42px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 12px;font-size:14px;color:var(--text);outline:none;font-family:inherit;margin-bottom:12px;}
 .fi:focus{border-color:var(--blue);}
-.btn-primary{width:100%;height:44px;background:linear-gradient(135deg,#1D9E75,#0f6e56);border:none;border-radius:var(--radius-sm);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.02em;margin-top:4px;}
-.btn-primary:active{opacity:.85;}
+.btn-primary{width:100%;height:44px;background:linear-gradient(135deg,#1D9E75,#0f6e56);border:none;border-radius:var(--radius-sm);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;}
 .login-err{font-size:12px;color:var(--red);margin-top:10px;text-align:center;min-height:16px;}
 .login-link{font-size:12px;color:var(--blue);text-align:center;margin-top:14px;cursor:pointer;}
-
-/* ── APP ── */
-#app-screen{display:none;padding-bottom:calc(64px + env(safe-area-inset-bottom,0px));}
-.app-header{background:var(--bg2);border-bottom:0.5px solid var(--border);padding:0 1rem;height:56px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;}
-.hav{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;}
-.hname{font-size:14px;font-weight:700;flex:1;}
-.hpos{font-size:10px;color:var(--text2);}
-.hlogout{background:none;border:none;cursor:pointer;color:var(--text3);padding:6px;font-size:18px;}
-
-/* ── BOTTOM NAV ── */
-.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--bg2);border-top:0.5px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,0px);}
-.nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 0 7px;cursor:pointer;background:none;border:none;color:var(--text3);font-size:9px;font-family:inherit;gap:3px;transition:color .15s;}
-.nb.active{color:var(--green);}
-.nb svg{width:20px;height:20px;stroke-width:1.8;}
-
-/* ── CONTENT ── */
-.content{padding:1rem;}
-.sec{display:none;animation:fi .2s ease;}
-.sec.active{display:block;}
-@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-/* ── CARDS ── */
-.card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:.875rem;}
-.ctitle{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--text2);margin-bottom:.875rem;display:flex;align-items:center;gap:7px;}
-.cdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
-
-/* ── DASH ── */
-.dgreet{font-size:22px;font-weight:800;margin-bottom:3px;letter-spacing:-.02em;}
-.ddate{font-size:13px;color:var(--text2);margin-bottom:1.25rem;}
-.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;}
-.kpi{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:.875rem;position:relative;overflow:hidden;}
-.kpi::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;}
-.kpi.k-green::before{background:var(--green);}
-.kpi.k-blue::before{background:var(--blue);}
-.kpi.k-amber::before{background:var(--amber);}
-.kpi.k-purple::before{background:var(--purple);}
-.knum{font-size:30px;font-weight:800;line-height:1;}
-.klbl{font-size:11px;color:var(--text2);margin-top:3px;}
-.k-green .knum{color:var(--green);}
-.k-blue .knum{color:var(--blue);}
-.k-amber .knum{color:var(--amber);}
-.k-purple .knum{color:var(--purple);}
-
-/* ── OBJETIVOS ── */
-.obj-row{display:flex;align-items:flex-start;gap:10px;padding:.75rem 0;border-bottom:0.5px solid var(--border);}
-.obj-row:last-child{border-bottom:none;}
-.obj-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
-.obj-text{font-size:13px;flex:1;line-height:1.5;}
-.obj-fase{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;margin-top:3px;display:inline-block;}
-
-/* ── CLIPS ── */
-.clip-card{background:var(--bg3);border-radius:var(--radius-sm);padding:.875rem;margin-bottom:8px;border:0.5px solid var(--border);}
-.clip-tipo{font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;display:inline-block;margin-bottom:6px;}
-.clip-titulo{font-size:13px;font-weight:600;margin-bottom:8px;}
-.video-wrap{width:100%;border-radius:8px;overflow:hidden;background:#000;aspect-ratio:16/9;}
-.video-wrap video,.video-wrap iframe{width:100%;height:100%;border:none;display:block;}
-
-/* ── PLAN DE PARTIDO ── */
-.plan-item{display:flex;gap:10px;padding:.75rem 0;border-bottom:0.5px solid var(--border);}
-.plan-num{width:24px;height:24px;border-radius:50%;background:rgba(58,166,255,0.15);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
-.plan-text{font-size:13px;line-height:1.6;color:var(--text);}
-
-/* ── INFORMES ── */
-.inf-card{background:var(--bg3);border-radius:var(--radius-sm);padding:1rem;margin-bottom:8px;border:0.5px solid var(--border);}
-.inf-header{display:flex;align-items:center;gap:12px;margin-bottom:.875rem;}
-.inf-nota{width:48px;height:48px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid;flex-shrink:0;}
-.inf-nnum{font-size:17px;font-weight:800;line-height:1;}
-.inf-nsub{font-size:8px;letter-spacing:.04em;}
-.inf-partido{font-size:14px;font-weight:600;}
-.inf-meta{font-size:11px;color:var(--text2);margin-top:2px;}
-.fase-bar{margin-bottom:8px;}
-.fb-header{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;}
-.fb-track{height:5px;background:var(--border2);border-radius:99px;overflow:hidden;}
-.fb-fill{height:5px;border-radius:99px;}
-.star-line{display:flex;align-items:center;gap:6px;font-size:11px;padding:5px 0;border-bottom:0.5px solid var(--border);}
-.star-line:last-child{border-bottom:none;}
-.stars{display:flex;gap:1px;}
-.star{font-size:14px;}
-
-/* ── PSICOLOGÍA ── */
-.mood-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:1rem;}
-.mood-btn{background:var(--bg3);border:0.5px solid var(--border2);border-radius:10px;padding:10px 6px;cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
-.mood-btn.sel{border-color:var(--purple);background:rgba(163,113,247,0.15);}
-.mood-emoji{font-size:24px;display:block;margin-bottom:4px;}
-.mood-label{font-size:9px;color:var(--text2);}
-.psico-q{font-size:13px;font-weight:600;margin-bottom:8px;line-height:1.5;}
-.psico-ta{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px;font-size:13px;color:var(--text);resize:none;font-family:inherit;outline:none;line-height:1.6;}
-.psico-ta:focus{border-color:var(--purple);}
-.slider-wrap{margin-bottom:1rem;}
-.slider-label{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px;}
-.slider{width:100%;height:5px;border-radius:99px;appearance:none;background:var(--border2);outline:none;cursor:pointer;}
-.slider::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border-radius:50%;background:var(--purple);cursor:pointer;}
-.slider-val{font-size:18px;font-weight:800;color:var(--purple);text-align:center;margin-bottom:.5rem;}
-
-/* ── NUTRICIÓN ── */
-.macro-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem;}
-.macro-card{background:var(--bg3);border-radius:var(--radius-sm);padding:.875rem;text-align:center;border:0.5px solid var(--border);}
-.macro-num{font-size:22px;font-weight:800;}
-.macro-lbl{font-size:10px;color:var(--text2);margin-top:2px;}
-.meal-item{display:flex;align-items:flex-start;gap:10px;padding:.75rem 0;border-bottom:0.5px solid var(--border);}
-.meal-ico{font-size:20px;flex-shrink:0;}
-.meal-name{font-size:13px;font-weight:600;margin-bottom:2px;}
-.meal-desc{font-size:12px;color:var(--text2);line-height:1.5;}
-.nut-log-ta{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px;font-size:13px;color:var(--text);resize:none;font-family:inherit;outline:none;line-height:1.6;height:90px;}
-
-/* ── TAREAS ── */
-.tarea-card{background:var(--bg3);border-radius:var(--radius-sm);padding:1rem;margin-bottom:8px;border:0.5px solid var(--border);border-left:3px solid;}
-.tarea-titulo{font-size:14px;font-weight:700;margin-bottom:4px;}
-.tarea-desc{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:.75rem;}
-.tarea-pregs{font-size:12px;color:var(--text2);}
-.tarea-preg{display:flex;gap:7px;margin-bottom:6px;align-items:flex-start;}
-.tarea-preg::before{content:'?';width:18px;height:18px;border-radius:50%;background:rgba(88,166,255,0.15);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;}
-.badge-meta{font-size:9px;padding:2px 7px;border-radius:99px;background:rgba(255,255,255,0.06);color:var(--text2);display:inline-block;margin-right:5px;}
-
-/* ── BUTTONS ── */
-.btn-save{width:100%;height:42px;background:rgba(63,185,80,0.15);border:0.5px solid rgba(63,185,80,0.4);border-radius:var(--radius-sm);color:var(--green);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
-.btn-save:active{background:rgba(63,185,80,0.25);}
-.btn-outline-sm{background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:6px 14px;font-size:12px;color:var(--text2);cursor:pointer;font-family:inherit;}
-
-/* ── EMPTY STATE ── */
-.empty{text-align:center;padding:3rem 1rem;color:var(--text3);}
-.empty-ico{font-size:40px;margin-bottom:10px;}
-.empty-msg{font-size:14px;color:var(--text2);margin-bottom:5px;font-weight:600;}
-.empty-sub{font-size:12px;line-height:1.6;}
-
-/* ── TOAST ── */
-#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1D9E75;color:#fff;padding:8px 20px;border-radius:99px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999;}
-
-/* ── LOADING ── */
+#app-screen{display:none;}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1D9E75;color:#fff;padding:8px 20px;border-radius:99px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;}
 .loading{text-align:center;padding:3rem;color:var(--text3);font-size:13px;}
+.card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:.875rem;}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-logo">
-    <svg viewBox="0 0 32 32" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
-      <circle cx="16" cy="16" r="12"/><path d="M10 16.5l4 4 8-8"/>
-    </svg>
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><circle cx="16" cy="16" r="12"/><path d="M10 16.5l4 4 8-8"/></svg>
   </div>
   <div class="login-title">Mi Panel</div>
   <div class="login-sub">Accede a tu espacio de jugador</div>
@@ -181,12 +38,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <input class="fi" type="email" id="l-email" placeholder="tu@email.com">
     <label class="fl">Contraseña</label>
     <input class="fi" type="password" id="l-pass" placeholder="••••••••">
-    <button class="btn-primary" onclick="doLogin()">Entrar</button>
+    <button class="btn-primary" id="btn-login">Entrar</button>
     <div class="login-err" id="l-err"></div>
   </div>
-  <div class="login-link" onclick="showRegister()">¿Primera vez? Crea tu cuenta</div>
-
-  <!-- REGISTRO -->
+  <div class="login-link" id="link-register">¿Primera vez? Crea tu cuenta</div>
   <div id="register-panel" style="display:none;width:100%;margin-top:1rem;">
     <div class="login-card">
       <div style="font-size:14px;font-weight:700;margin-bottom:1rem;">Crear cuenta</div>
@@ -196,683 +51,233 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <input class="fi" type="email" id="r-email" placeholder="tu@email.com">
       <label class="fl">Contraseña</label>
       <input class="fi" type="password" id="r-pass" placeholder="Mínimo 6 caracteres">
-      <button class="btn-primary" onclick="doRegister()">Crear cuenta</button>
+      <button class="btn-primary" id="btn-register">Crear cuenta</button>
       <div class="login-err" id="r-err"></div>
     </div>
   </div>
 </div>
 
-<!-- APP -->
 <div id="app-screen">
-  <div class="app-header">
-    <div class="hav" id="hav" style="background:#1D9E7520;color:#1D9E75;">J</div>
-    <div>
-      <div class="hname" id="hname">Jugador</div>
-      <div class="hpos" id="hpos">Cargando...</div>
-    </div>
-    <button class="hlogout" onclick="doLogout()">↩</button>
+  <div style="padding:2rem;text-align:center;">
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px;" id="app-nombre">Cargando...</div>
+    <div style="font-size:13px;color:var(--text2);" id="app-pos"></div>
+    <div style="margin-top:2rem;" id="app-content"><div class="loading">Cargando datos...</div></div>
+    <button onclick="doLogout()" style="margin-top:2rem;background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px 20px;font-size:12px;color:var(--text2);cursor:pointer;font-family:inherit;">Cerrar sesión</button>
   </div>
-
-  <div class="content">
-    <!-- DASHBOARD -->
-    <div class="sec active" id="sec-dash">
-      <div class="dgreet" id="dash-greet">Hola</div>
-      <div class="ddate" id="dash-date"></div>
-      <div class="kpi-grid">
-        <div class="kpi k-green"><div class="knum" id="k-obj">—</div><div class="klbl">Objetivos activos</div></div>
-        <div class="kpi k-blue"><div class="knum" id="k-inf">—</div><div class="klbl">Informes</div></div>
-        <div class="kpi k-amber"><div class="knum" id="k-tar">—</div><div class="klbl">Tareas pendientes</div></div>
-        <div class="kpi k-purple"><div class="knum" id="k-clips">—</div><div class="klbl">Clips de análisis</div></div>
-      </div>
-
-      <div class="card" id="dash-plan-card" style="display:none;">
-        <div class="ctitle"><div class="cdot" style="background:var(--blue);"></div>Plan del próximo partido</div>
-        <div id="dash-plan-preview" style="font-size:13px;color:var(--text2);line-height:1.6;"></div>
-        <button class="btn-outline-sm" style="margin-top:10px;" onclick="goSec('plan')">Ver plan completo →</button>
-      </div>
-
-      <div class="card">
-        <div class="ctitle"><div class="cdot" style="background:var(--green);"></div>Objetivos prioritarios</div>
-        <div id="dash-objs"><div class="loading">Cargando...</div></div>
-      </div>
-
-      <div class="card">
-        <div class="ctitle"><div class="cdot" style="background:var(--amber);"></div>Último informe</div>
-        <div id="dash-last-inf"><div class="loading">Cargando...</div></div>
-      </div>
-    </div>
-
-    <!-- OBJETIVOS -->
-    <div class="sec" id="sec-obj">
-      <div class="card">
-        <div class="ctitle"><div class="cdot" style="background:var(--blue);"></div>Objetivos de temporada</div>
-        <div id="objs-temporada"><div class="loading">Cargando...</div></div>
-      </div>
-      <div class="card">
-        <div class="ctitle"><div class="cdot" style="background:var(--green);"></div>Objetivos a corto plazo</div>
-        <div id="objs-corto"><div class="loading">Cargando...</div></div>
-      </div>
-    </div>
-
-    <!-- CLIPS -->
-    <div class="sec" id="sec-clips">
-      <div style="display:flex;gap:8px;margin-bottom:1rem;overflow-x:auto;padding-bottom:4px;">
-        <button class="btn-outline-sm active-tab" id="ct-mejorar" onclick="filterClips('mejorar')">△ A mejorar</button>
-        <button class="btn-outline-sm" id="ct-positivo" onclick="filterClips('positivo')">✓ Puntos fuertes</button>
-        <button class="btn-outline-sm" id="ct-referencia" onclick="filterClips('referencia')">★ Referencias élite</button>
-      </div>
-      <div id="clips-content"><div class="loading">Cargando...</div></div>
-    </div>
-
-    <!-- PLAN DE PARTIDO -->
-    <div class="sec" id="sec-plan">
-      <div class="card" id="plan-card">
-        <div class="ctitle"><div class="cdot" style="background:var(--blue);"></div>Plan del partido</div>
-        <div id="plan-content"><div class="empty"><div class="empty-ico">⚽</div><div class="empty-msg">Sin plan todavía</div><div class="empty-sub">Tu analista preparará el plan antes del partido</div></div></div>
-      </div>
-    </div>
-
-    <!-- INFORMES -->
-    <div class="sec" id="sec-inf">
-      <div id="informes-list"><div class="loading">Cargando...</div></div>
-    </div>
-
-    <!-- TAREAS -->
-    <div class="sec" id="sec-tar">
-      <div id="tareas-list"><div class="loading">Cargando...</div></div>
-    </div>
-
-    <!-- PSICOLOGÍA -->
-    <div class="sec" id="sec-psico">
-
-      <!-- Selector de modo -->
-      <div style="display:flex;gap:8px;margin-bottom:1rem;">
-        <button class="psico-tab active" id="pt-diario" onclick="switchPsicoTab('diario')" style="flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:700;background:rgba(163,113,247,0.15);color:var(--purple);border:0.5px solid rgba(163,113,247,0.3);cursor:pointer;font-family:inherit;">📅 Diario</button>
-        <button class="psico-tab" id="pt-partido" onclick="switchPsicoTab('partido')" style="flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">⚽ Post-partido</button>
-        <button class="psico-tab" id="pt-temporada" onclick="switchPsicoTab('temporada')" style="flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">🏆 Temporada</button>
-      </div>
-
-      <!-- TAB DIARIO -->
-      <div id="psico-diario-tab">
-        <div class="card">
-          <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>¿Cómo te sientes hoy?</div>
-          <div class="mood-grid">
-            <button class="mood-btn" onclick="selMood(1,this)"><span class="mood-emoji">😞</span><span class="mood-label">Bajo</span></button>
-            <button class="mood-btn" onclick="selMood(2,this)"><span class="mood-emoji">😐</span><span class="mood-label">Regular</span></button>
-            <button class="mood-btn" onclick="selMood(3,this)"><span class="mood-emoji">🙂</span><span class="mood-label">Bien</span></button>
-            <button class="mood-btn" onclick="selMood(4,this)"><span class="mood-emoji">😊</span><span class="mood-label">Muy bien</span></button>
-            <button class="mood-btn" onclick="selMood(5,this)"><span class="mood-emoji">🔥</span><span class="mood-label">Top</span></button>
-          </div>
-          <div class="slider-wrap">
-            <div class="ctitle" style="margin-bottom:.5rem;"><div class="cdot" style="background:var(--purple);"></div>Energía</div>
-            <div class="slider-val" id="energia-val">5</div>
-            <input type="range" class="slider" min="1" max="10" value="5" id="energia-sl" oninput="document.getElementById('energia-val').textContent=this.value">
-            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);"><span>Sin energía</span><span>Explosivo</span></div>
-          </div>
-          <div class="slider-wrap">
-            <div class="ctitle" style="margin-bottom:.5rem;"><div class="cdot" style="background:var(--blue);"></div>Estrés</div>
-            <div class="slider-val" id="estres-val" style="color:var(--blue);">5</div>
-            <input type="range" class="slider" min="1" max="10" value="5" id="estres-sl" oninput="document.getElementById('estres-val').textContent=this.value">
-            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);"><span>Tranquilo</span><span>Muy estresado</span></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>Reflexión del día</div>
-          <div class="psico-q">¿Qué fue lo mejor del entrenamiento/partido de hoy?</div>
-          <textarea class="psico-ta" id="psico-mejor" rows="3" placeholder="Escribe aquí..."></textarea>
-          <div class="psico-q" style="margin-top:12px;">¿Qué fue lo más difícil o lo que no te salió?</div>
-          <textarea class="psico-ta" id="psico-dificil" rows="3" placeholder="Escribe aquí..."></textarea>
-          <div class="psico-q" style="margin-top:12px;">¿Qué quieres mejorar mañana?</div>
-          <textarea class="psico-ta" id="psico-mejorar" rows="3" placeholder="Escribe aquí..."></textarea>
-          <button class="btn-save" style="margin-top:12px;" onclick="savePsico()">Guardar reflexión</button>
-        </div>
-        <div class="card">
-          <div class="ctitle"><div class="cdot" style="background:var(--text3);"></div>Historial de bienestar</div>
-          <div id="psico-hist"><div class="loading">Cargando...</div></div>
-        </div>
-      </div>
-
-      <!-- TAB POST-PARTIDO -->
-      <div id="psico-partido-tab" style="display:none;">
-        <div class="card">
-          <div class="ctitle"><div class="cdot" style="background:var(--blue);"></div>Datos del partido</div>
-          <input type="text" id="pp-partido" placeholder="vs Rival (ej: vs Alzira J8)" style="width:100%;height:38px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;color:var(--text);margin-bottom:8px;outline:none;">
-          <input type="date" id="pp-fecha" style="width:100%;height:38px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;color:var(--text);outline:none;">
-        </div>
-
-        <div class="card">
-          <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>Valoración psicológica del partido</div>
-          <div style="font-size:11px;color:var(--text2);margin-bottom:1rem;line-height:1.5;">Valora del 1 al 5 cada aspecto mental durante el partido</div>
-
-          <div id="pp-stars-container">
-            <!-- Se genera con JS -->
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>Reflexión post-partido</div>
-          <div class="psico-q">¿En qué momentos te sentiste más concentrado?</div>
-          <textarea class="psico-ta" id="pp-concentrado" rows="2" placeholder="Escribe aquí..."></textarea>
-          <div class="psico-q" style="margin-top:10px;">¿Hubo momentos donde te alteraste o perdiste el control?</div>
-          <textarea class="psico-ta" id="pp-altero" rows="2" placeholder="Qué pasó, cuándo, por qué..."></textarea>
-          <div class="psico-q" style="margin-top:10px;">¿Cómo gestionaste los errores durante el partido?</div>
-          <textarea class="psico-ta" id="pp-errores" rows="2" placeholder="Escribe aquí..."></textarea>
-          <div class="psico-q" style="margin-top:10px;">¿Qué harías diferente mentalmente en el próximo partido?</div>
-          <textarea class="psico-ta" id="pp-mejorar" rows="2" placeholder="Escribe aquí..."></textarea>
-          <button class="btn-save" style="margin-top:12px;" onclick="savePsicoPartido()">Guardar valoración del partido</button>
-        </div>
-
-        <div class="card">
-          <div class="ctitle"><div class="cdot" style="background:var(--text3);"></div>Historial mental de partidos</div>
-          <div id="pp-hist"><div class="loading">Cargando...</div></div>
-        </div>
-      </div>
-
-      <!-- TAB TEMPORADA -->
-      <div id="psico-temporada-tab" style="display:none;">
-        <div class="card" style="border:0.5px solid rgba(163,113,247,0.3);background:rgba(163,113,247,0.05);">
-          <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>Expectativas de esta temporada</div>
-          <div style="font-size:11px;color:var(--text2);margin-bottom:1rem;line-height:1.5;">Rellena esto una vez al inicio. Servirá de referencia para ver tu evolución.</div>
-          <div class="psico-q">¿Qué quieres conseguir este año?</div>
-          <textarea class="psico-ta" id="temp-objetivo" rows="3" placeholder="Ser titular, mejorar mi posición, aprender a..."></textarea>
-          <div class="psico-q" style="margin-top:10px;">¿Cuál es tu mayor fortaleza mental?</div>
-          <textarea class="psico-ta" id="temp-fortaleza" rows="2" placeholder="Soy competitivo, no me rindo..."></textarea>
-          <div class="psico-q" style="margin-top:10px;">¿Qué aspecto mental quieres mejorar más?</div>
-          <textarea class="psico-ta" id="temp-mejorar" rows="2" placeholder="Controlar la frustración, concentrarme más..."></textarea>
-          <div class="psico-q" style="margin-top:10px;">¿Qué te motiva a entrenar y competir?</div>
-          <textarea class="psico-ta" id="temp-motivacion" rows="2" placeholder="Escribe aquí..."></textarea>
-          <button class="btn-save" style="margin-top:12px;" onclick="saveTemporada()">Guardar expectativas</button>
-        </div>
-
-        <div class="card" id="temp-resumen-card" style="display:none;">
-          <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>Mis expectativas de temporada</div>
-          <div id="temp-resumen"></div>
-          <button onclick="editarTemporada()" style="margin-top:10px;background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:6px 14px;font-size:12px;color:var(--text2);cursor:pointer;font-family:inherit;">✏ Editar</button>
-        </div>
-
-        <div class="card">
-          <div class="ctitle"><div class="cdot" style="background:var(--text3);"></div>Check-in semanal</div>
-          <div class="psico-q">¿Cómo fue la semana respecto a lo que esperabas?</div>
-          <textarea class="psico-ta" id="sem-balance" rows="2" placeholder="Escribe aquí..."></textarea>
-          <div class="psico-q" style="margin-top:10px;">¿Qué momento de la semana te dio más confianza?</div>
-          <textarea class="psico-ta" id="sem-confianza" rows="2" placeholder="Escribe aquí..."></textarea>
-          <div class="psico-q" style="margin-top:10px;">¿Qué reto mental te pones para la próxima semana?</div>
-          <textarea class="psico-ta" id="sem-reto" rows="2" placeholder="Escribe aquí..."></textarea>
-          <button class="btn-save" style="margin-top:12px;" onclick="saveCheckSemanal()">Guardar check-in semanal</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- NUTRICIÓN -->
-    <div class="sec" id="sec-nut">
-
-      <!-- Onboarding / perfil nutricional -->
-      <div class="card" id="nut-onboarding" style="border:0.5px solid rgba(210,153,34,0.3);background:rgba(210,153,34,0.05);">
-        <div class="ctitle"><div class="cdot" style="background:var(--amber);"></div>Tu perfil nutricional</div>
-        <div style="font-size:11px;color:var(--text2);margin-bottom:1rem;">Rellena esto para que calculemos tus macros exactos</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-          <div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Peso (kg)</label>
-          <input type="number" id="nut-peso" placeholder="65" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;"></div>
-          <div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Altura (cm)</label>
-          <input type="number" id="nut-altura" placeholder="175" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;"></div>
-        </div>
-        <div style="margin-bottom:8px;"><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Días de entrenamiento por semana</label>
-        <select id="nut-dias" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;">
-          <option value="3">3 días</option><option value="4">4 días</option><option value="5" selected>5 días</option><option value="6">6 días</option>
-        </select></div>
-        <div style="margin-bottom:8px;"><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Objetivo principal</label>
-        <select id="nut-objetivo" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;">
-          <option value="rendimiento">Máximo rendimiento deportivo</option>
-          <option value="masa">Ganar masa muscular</option>
-          <option value="peso">Mantener peso</option>
-          <option value="perder">Perder peso manteniendo rendimiento</option>
-        </select></div>
-        <div style="margin-bottom:10px;"><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Alimentos que no te gustan o no comes</label>
-        <input type="text" id="nut-aversiones" placeholder="atún, brócoli, leche..." style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;"></div>
-        <button class="btn-save" onclick="calcularMacros()">Calcular mis macros personalizados</button>
-      </div>
-
-      <!-- Macros calculados -->
-      <div class="card" id="nut-macros-card" style="display:none;">
-        <div class="ctitle"><div class="cdot" style="background:var(--amber);"></div>Tus macros personalizados</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem;">
-          <div class="macro-card"><div class="macro-num" style="color:var(--amber);" id="m-kcal">—</div><div class="macro-lbl">kcal</div></div>
-          <div class="macro-card"><div class="macro-num" style="color:var(--blue);" id="m-prot">—g</div><div class="macro-lbl">Proteína</div></div>
-          <div class="macro-card"><div class="macro-num" style="color:var(--green);" id="m-carb">—g</div><div class="macro-lbl">Carbos</div></div>
-          <div class="macro-card"><div class="macro-num" style="color:var(--purple);" id="m-gras">—g</div><div class="macro-lbl">Grasas</div></div>
-        </div>
-
-        <!-- Selector día partido/entreno/descanso -->
-        <div style="display:flex;gap:6px;margin-bottom:1rem;">
-          <button onclick="setDiaTipo('partido')" id="dt-partido" style="flex:1;padding:6px;border-radius:8px;font-size:11px;font-weight:700;background:rgba(88,166,255,0.15);color:var(--blue);border:0.5px solid rgba(88,166,255,0.3);cursor:pointer;font-family:inherit;">⚽ Partido</button>
-          <button onclick="setDiaTipo('entreno')" id="dt-entreno" style="flex:1;padding:6px;border-radius:8px;font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">💪 Entreno</button>
-          <button onclick="setDiaTipo('descanso')" id="dt-descanso" style="flex:1;padding:6px;border-radius:8px;font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">😴 Descanso</button>
-        </div>
-
-        <div id="nut-plan-content"></div>
-        <button onclick="document.getElementById('nut-onboarding').style.display='block';document.getElementById('nut-macros-card').style.display='none';" style="margin-top:8px;background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:6px 14px;font-size:11px;color:var(--text2);cursor:pointer;font-family:inherit;">✏ Editar perfil</button>
-      </div>
-
-      <div class="card">
-        <div class="ctitle"><div class="cdot" style="background:var(--amber);"></div>Lo que comí hoy</div>
-        <textarea class="nut-log-ta" id="nut-log" placeholder="Desayuno: avena con plátano...&#10;Almuerzo: arroz con pollo...&#10;Cena: ..."></textarea>
-        <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
-          <input type="date" id="nut-fecha" style="flex:1;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;color:var(--text);outline:none;">
-          <button class="btn-save" style="flex:1;" onclick="saveNutLog()">Guardar</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="ctitle"><div class="cdot" style="background:var(--text3);"></div>Registro de la semana</div>
-        <div id="nut-hist"><div class="loading">Cargando...</div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- BOTTOM NAV -->
-  <nav class="bnav">
-    <button class="nb active" id="nb-dash" onclick="goSec('dash')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      Inicio
-    </button>
-    <button class="nb" id="nb-clips" onclick="goSec('clips')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-      Clips
-    </button>
-    <button class="nb" id="nb-inf" onclick="goSec('inf')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      Informes
-    </button>
-    <button class="nb" id="nb-tar" onclick="goSec('tar')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-      Tareas
-    </button>
-    <button class="nb" id="nb-psico" onclick="goSec('psico')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-      Bienestar
-    </button>
-    <button class="nb" id="nb-nut" onclick="goSec('nut')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      Nutrición
-    </button>
-  </nav>
 </div>
 
 <div id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
-const SUPA_URL = 'https://ghxwdauwrzupjmrujcns.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
-let DB;
+(function() {
+  var SURL = 'https://ghxwdauwrzupjmrujcns.supabase.co';
+  var SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
+  var DB;
 
-window.addEventListener('load', function() {
-  if(typeof supabase === 'undefined') {
-    document.getElementById('l-err').textContent = 'Error de conexión. Recarga la página.';
-    return;
-  }
-  DB = supabase.createClient(SUPA_URL, SUPA_KEY);
-
-
-
-
-let st = { jug: null, user: null, objs:[], informes:[], clips:[], tareas:[], planes:[], psico:[], nutLogs:[], nutPlan:null };
-let currentMood = 0;
-let currentClipFilter = 'mejorar';
-
-// ── AUTH ──
-async function doLogin() {
-  const email = document.getElementById('l-email').value.trim();
-  const pass = document.getElementById('l-pass').value;
-  document.getElementById('l-err').textContent = '';
-  if(!email || !pass) { document.getElementById('l-err').textContent = 'Rellena todos los campos'; return; }
-  const { data, error } = await DB.auth.signInWithPassword({ email, password: pass });
-  if(error) { document.getElementById('l-err').textContent = 'Email o contraseña incorrectos'; return; }
-  await loadApp(data.user);
-}
-
-async function doRegister() {
-  const nombre = document.getElementById('r-nombre').value.trim();
-  const email = document.getElementById('r-email').value.trim();
-  const pass = document.getElementById('r-pass').value;
-  document.getElementById('r-err').textContent = '';
-  if(!nombre || !email || !pass) { document.getElementById('r-err').textContent = 'Rellena todos los campos'; return; }
-  if(pass.length < 6) { document.getElementById('r-err').textContent = 'La contraseña debe tener al menos 6 caracteres'; return; }
-  const { data, error } = await DB.auth.signUp({ email, password: pass, options: { data: { nombre } } });
-  if(error) { document.getElementById('r-err').textContent = error.message; return; }
-  document.getElementById('r-err').style.color = 'var(--green)';
-  document.getElementById('r-err').textContent = '✓ Cuenta creada. Revisa tu email para confirmar.';
-}
-
-function showRegister() {
-  const p = document.getElementById('register-panel');
-  p.style.display = p.style.display === 'none' ? 'block' : 'none';
-}
-
-async function doLogout() {
-  await DB.auth.signOut();
-  document.getElementById('app-screen').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
-  st = { jug:null, user:null, objs:[], informes:[], clips:[], tareas:[], planes:[], psico:[], nutLogs:[], nutPlan:null };
-}
-
-// ── LOAD APP ──
-async function loadApp(user) {
-  st.user = user;
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display = 'block';
-
-  // Buscar jugador vinculado al email del usuario
-  const { data: jugData } = await DB.from('jugadores').select('*').eq('email_jugador', user.email).single();
-  if(jugData) {
-    st.jug = jugData;
-  } else {
-    // Buscar por nombre en metadatos
-    const nombre = user.user_metadata?.nombre || user.email.split('@')[0];
-    const { data: jugData2 } = await DB.from('jugadores').select('*').ilike('nombre', '%'+nombre.split(' ')[0]+'%').limit(1).single();
-    if(jugData2) st.jug = jugData2;
-  }
-
-  if(!st.jug) {
-    showToast('Cuenta creada. Espera a que tu analista te vincule.');
-    setupHeader({ nombre: user.user_metadata?.nombre || 'Jugador', posicion: 'Pendiente de vincular', equipo: '' });
-    renderDashEmpty();
-    return;
-  }
-
-  setupHeader(st.jug);
-  await loadAllData();
-  renderDash();
-  renderObjs();
-  renderClips('mejorar');
-  renderPlan();
-  renderInformes();
-  renderTareas();
-  loadPsicoHist();
-  loadPPHist();
-  loadNutPlan();
-  loadNutHist();
-  document.getElementById('nut-fecha').value = new Date().toISOString().slice(0,10);
-}
-
-function setupHeader(jug) {
-  const av = AV_COLORS[jug.posicion] || { bg:'rgba(29,158,117,0.15)', color:'#1D9E75' };
-  document.getElementById('hav').style.background = av.bg;
-  document.getElementById('hav').style.color = av.color;
-  document.getElementById('hav').textContent = initials(jug.nombre);
-  document.getElementById('hname').textContent = jug.nombre;
-  document.getElementById('hpos').textContent = (jug.posicion||'') + (jug.equipo ? ' · '+jug.equipo : '') + (jug.categoria ? ' · '+jug.categoria : '');
-}
-
-async function loadAllData() {
-  const id = st.jug.id;
-  const [o, inf, mc, nv, pl, ps, nl] = await Promise.all([
-    DB.from('objetivos').select('*').eq('jugador_id', id).order('created_at'),
-    DB.from('informes_partido').select('*').eq('jugador_id', id).order('fecha', {ascending:false}),
-    DB.from('clips_jugador').select('*').eq('jugador_id', id).order('created_at'),
-    DB.from('notas_video').select('*').eq('jugador_id', id).order('fecha', {ascending:false}),
-    DB.from('planes_partido').select('*').eq('jugador_id', id).order('created_at', {ascending:false}),
-    DB.from('psico_diario').select('*').eq('jugador_id', id).order('fecha', {ascending:false}).limit(14),
-    DB.from('nutricion_log').select('*').eq('jugador_id', id).order('fecha', {ascending:false}).limit(14),
-  ]);
-  st.objs = o.data||[];
-  st.informes = inf.data||[];
-  st.clips = mc.data||[];
-  st.tareas = (nv.data||[]).filter(n => n.texto?.startsWith('TAREA ASIGNADA:'));
-  st.planes = pl.data||[];
-  st.psico = ps.data||[];
-  st.nutLogs = nl.data||[];
-}
-
-// ── DASHBOARD ──
-function renderDash() {
-  const now = new Date(); const h = now.getHours();
-  const nombre = st.jug.nombre.split(' ')[0];
-  document.getElementById('dash-greet').textContent = `${h<14?'Hola':'Buenas'}, ${nombre} 👋`;
-  document.getElementById('dash-date').textContent = now.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
-
-  // KPIs
-  document.getElementById('k-obj').textContent = st.objs.length;
-  document.getElementById('k-inf').textContent = st.informes.length;
-  document.getElementById('k-tar').textContent = st.tareas.length;
-
-  // Clips del jugador (de clips_microconcepto vinculados a sus micros)
-  const micIds = [];
-  document.getElementById('k-clips').textContent = st.clips.length;
-
-  // Plan del partido
-  if(st.planes.length) {
-    const plan = st.planes[0];
-    const items = (plan.items||[]).slice(0,2);
-    if(items.length) {
-      document.getElementById('dash-plan-card').style.display = 'block';
-      document.getElementById('dash-plan-preview').innerHTML = items.map(i=>`<div style="display:flex;gap:8px;margin-bottom:5px;"><div style="color:var(--blue);font-size:10px;margin-top:2px;">▶</div><div style="font-size:12px;color:var(--text2);">${i}</div></div>`).join('');
+  function init() {
+    if (typeof window.supabase === 'undefined') {
+      document.getElementById('l-err').textContent = 'Error de conexión. Recarga la página.';
+      return;
     }
-  }
+    DB = window.supabase.createClient(SURL, SKEY);
 
-  // Últimos objetivos
-  const dashObjs = document.getElementById('dash-objs');
-  if(!st.objs.length) {
-    dashObjs.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:.5rem 0;">Sin objetivos todavía.</div>';
-  } else {
-    const FCFG = {OF:{c:'#1D9E75',bg:'rgba(29,158,117,0.15)',l:'Ataque'},DE:{c:'#58a6ff',bg:'rgba(88,166,255,0.15)',l:'Defensa'},TO:{c:'#d29922',bg:'rgba(210,153,34,0.15)',l:'T.Of.'},TD:{c:'#f85149',bg:'rgba(248,81,73,0.15)',l:'T.Def.'},GEN:{c:'#a371f7',bg:'rgba(163,113,247,0.15)',l:'General'}};
-    dashObjs.innerHTML = st.objs.slice(0,4).map(o=>{
-      const f = FCFG[o.fase]||FCFG.GEN;
-      return `<div class="obj-row">
-        <div class="obj-dot" style="background:${f.c};"></div>
-        <div style="flex:1;"><div class="obj-text">${o.texto}</div><span class="obj-fase" style="background:${f.bg};color:${f.c};">${f.l}</span></div>
-      </div>`;
-    }).join('');
-  }
-
-  // Último informe
-  const dashInf = document.getElementById('dash-last-inf');
-  if(!st.informes.length) {
-    dashInf.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:.5rem 0;">Sin informes todavía.</div>';
-  } else {
-    const inf = st.informes[0];
-    const nota = parseFloat(inf.nota_decimal)||0;
-    const nc = nota>=8?'var(--green)':nota>=6?'var(--amber)':'var(--red)';
-    dashInf.innerHTML = renderInformeCompact(inf);
-  }
-}
-
-function renderDashEmpty() {
-  const now = new Date();
-  document.getElementById('dash-greet').textContent = `Hola 👋`;
-  document.getElementById('dash-date').textContent = now.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
-  ['k-obj','k-inf','k-tar','k-clips'].forEach(id => document.getElementById(id).textContent = '0');
-  document.getElementById('dash-objs').innerHTML = '<div style="font-size:12px;color:var(--text3);">Tu analista te vinculará pronto.</div>';
-  document.getElementById('dash-last-inf').innerHTML = '<div style="font-size:12px;color:var(--text3);">Sin datos todavía.</div>';
-}
-
-// ── OBJETIVOS ──
-function renderObjs() {
-  const FCFG = {OF:{c:'#1D9E75',bg:'rgba(29,158,117,0.15)',l:'Fase ofensiva'},DE:{c:'#58a6ff',bg:'rgba(88,166,255,0.15)',l:'Fase defensiva'},TO:{c:'#d29922',bg:'rgba(210,153,34,0.15)',l:'T. Ofensiva'},TD:{c:'#f85149',bg:'rgba(248,81,73,0.15)',l:'T. Defensiva'},GEN:{c:'#a371f7',bg:'rgba(163,113,247,0.15)',l:'General'}};
-  const temp = st.objs.filter(o => o.tipo === 'temporada');
-  const corto = st.objs.filter(o => o.tipo !== 'temporada');
-
-  const renderList = (objs) => objs.length ? objs.map(o => {
-    const f = FCFG[o.fase]||FCFG.GEN;
-    return `<div class="obj-row">
-      <div class="obj-dot" style="background:${f.c};"></div>
-      <div style="flex:1;"><div class="obj-text">${o.texto}</div><span class="obj-fase" style="background:${f.bg};color:${f.c};">${f.l}</span></div>
-    </div>`;
-  }).join('') : '<div style="font-size:12px;color:var(--text3);padding:.5rem 0;">Sin objetivos todavía.</div>';
-
-  document.getElementById('objs-temporada').innerHTML = renderList(temp.length ? temp : st.objs.slice(0, Math.ceil(st.objs.length/2)));
-  document.getElementById('objs-corto').innerHTML = renderList(corto.length ? corto : st.objs.slice(Math.ceil(st.objs.length/2)));
-}
-
-// ── CLIPS ──
-function filterClips(tipo) {
-  currentClipFilter = tipo;
-  ['mejorar','positivo','referencia'].forEach(t => {
-    document.getElementById('ct-'+t).classList.toggle('active-tab', t===tipo);
-    document.getElementById('ct-'+t).style.background = t===tipo ? 'rgba(255,255,255,0.08)' : 'none';
-    document.getElementById('ct-'+t).style.color = t===tipo ? 'var(--text)' : 'var(--text2)';
-  });
-  renderClips(tipo);
-}
-
-function renderClips(tipo) {
-  const all = st.clips.filter(c => c.tipo === tipo);
-  const cont = document.getElementById('clips-content');
-  if(!all.length) {
-    cont.innerHTML = `<div class="empty"><div class="empty-ico">${tipo==='mejorar'?'△':tipo==='positivo'?'✓':'★'}</div><div class="empty-msg">${tipo==='mejorar'?'Sin clips de aspectos a mejorar':tipo==='positivo'?'Sin clips de puntos fuertes':'Sin referencias de élite'}</div><div class="empty-sub">Tu analista añadirá clips aquí</div></div>`;
-    return;
-  }
-  const TIPO_CFG = {
-    mejorar:  {bg:'rgba(248,81,73,0.12)',  color:'var(--red)',    label:'△ A mejorar'},
-    positivo: {bg:'rgba(63,185,80,0.12)',  color:'var(--green)', label:'✓ Punto fuerte'},
-    referencia:{bg:'rgba(210,153,34,0.12)',color:'var(--amber)', label:'★ Referencia élite'},
-  };
-  cont.innerHTML = all.map(c => {
-    const tc = TIPO_CFG[c.tipo]||TIPO_CFG.referencia;
-    return `<div class="clip-card">
-      <span class="clip-tipo" style="background:${tc.bg};color:${tc.color};">${tc.label}</span>
-      ${c.titulo?`<div class="clip-titulo">${c.titulo}</div>`:''}
-      <div class="video-wrap">${renderVideoHTML(c.url)}</div>
-    </div>`;
-  }).join('');
-}
-
-function renderVideoHTML(url) {
-  if(!url) return '';
-  const m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
-  if(m) return `<iframe src="https://drive.google.com/file/d/${m[1]}/preview" allowfullscreen allow="autoplay"></iframe>`;
-  return `<video controls playsinline src="${url}"></video>`;
-}
-
-// ── PLAN DE PARTIDO ──
-function renderPlan() {
-  const cont = document.getElementById('plan-content');
-  if(!st.planes.length) {
-    cont.innerHTML = `<div class="empty"><div class="empty-ico">📋</div><div class="empty-msg">Sin plan todavía</div><div class="empty-sub">Tu analista preparará el plan antes del partido</div></div>`;
-    return;
-  }
-  const plan = st.planes[0];
-  const fecha = plan.fecha ? new Date(plan.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}) : '';
-  let html = '<div style="font-size:11px;color:var(--text2);margin-bottom:.875rem;">'+(plan.rival?'vs '+plan.rival+' · ':'')+fecha+'</div>';
-  if(plan.items && plan.items.length) {
-    html += plan.items.map((item,i)=>`<div class="plan-item">
-      <div class="plan-num">${i+1}</div>
-      <div class="plan-text">${item}</div>
-    </div>`).join('');
-  }
-  if(plan.notas) html += `<div style="margin-top:.875rem;padding:.875rem;background:var(--bg3);border-radius:var(--radius-sm);font-size:12px;color:var(--text2);line-height:1.7;border-left:3px solid var(--blue);">${plan.notas}</div>`;
-  cont.innerHTML = html;
-}
-
-// ── INFORMES ──
-function renderInformeCompact(inf) {
-  const nota = parseFloat(inf.nota_decimal)||0;
-  const nc = nota>=8?'var(--green)':nota>=6?'var(--amber)':'var(--red)';
-  let starsData = {};
-  try { starsData = inf.estrellas_json ? JSON.parse(inf.estrellas_json) : {}; } catch(e){}
-  const avgF = k => { const v=(starsData[k]||[]).filter(x=>x>0); return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):null; };
-  const fases = [{k:'MCB',l:'Con balón',c:'var(--green)'},{k:'MSB',l:'Sin balón',c:'var(--blue)'},{k:'TDA',l:'T. Ofensiva',c:'var(--amber)'},{k:'TAD',l:'T. Defensiva',c:'var(--red)'}];
-  const fecha = new Date((inf.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
-
-  return `<div class="inf-card">
-    <div class="inf-header">
-      ${nota?`<div class="inf-nota" style="border-color:${nc}40;background:${nc}12;">
-        <div class="inf-nnum" style="color:${nc};">${nota.toFixed(1)}</div>
-        <div class="inf-nsub" style="color:${nc};">/10</div>
-      </div>`:''}
-      <div>
-        <div class="inf-partido">${inf.partido||'Partido'}</div>
-        <div class="inf-meta">${fecha}${inf.rival?' · vs '+inf.rival:''}${inf.resultado?' · '+inf.resultado:''}</div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      ${fases.map(f=>{
-        const avg=avgF(f.k); if(!avg) return '';
-        const pct=Math.round((parseFloat(avg)/5)*100);
-        return `<div class="fase-bar">
-          <div class="fb-header"><span style="color:${f.c};font-size:10px;font-weight:700;">${f.l}</span><span style="color:${f.c};">${avg}</span></div>
-          <div class="fb-track"><div class="fb-fill" style="width:${pct}%;background:${f.c};"></div></div>
-        </div>`;
-      }).filter(Boolean).join('')}
-    </div>
-    ${inf.mcb?`<div style="font-size:11px;color:var(--text2);margin-top:.75rem;line-height:1.6;border-top:0.5px solid var(--border);padding-top:.75rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${inf.mcb}</div>`:''}
-  </div>`;
-}
-
-function renderInformes() {
-  const cont = document.getElementById('informes-list');
-  if(!st.informes.length) {
-    cont.innerHTML = `<div class="empty"><div class="empty-ico">📄</div><div class="empty-msg">Sin informes todavía</div><div class="empty-sub">Aquí aparecerán los informes que tu analista genere</div></div>`;
-    return;
-  }
-  cont.innerHTML = st.informes.map(inf => renderInformeCompleto(inf)).join('');
-}
-
-function renderInformeCompleto(inf) {
-  const nota = parseFloat(inf.nota_decimal)||0;
-  const nc = nota>=8?'var(--green)':nota>=6?'var(--amber)':'var(--red)';
-  let starsData = {};
-  try { starsData = inf.estrellas_json ? JSON.parse(inf.estrellas_json) : {}; } catch(e){}
-  const fases = [
-    {k:'MCB',l:'Con balón',c:'var(--green)',obs:inf.mcb,n:7},
-    {k:'MSB',l:'Sin balón',c:'var(--blue)',obs:inf.msb,n:7},
-    {k:'TDA',l:'T. Ofensiva',c:'var(--amber)',obs:inf.tda,n:5},
-    {k:'TAD',l:'T. Defensiva',c:'var(--red)',obs:inf.tad,n:5},
-  ];
-  const ASPECTOS = {
-    MCB:['Ubicación en espacios','Pases','Controles','Toma de decisiones','Desmarques','Personalidad','Duelos ganados'],
-    MSB:['Posición defensiva','Presión','Coberturas','Anticipación','Duelos','Concentración','Activación'],
-    TDA:['Reacción','Velocidad','Apoyo','Aprovechamiento','Limpiar zona'],
-    TAD:['Reacción','Repliegue','Presión','Organización','Falta táctica'],
-  };
-  const fecha = new Date((inf.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
-
-  let html = '<div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:.875rem;overflow:hidden;">';
-
-  // Header
-  html += '<div style="padding:1rem;background:linear-gradient(135deg,rgba(29,158,117,0.06),transparent);border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:12px;">';
-  if(nota) {
-    html += '<div style="width:52px;height:52px;border-radius:50%;border:2px solid '+nc+';background:'+nc+'1a;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">';
-    html += '<span style="font-size:18px;font-weight:800;color:'+nc+';line-height:1;">'+nota.toFixed(1)+'</span>';
-    html += '<span style="font-size:8px;color:'+nc+';">/10</span></div>';
-  }
-  html += '<div><div style="font-size:15px;font-weight:700;">'+(inf.partido||'Partido')+'</div>';
-  html += '<div style="font-size:11px;color:var(--text2);margin-top:2px;">'+fecha+(inf.rival?' · vs '+inf.rival:'')+(inf.resultado?' · '+inf.resultado:'')+'</div></div></div>';
-
-  // Fases
-  fases.forEach(f => {
-    const vals = starsData[f.k]||[];
-    const filled = vals.filter(v=>v>0);
-    const avg = filled.length ? filled.reduce((a,b)=>a+b,0)/filled.length : 0;
-    const pct = Math.round((avg/5)*100);
-
-    html += '<div style="padding:.875rem 1rem;border-bottom:0.5px solid var(--border);">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">';
-    html += '<div style="font-size:10px;font-weight:800;letter-spacing:.08em;color:'+f.c+';">'+f.l.toUpperCase()+'</div>';
-    if(avg) {
-      html += '<div style="display:flex;gap:1px;">';
-      for(let s=1;s<=5;s++) html += '<span style="font-size:14px;color:'+(s<=Math.round(avg)?'#d29922':'var(--text3)')+';">★</span>';
-      html += '<span style="font-size:11px;color:'+f.c+';margin-left:4px;font-weight:700;">'+avg.toFixed(1)+'</span></div>';
-    }
-    html += '</div>';
-    if(avg) html += '<div style="height:4px;background:var(--border2);border-radius:99px;overflow:hidden;margin-bottom:.5rem;"><div style="width:'+pct+'%;height:4px;background:'+f.c+';border-radius:99px;"></div></div>';
-    vals.forEach((v,i) => {
-      if(!v) return;
-      const asp = (ASPECTOS[f.k]||[])[i]||'';
-      html += '<div style="display:flex;align-items:center;gap:6px;font-size:11px;padding:5px 0;border-bottom:0.5px solid var(--border);">';
-      html += '<span style="flex:1;color:var(--text2);">'+asp+'</span>';
-      html += '<div style="display:flex;gap:1px;">';
-      for(let s=1;s<=5;s++) html += '<span style="font-size:12px;color:'+(s<=v?'#d29922':'var(--text3)')+';">★</span>';
-      html += '</div></div>';
+    document.getElementById('btn-login').addEventListener('click', doLogin);
+    document.getElementById('btn-register').addEventListener('click', doRegister);
+    document.getElementById('link-register').addEventListener('click', function() {
+      var p = document.getElementById('register-panel');
+      p.style.display = p.style.display === 'none' ? 'block' : 'none';
     });
-    if(f.obs) html += '<div style="font-size:12px;color:var(--text2);line-height:1.7;margin-top:.5rem;padding:.75rem;background:var(--bg3);border-radius:6px;">'+f.obs+'</div>';
+
+    DB.auth.getSession().then(function(res) {
+      if (res.data && res.data.session) {
+        loadApp(res.data.session.user);
+      }
+    });
+  }
+
+  function doLogin() {
+    var email = document.getElementById('l-email').value.trim();
+    var pass = document.getElementById('l-pass').value;
+    document.getElementById('l-err').textContent = '';
+    if (!email || !pass) { document.getElementById('l-err').textContent = 'Rellena todos los campos'; return; }
+    DB.auth.signInWithPassword({ email: email, password: pass }).then(function(res) {
+      if (res.error) { document.getElementById('l-err').textContent = 'Email o contraseña incorrectos'; return; }
+      loadApp(res.data.user);
+    });
+  }
+
+  function doRegister() {
+    var nombre = document.getElementById('r-nombre').value.trim();
+    var email = document.getElementById('r-email').value.trim();
+    var pass = document.getElementById('r-pass').value;
+    document.getElementById('r-err').textContent = '';
+    if (!nombre || !email || !pass) { document.getElementById('r-err').textContent = 'Rellena todos los campos'; return; }
+    if (pass.length < 6) { document.getElementById('r-err').textContent = 'Contraseña mínimo 6 caracteres'; return; }
+    DB.auth.signUp({ email: email, password: pass, options: { data: { nombre: nombre } } }).then(function(res) {
+      if (res.error) { document.getElementById('r-err').textContent = res.error.message; return; }
+      document.getElementById('r-err').style.color = 'var(--green)';
+      document.getElementById('r-err').textContent = 'Cuenta creada. Confirma tu email.';
+    });
+  }
+
+  window.doLogout = function() {
+    DB.auth.signOut().then(function() {
+      document.getElementById('app-screen').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+    });
+  };
+
+  function loadApp(user) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('app-nombre').textContent = user.user_metadata && user.user_metadata.nombre ? user.user_metadata.nombre : user.email;
+
+    DB.from('jugadores').select('*').eq('email_jugador', user.email).single().then(function(res) {
+      var jug = res.data;
+      if (!jug) {
+        document.getElementById('app-pos').textContent = 'Pendiente de vincular con tu analista';
+        document.getElementById('app-content').innerHTML = '<div class="card" style="text-align:center;padding:2rem;"><div style="font-size:32px;margin-bottom:10px;">⚽</div><div style="font-size:14px;font-weight:600;margin-bottom:5px;">Cuenta creada</div><div style="font-size:12px;color:var(--text2);">Tu analista te vinculará pronto. Cuando lo haga verás todos tus datos aquí.</div></div>';
+        return;
+      }
+      document.getElementById('app-nombre').textContent = jug.nombre;
+      document.getElementById('app-pos').textContent = (jug.posicion || '') + (jug.equipo ? ' · ' + jug.equipo : '') + (jug.categoria ? ' · ' + jug.categoria : '');
+      loadDatos(jug);
+    });
+  }
+
+  function loadDatos(jug) {
+    Promise.all([
+      DB.from('objetivos').select('*').eq('jugador_id', jug.id).order('created_at'),
+      DB.from('informes_partido').select('*').eq('jugador_id', jug.id).order('fecha', { ascending: false }),
+      DB.from('clips_jugador').select('*').eq('jugador_id', jug.id).order('created_at'),
+      DB.from('planes_partido').select('*').eq('jugador_id', jug.id).order('created_at', { ascending: false }),
+      DB.from('notas_video').select('*').eq('jugador_id', jug.id).order('fecha', { ascending: false })
+    ]).then(function(results) {
+      var objs = results[0].data || [];
+      var informes = results[1].data || [];
+      var clips = results[2].data || [];
+      var planes = results[3].data || [];
+      var tareas = (results[4].data || []).filter(function(n) { return n.texto && n.texto.indexOf('TAREA ASIGNADA:') === 0; });
+
+      renderDashboard(jug, objs, informes, clips, planes, tareas);
+    });
+  }
+
+  function renderDashboard(jug, objs, informes, clips, planes, tareas) {
+    var ul = informes[0];
+    var nota = ul ? (parseFloat(ul.nota_decimal) || 0) : 0;
+    var nc = nota >= 8 ? '#3fb950' : nota >= 6 ? '#d29922' : '#f85149';
+    var FCFG = { OF: { c: '#3fb950', l: 'Ataque' }, DE: { c: '#58a6ff', l: 'Defensa' }, TO: { c: '#d29922', l: 'T.Of.' }, TD: { c: '#f85149', l: 'T.Def.' }, GEN: { c: '#a371f7', l: 'General' } };
+
+    var html = '';
+
+    // KPIs
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;">';
+    html += kpi(objs.length, 'Objetivos', '#a371f7');
+    html += kpi(informes.length, 'Informes', '#58a6ff');
+    html += kpi(clips.length, 'Clips', '#3fb950');
+    html += kpi(tareas.length, 'Tareas', '#d29922');
     html += '</div>';
-  });
 
-  if(inf.notas) html += '<div style="padding:.875rem 1rem;"><div style="font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--text3);margin-bottom:.5rem;">NOTAS DEL ANALISTA</div><div style="font-size:12px;color:var(--text2);line-height:1.7;font-style:italic;">'+inf.notas+'</div></div>';
-  html += '</div>';
-  return html;
-}
+    // Plan de partido
+    if (planes.length) {
+      var plan = planes[0];
+      html += '<div class="card" style="border-left:3px solid #58a6ff;">';
+      html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#58a6ff;margin-bottom:.5rem;">Plan del partido</div>';
+      if (plan.rival) html += '<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">vs ' + plan.rival + (plan.fecha ? ' · ' + plan.fecha : '') + '</div>';
+      if (plan.items && plan.items.length) {
+        plan.items.slice(0, 3).forEach(function(item, i) {
+          html += '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border);"><div style="color:#58a6ff;font-size:11px;font-weight:700;min-width:16px;">' + (i+1) + '</div><div style="font-size:12px;color:var(--text2);">' + item + '</div></div>';
+        });
+      }
+      html += '</div>';
+    }
 
+    // Objetivos
+    if (objs.length) {
+      html += '<div class="card">';
+      html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.75rem;">Mis objetivos</div>';
+      objs.forEach(function(o) {
+        var f = FCFG[o.fase] || FCFG.GEN;
+        html += '<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border);">';
+        html += '<div style="width:7px;height:7px;border-radius:50%;background:' + f.c + ';flex-shrink:0;margin-top:4px;"></div>';
+        html += '<div style="flex:1;font-size:12px;">' + o.texto + '</div>';
+        html += '<span style="font-size:9px;padding:2px 6px;border-radius:99px;background:' + f.c + '20;color:' + f.c + ';font-weight:700;">' + f.l + '</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
 
-});
+    // Último informe
+    if (ul) {
+      html += '<div class="card">';
+      html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.75rem;">Último informe</div>';
+      html += '<div style="display:flex;align-items:center;gap:12px;">';
+      if (nota) html += '<div style="width:48px;height:48px;border-radius:50%;border:2px solid ' + nc + ';background:' + nc + '1a;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:16px;font-weight:800;color:' + nc + ';">' + nota.toFixed(1) + '</span><span style="font-size:8px;color:' + nc + ';">/10</span></div>';
+      html += '<div><div style="font-size:13px;font-weight:600;">' + (ul.partido || 'Partido') + '</div><div style="font-size:10px;color:var(--text2);">' + (ul.fecha || '') + (ul.rival ? ' · vs ' + ul.rival : '') + '</div></div>';
+      html += '</div>';
+      html += '</div>';
+    }
 
+    // Clips
+    if (clips.length) {
+      html += '<div class="card">';
+      html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.75rem;">Mis clips (' + clips.length + ')</div>';
+      var TIPOS = { mejorar: { bg: '#f8514920', c: '#f85149', l: '△ A mejorar' }, positivo: { bg: '#3fb95020', c: '#3fb950', l: '✓ Punto fuerte' }, referencia: { bg: '#d2992220', c: '#d29922', l: '★ Referencia' } };
+      clips.slice(0, 3).forEach(function(clip) {
+        var t = TIPOS[clip.tipo] || TIPOS.referencia;
+        html += '<div style="margin-bottom:10px;">';
+        html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="font-size:9px;padding:2px 7px;border-radius:99px;background:' + t.bg + ';color:' + t.c + ';font-weight:700;">' + t.l + '</span>' + (clip.titulo ? '<span style="font-size:11px;font-weight:600;">' + clip.titulo + '</span>' : '') + '</div>';
+        if (clip.url) {
+          var m = clip.url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || clip.url.match(/id=([a-zA-Z0-9_-]+)/);
+          if (m) html += '<div style="width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;"><iframe src="https://drive.google.com/file/d/' + m[1] + '/preview" width="100%" height="100%" style="border:none;" allowfullscreen></iframe></div>';
+          else html += '<video controls playsinline style="width:100%;border-radius:8px;max-height:200px;" src="' + clip.url + '"></video>';
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    // Tareas
+    if (tareas.length) {
+      html += '<div class="card">';
+      html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.75rem;">Mis tareas</div>';
+      tareas.forEach(function(t) {
+        var lines = t.texto.split('\n').filter(Boolean);
+        var titulo = lines[0].replace('TAREA ASIGNADA: ', '');
+        html += '<div style="padding:.75rem;background:var(--bg3);border-radius:var(--radius-sm);border-left:3px solid #d29922;margin-bottom:8px;">';
+        html += '<div style="font-size:13px;font-weight:700;margin-bottom:3px;">' + titulo + '</div>';
+        if (lines[1]) html += '<div style="font-size:10px;color:var(--text3);">' + lines[1] + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    document.getElementById('app-content').innerHTML = html;
+  }
+
+  function kpi(num, label, color) {
+    return '<div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:.875rem;border-left:3px solid ' + color + ';">' +
+      '<div style="font-size:28px;font-weight:800;color:' + color + ';line-height:1;">' + num + '</div>' +
+      '<div style="font-size:11px;color:var(--text2);margin-top:3px;">' + label + '</div>' +
+      '</div>';
+  }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.style.opacity = '1';
+    setTimeout(function() { t.style.opacity = '0'; }, 2500);
+  }
+
+  // Esperar a que el DOM y supabase estén listos
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(init, 100); });
+  } else {
+    setTimeout(init, 100);
+  }
+})();
+</script>
+
+</body>
+</html>
