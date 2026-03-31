@@ -816,10 +816,7 @@ function renderInformeCompleto(inf) {
   return `<div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:.875rem;overflow:hidden;">
     <!-- Header -->
     <div style="padding:1rem;background:linear-gradient(135deg,rgba(29,158,117,0.06),transparent);border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:12px;">
-      ${nota?`<div style="width:52px;height:52px;border-radius:50%;border:2px solid ${nc};background:${nc.replace('var(','').replace(')','').trim()}18 ?? rgba(0,0,0,0);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
-        <span style="font-size:18px;font-weight:800;color:${nc};line-height:1;">${nota.toFixed(1)}</span>
-        <span style="font-size:8px;color:${nc};">/10</span>
-      </div>`:''}
+      ${nota?('<div style="width:52px;height:52px;border-radius:50%;border:2px solid '+nc+';background:'+nc+'1a;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:18px;font-weight:800;color:'+nc+';line-height:1;">'+nota.toFixed(1)+'</span><span style="font-size:8px;color:'+nc+'">/10</span></div>'):''}
       <div>
         <div style="font-size:15px;font-weight:700;">${inf.partido||'Partido'}</div>
         <div style="font-size:11px;color:var(--text2);margin-top:2px;">${fecha}${inf.rival?' · vs '+inf.rival:''}${inf.resultado?' · '+inf.resultado:''}</div>
@@ -833,14 +830,14 @@ function renderInformeCompleto(inf) {
       return `<div style="padding:.875rem 1rem;border-bottom:0.5px solid var(--border);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
           <div style="font-size:10px;font-weight:800;letter-spacing:.08em;color:${f.c};">${f.l.toUpperCase()}</div>
-          ${avg?`<div style="display:flex;gap:1px;">${[1,2,3,4,5].map(s=>`<span class="star" style="color:${s<=Math.round(avg)?'#d29922':'var(--text3)';}">★</span>`).join('')}<span style="font-size:11px;color:${f.c};margin-left:4px;font-weight:700;">${avg.toFixed(1)}</span></div>`:''}
+          ${avg?('<div style="display:flex;gap:1px;">'+[1,2,3,4,5].map(s=>'<span class="star" style="color:'+(s<=Math.round(avg)?'#d29922':'var(--text3)')+'">★</span>').join('')+'<span style="font-size:11px;color:'+f.c+';margin-left:4px;font-weight:700;">'+avg.toFixed(1)+'</span></div>'):''}
         </div>
-        ${avg?`<div style="height:4px;background:var(--border2);border-radius:99px;overflow:hidden;margin-bottom:.5rem;"><div style="width:${pct}%;height:4px;background:${f.c};border-radius:99px;"></div></div>`:''}
-        ${vals.length?vals.map((v,i)=>v>0?`<div class="star-line" style="font-size:11px;">
+        ${avg?('<div style="height:4px;background:var(--border2);border-radius:99px;overflow:hidden;margin-bottom:.5rem;"><div style="width:'+pct+'%;height:4px;background:'+f.c+';border-radius:99px;"></div></div>'):''}
+        ${vals.length?vals.map((v,i)=>v>0?('<div class="star-line" style="font-size:11px;">
           <span style="flex:1;color:var(--text2);">${(ASPECTOS[f.k]||[])[i]||''}</span>
-          <div class="stars">${[1,2,3,4,5].map(s=>`<span class="star" style="font-size:12px;color:${s<=v?'#d29922':'var(--text3)';}">★</span>`).join('')}</div>
-        </div>`:'').filter(Boolean).join(''):''}
-        ${f.obs?`<div style="font-size:12px;color:var(--text2);line-height:1.7;margin-top:.5rem;padding:.75rem;background:var(--bg3);border-radius:6px;">${f.obs}</div>`:''}
+          <div class="stars">${[1,2,3,4,5].map(s=>'<span class="star" style="font-size:12px;color:'+(s<=v?'#d29922':'var(--text3)')+';">★</span>').join('')}</div>
+        </div>'):'').filter(Boolean).join(''):''}
+        ${f.obs?('<div style="font-size:12px;color:var(--text2);line-height:1.7;margin-top:.5rem;padding:.75rem;background:var(--bg3);border-radius:6px;">'+f.obs+'</div>'):''}
       </div>`;
     }).join('')}
     ${inf.notas?`<div style="padding:.875rem 1rem;"><div style="font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--text3);margin-bottom:.5rem;">NOTAS DEL ANALISTA</div><div style="font-size:12px;color:var(--text2);line-height:1.7;font-style:italic;">${inf.notas}</div></div>`:''}
