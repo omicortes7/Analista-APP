@@ -739,7 +739,7 @@ function renderPlan() {
   }
   const plan = st.planes[0];
   const fecha = plan.fecha ? new Date(plan.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}) : '';
-  let html = `<div style="font-size:11px;color:var(--text2);margin-bottom:.875rem;">${plan.rival?'vs '+plan.rival+' · ':''} ${fecha}</div>`;
+  let html = '<div style="font-size:11px;color:var(--text2);margin-bottom:.875rem;">'+(plan.rival?'vs '+plan.rival+' · ':'')+fecha+'</div>';
   if(plan.items && plan.items.length) {
     html += plan.items.map((item,i)=>`<div class="plan-item">
       <div class="plan-num">${i+1}</div>
@@ -800,495 +800,64 @@ function renderInformeCompleto(inf) {
   let starsData = {};
   try { starsData = inf.estrellas_json ? JSON.parse(inf.estrellas_json) : {}; } catch(e){}
   const fases = [
-    {k:'MCB',l:'Momento con balón',c:'var(--green)',obs:inf.mcb,n:7},
-    {k:'MSB',l:'Momento sin balón',c:'var(--blue)',obs:inf.msb,n:7},
-    {k:'TDA',l:'Transición def→ata',c:'var(--amber)',obs:inf.tda,n:5},
-    {k:'TAD',l:'Transición ata→def',c:'var(--red)',obs:inf.tad,n:5},
+    {k:'MCB',l:'Con balón',c:'var(--green)',obs:inf.mcb,n:7},
+    {k:'MSB',l:'Sin balón',c:'var(--blue)',obs:inf.msb,n:7},
+    {k:'TDA',l:'T. Ofensiva',c:'var(--amber)',obs:inf.tda,n:5},
+    {k:'TAD',l:'T. Defensiva',c:'var(--red)',obs:inf.tad,n:5},
   ];
-  const fecha = new Date((inf.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
   const ASPECTOS = {
     MCB:['Ubicación en espacios','Pases','Controles','Toma de decisiones','Desmarques','Personalidad','Duelos ganados'],
     MSB:['Posición defensiva','Presión','Coberturas','Anticipación','Duelos','Concentración','Activación'],
     TDA:['Reacción','Velocidad','Apoyo','Aprovechamiento','Limpiar zona'],
     TAD:['Reacción','Repliegue','Presión','Organización','Falta táctica'],
   };
+  const fecha = new Date((inf.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
 
-  return `<div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:.875rem;overflow:hidden;">
-    <!-- Header -->
-    <div style="padding:1rem;background:linear-gradient(135deg,rgba(29,158,117,0.06),transparent);border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:12px;">
-      ${nota?('<div style="width:52px;height:52px;border-radius:50%;border:2px solid '+nc+';background:'+nc+'1a;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:18px;font-weight:800;color:'+nc+';line-height:1;">'+nota.toFixed(1)+'</span><span style="font-size:8px;color:'+nc+'">/10</span></div>'):''}
-      <div>
-        <div style="font-size:15px;font-weight:700;">${inf.partido||'Partido'}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${fecha}${inf.rival?' · vs '+inf.rival:''}${inf.resultado?' · '+inf.resultado:''}</div>
-      </div>
-    </div>
-    <!-- Fases con estrellas -->
-    ${fases.map(f=>{
-      const vals = starsData[f.k]||[];
-      const avg = vals.filter(v=>v>0).length ? (vals.filter(v=>v>0).reduce((a,b)=>a+b,0)/vals.filter(v=>v>0).length) : 0;
-      const pct = Math.round((avg/5)*100);
-      return `<div style="padding:.875rem 1rem;border-bottom:0.5px solid var(--border);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
-          <div style="font-size:10px;font-weight:800;letter-spacing:.08em;color:${f.c};">${f.l.toUpperCase()}</div>
-          ${avg?('<div style="display:flex;gap:1px;">'+[1,2,3,4,5].map(s=>'<span class="star" style="color:'+(s<=Math.round(avg)?'#d29922':'var(--text3)')+'">★</span>').join('')+'<span style="font-size:11px;color:'+f.c+';margin-left:4px;font-weight:700;">'+avg.toFixed(1)+'</span></div>'):''}
-        </div>
-        ${avg?('<div style="height:4px;background:var(--border2);border-radius:99px;overflow:hidden;margin-bottom:.5rem;"><div style="width:'+pct+'%;height:4px;background:'+f.c+';border-radius:99px;"></div></div>'):''}
-        ${vals.length?vals.map((v,i)=>v>0?('<div class="star-line" style="font-size:11px;">
-          <span style="flex:1;color:var(--text2);">${(ASPECTOS[f.k]||[])[i]||''}</span>
-          <div class="stars">${[1,2,3,4,5].map(s=>'<span class="star" style="font-size:12px;color:'+(s<=v?'#d29922':'var(--text3)')+';">★</span>').join('')}</div>
-        </div>'):'').filter(Boolean).join(''):''}
-        ${f.obs?('<div style="font-size:12px;color:var(--text2);line-height:1.7;margin-top:.5rem;padding:.75rem;background:var(--bg3);border-radius:6px;">'+f.obs+'</div>'):''}
-      </div>`;
-    }).join('')}
-    ${inf.notas?`<div style="padding:.875rem 1rem;"><div style="font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--text3);margin-bottom:.5rem;">NOTAS DEL ANALISTA</div><div style="font-size:12px;color:var(--text2);line-height:1.7;font-style:italic;">${inf.notas}</div></div>`:''}
-  </div>`;
-}
+  let html = '<div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:.875rem;overflow:hidden;">';
 
-// ── TAREAS ──
-function renderTareas() {
-  const cont = document.getElementById('tareas-list');
-  if(!st.tareas.length) {
-    cont.innerHTML = `<div class="empty"><div class="empty-ico">📋</div><div class="empty-msg">Sin tareas asignadas</div><div class="empty-sub">Tu analista te asignará tareas de entrenamiento aquí</div></div>`;
-    return;
+  // Header
+  html += '<div style="padding:1rem;background:linear-gradient(135deg,rgba(29,158,117,0.06),transparent);border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:12px;">';
+  if(nota) {
+    html += '<div style="width:52px;height:52px;border-radius:50%;border:2px solid '+nc+';background:'+nc+'1a;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">';
+    html += '<span style="font-size:18px;font-weight:800;color:'+nc+';line-height:1;">'+nota.toFixed(1)+'</span>';
+    html += '<span style="font-size:8px;color:'+nc+';">/10</span></div>';
   }
-  const COLORS = ['var(--green)','var(--blue)','var(--amber)','var(--purple)','var(--red)'];
-  cont.innerHTML = st.tareas.map((t,i)=>{
-    const lines = (t.texto||'').split('\n').filter(Boolean);
-    const titulo = lines[0]?.replace('TAREA ASIGNADA: ','') || 'Tarea';
-    const meta = lines[1]||'';
-    const desarrollo = lines.find(l=>l.startsWith('Desarrollo:'))?.replace('Desarrollo:','').trim()||'';
-    const pregsLine = lines.find(l=>l.startsWith('Preguntas:'))?.replace('Preguntas:','').trim()||'';
-    const pregs = pregsLine.split(' · ').filter(Boolean);
-    const col = COLORS[i%COLORS.length];
-    return `<div class="tarea-card" style="border-left-color:${col};">
-      <div class="tarea-titulo">${titulo}</div>
-      ${meta?`<div style="margin-bottom:8px;">${meta.split('|').map(m=>`<span class="badge-meta">${m.trim()}</span>`).join('')}</div>`:''}
-      ${desarrollo?`<div class="tarea-desc">${desarrollo}</div>`:''}
-      ${pregs.length?`<div class="ctitle" style="margin-bottom:6px;"><div class="cdot" style="background:${col};"></div>Preguntas para reflexionar</div>
-        ${pregs.map(p=>`<div class="tarea-preg"><div style="flex:1;font-size:12px;color:var(--text2);line-height:1.5;">${p}</div></div>`).join('')}`:''}
-      <div style="font-size:10px;color:var(--text3);margin-top:.75rem;">${new Date(t.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</div>
-    </div>`;
-  }).join('');
-}
+  html += '<div><div style="font-size:15px;font-weight:700;">'+(inf.partido||'Partido')+'</div>';
+  html += '<div style="font-size:11px;color:var(--text2);margin-top:2px;">'+fecha+(inf.rival?' · vs '+inf.rival:'')+(inf.resultado?' · '+inf.resultado:'')+'</div></div></div>';
 
-// ── PSICOLOGÍA — TABS ──
-function switchPsicoTab(tab) {
-  ['diario','partido','temporada'].forEach(t => {
-    document.getElementById('psico-'+t+'-tab').style.display = t===tab ? 'block' : 'none';
-    const btn = document.getElementById('pt-'+t);
-    if(btn) {
-      btn.style.background = t===tab ? 'rgba(163,113,247,0.15)' : 'none';
-      btn.style.color = t===tab ? 'var(--purple)' : 'var(--text3)';
-      btn.style.borderColor = t===tab ? 'rgba(163,113,247,0.3)' : 'var(--border2)';
+  // Fases
+  fases.forEach(f => {
+    const vals = starsData[f.k]||[];
+    const filled = vals.filter(v=>v>0);
+    const avg = filled.length ? filled.reduce((a,b)=>a+b,0)/filled.length : 0;
+    const pct = Math.round((avg/5)*100);
+
+    html += '<div style="padding:.875rem 1rem;border-bottom:0.5px solid var(--border);">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">';
+    html += '<div style="font-size:10px;font-weight:800;letter-spacing:.08em;color:'+f.c+';">'+f.l.toUpperCase()+'</div>';
+    if(avg) {
+      html += '<div style="display:flex;gap:1px;">';
+      for(let s=1;s<=5;s++) html += '<span style="font-size:14px;color:'+(s<=Math.round(avg)?'#d29922':'var(--text3)')+';">★</span>';
+      html += '<span style="font-size:11px;color:'+f.c+';margin-left:4px;font-weight:700;">'+avg.toFixed(1)+'</span></div>';
     }
+    html += '</div>';
+    if(avg) html += '<div style="height:4px;background:var(--border2);border-radius:99px;overflow:hidden;margin-bottom:.5rem;"><div style="width:'+pct+'%;height:4px;background:'+f.c+';border-radius:99px;"></div></div>';
+    vals.forEach((v,i) => {
+      if(!v) return;
+      const asp = (ASPECTOS[f.k]||[])[i]||'';
+      html += '<div style="display:flex;align-items:center;gap:6px;font-size:11px;padding:5px 0;border-bottom:0.5px solid var(--border);">';
+      html += '<span style="flex:1;color:var(--text2);">'+asp+'</span>';
+      html += '<div style="display:flex;gap:1px;">';
+      for(let s=1;s<=5;s++) html += '<span style="font-size:12px;color:'+(s<=v?'#d29922':'var(--text3)')+';">★</span>';
+      html += '</div></div>';
+    });
+    if(f.obs) html += '<div style="font-size:12px;color:var(--text2);line-height:1.7;margin-top:.5rem;padding:.75rem;background:var(--bg3);border-radius:6px;">'+f.obs+'</div>';
+    html += '</div>';
   });
-  if(tab === 'partido') renderPsicoPartidoStars();
-  if(tab === 'temporada') loadTemporada();
+
+  if(inf.notas) html += '<div style="padding:.875rem 1rem;"><div style="font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--text3);margin-bottom:.5rem;">NOTAS DEL ANALISTA</div><div style="font-size:12px;color:var(--text2);line-height:1.7;font-style:italic;">'+inf.notas+'</div></div>';
+  html += '</div>';
+  return html;
 }
 
-// ── DIARIO ──
-let currentMoodBtn = null;
-function selMood(val, btn) {
-  currentMood = val;
-  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('sel'));
-  btn.classList.add('sel');
-}
 
-async function savePsico() {
-  if(!st.jug) { showToast('Sin jugador vinculado'); return; }
-  const data = {
-    jugador_id: st.jug.id,
-    fecha: new Date().toISOString().slice(0,10),
-    mood: currentMood,
-    energia: parseInt(document.getElementById('energia-sl').value),
-    estres: parseInt(document.getElementById('estres-sl').value),
-    mejor: document.getElementById('psico-mejor').value.trim(),
-    dificil: document.getElementById('psico-dificil').value.trim(),
-    mejorar_manana: document.getElementById('psico-mejorar').value.trim(),
-  };
-  const { error } = await DB.from('psico_diario').insert(data);
-  if(error) { showToast('Error al guardar'); return; }
-  st.psico.unshift(data);
-  showToast('✓ Reflexión guardada');
-  loadPsicoHist();
-  ['psico-mejor','psico-dificil','psico-mejorar'].forEach(id => document.getElementById(id).value='');
-}
-
-async function loadPsicoHist() {
-  if(!st.jug) return;
-  const { data } = await DB.from('psico_diario').select('*').eq('jugador_id', st.jug.id).order('fecha',{ascending:false}).limit(7);
-  const cont = document.getElementById('psico-hist');
-  if(!data||!data.length) { cont.innerHTML='<div style="font-size:12px;color:var(--text3);padding:.5rem 0;">Sin registros todavía.</div>'; return; }
-  const EMOJIS = ['','😞','😐','🙂','😊','🔥'];
-  cont.innerHTML = data.map(d=>{
-    const fecha = new Date(d.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
-    return '<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:0.5px solid var(--border);">'+
-      '<span style="font-size:20px;">'+(EMOJIS[d.mood]||'—')+'</span>'+
-      '<div style="flex:1;"><div style="font-size:12px;font-weight:600;">'+fecha+'</div>'+
-      '<div style="font-size:10px;color:var(--text2);">Energía: '+d.energia+'/10 · Estrés: '+d.estres+'/10</div></div>'+
-      (d.mejor?'<div style="font-size:11px;color:var(--text3);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+d.mejor+'</div>':'')+
-    '</div>';
-  }).join('');
-}
-
-// ── POST-PARTIDO PSICOLÓGICO ──
-const PSICO_PARTIDO_ITEMS = [
-  {id:'ansiedad',   label:'Control de la ansiedad',    desc:'¿Estuviste nervioso o controlado?',      color:'#a371f7'},
-  {id:'concentra',  label:'Concentración',              desc:'¿Mantuviste el foco durante el partido?', color:'#58a6ff'},
-  {id:'emociones',  label:'Gestión emocional',          desc:'¿Gestionaste bien tus emociones?',        color:'#3fb950'},
-  {id:'frustrac',   label:'Tolerancia a la frustración',desc:'¿Cómo respondiste a los errores?',        color:'#d29922'},
-  {id:'enfado',     label:'Control del enfado',         desc:'¿Te alteraste con compañeros o rivales?', color:'#f85149'},
-  {id:'confianza',  label:'Confianza en ti mismo',      desc:'¿Tomaste decisiones con seguridad?',      color:'#a371f7'},
-  {id:'rendimiento',label:'Rendimiento bajo presión',   desc:'¿Respondiste bien en los momentos clave?',color:'#58a6ff'},
-];
-
-let ppStars = {};
-
-function renderPsicoPartidoStars() {
-  const cont = document.getElementById('pp-stars-container');
-  if(!cont) return;
-  ppStars = {};
-  cont.innerHTML = PSICO_PARTIDO_ITEMS.map(item => {
-    ppStars[item.id] = 0;
-    return '<div style="padding:.75rem 0;border-bottom:0.5px solid var(--border);">'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">'+
-        '<div>'+
-          '<div style="font-size:13px;font-weight:600;">'+item.label+'</div>'+
-          '<div style="font-size:10px;color:var(--text3);">'+item.desc+'</div>'+
-        '</div>'+
-        '<div style="display:flex;gap:3px;" id="stars-'+item.id+'">'+
-          [1,2,3,4,5].map(s =>
-            '<span onclick="setPPStar(''+item.id+'','+s+')" style="font-size:26px;cursor:pointer;color:var(--border2);transition:color .1s;" data-val="'+s+'" class="pp-star">★</span>'
-          ).join('')+
-        '</div>'+
-      '</div>'+
-    '</div>';
-  }).join('');
-
-  // Fecha por defecto
-  const fp = document.getElementById('pp-fecha');
-  if(fp && !fp.value) fp.value = new Date().toISOString().slice(0,10);
-}
-
-function setPPStar(itemId, val) {
-  ppStars[itemId] = val;
-  const cfg = PSICO_PARTIDO_ITEMS.find(i => i.id === itemId);
-  const color = cfg ? cfg.color : 'var(--amber)';
-  document.querySelectorAll('#stars-'+itemId+' .pp-star').forEach(s => {
-    s.style.color = parseInt(s.dataset.val) <= val ? color : 'var(--border2)';
-  });
-}
-
-async function savePsicoPartido() {
-  if(!st.jug) { showToast('Sin jugador vinculado'); return; }
-  const partido = document.getElementById('pp-partido').value.trim();
-  if(!partido) { showToast('Escribe el nombre del partido'); return; }
-  const data = {
-    jugador_id: st.jug.id,
-    fecha: document.getElementById('pp-fecha').value || new Date().toISOString().slice(0,10),
-    partido,
-    estrellas: JSON.stringify(ppStars),
-    concentrado: document.getElementById('pp-concentrado').value.trim(),
-    altero: document.getElementById('pp-altero').value.trim(),
-    errores: document.getElementById('pp-errores').value.trim(),
-    mejorar: document.getElementById('pp-mejorar').value.trim(),
-  };
-  const { error } = await DB.from('psico_partido').insert(data);
-  if(error) { showToast('Error: '+error.message); return; }
-  showToast('✓ Valoración guardada');
-  loadPPHist();
-  document.getElementById('pp-partido').value = '';
-  ['pp-concentrado','pp-altero','pp-errores','pp-mejorar'].forEach(id => document.getElementById(id).value='');
-  ppStars = {};
-  renderPsicoPartidoStars();
-}
-
-async function loadPPHist() {
-  if(!st.jug) return;
-  const { data } = await DB.from('psico_partido').select('*').eq('jugador_id', st.jug.id).order('fecha',{ascending:false}).limit(5);
-  const cont = document.getElementById('pp-hist');
-  if(!cont) return;
-  if(!data||!data.length) { cont.innerHTML='<div style="font-size:12px;color:var(--text3);">Sin valoraciones todavía.</div>'; return; }
-  cont.innerHTML = data.map(d => {
-    let stars = {};
-    try { stars = JSON.parse(d.estrellas||'{}'); } catch(e){}
-    const fecha = new Date(d.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
-    const avg = Object.values(stars).filter(v=>v>0);
-    const media = avg.length ? (avg.reduce((a,b)=>a+b,0)/avg.length).toFixed(1) : null;
-    return '<div style="padding:.875rem 0;border-bottom:0.5px solid var(--border);">'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'+
-        '<div><div style="font-size:13px;font-weight:700;">'+d.partido+'</div>'+
-        '<div style="font-size:10px;color:var(--text3);">'+fecha+'</div></div>'+
-        (media?'<div style="width:38px;height:38px;border-radius:50%;background:rgba(163,113,247,0.15);color:var(--purple);border:1.5px solid rgba(163,113,247,0.4);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">'+media+'</div>':'')+
-      '</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">'+
-        PSICO_PARTIDO_ITEMS.map(item => {
-          const v = stars[item.id]||0;
-          if(!v) return '';
-          const pct = Math.round((v/5)*100);
-          return '<div><div style="font-size:9px;color:var(--text3);margin-bottom:2px;">'+item.label.split(' ')[0]+'</div>'+
-            '<div style="height:4px;background:var(--border2);border-radius:99px;overflow:hidden;">'+
-            '<div style="width:'+pct+'%;height:4px;background:'+item.color+';border-radius:99px;"></div></div></div>';
-        }).filter(Boolean).join('')+
-      '</div>'+
-    '</div>';
-  }).join('');
-}
-
-// ── TEMPORADA ──
-async function loadTemporada() {
-  if(!st.jug) return;
-  const { data } = await DB.from('psico_temporada').select('*').eq('jugador_id', st.jug.id).order('created_at',{ascending:false}).limit(1).single();
-  if(data) {
-    document.getElementById('nut-onboarding') && null; // ignorar
-    document.getElementById('psico-diario-tab');
-    // Mostrar resumen
-    const card = document.getElementById('temp-resumen-card');
-    const res = document.getElementById('temp-resumen');
-    if(card && res) {
-      card.style.display = 'block';
-      document.querySelector('#psico-temporada-tab .card:first-child').style.display = 'none';
-      res.innerHTML =
-        (data.objetivo?'<div style="margin-bottom:10px;"><div style="font-size:10px;color:var(--purple);font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Objetivo de temporada</div><div style="font-size:13px;line-height:1.6;">'+data.objetivo+'</div></div>':'')+
-        (data.fortaleza?'<div style="margin-bottom:10px;"><div style="font-size:10px;color:var(--green);font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Mi fortaleza mental</div><div style="font-size:13px;line-height:1.6;">'+data.fortaleza+'</div></div>':'')+
-        (data.mejorar?'<div style="margin-bottom:10px;"><div style="font-size:10px;color:var(--amber);font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">A mejorar mentalmente</div><div style="font-size:13px;line-height:1.6;">'+data.mejorar+'</div></div>':'')+
-        (data.motivacion?'<div><div style="font-size:10px;color:var(--blue);font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Mi motivación</div><div style="font-size:13px;line-height:1.6;">'+data.motivacion+'</div></div>':'');
-    }
-  }
-}
-
-function editarTemporada() {
-  document.getElementById('temp-resumen-card').style.display = 'none';
-  document.querySelector('#psico-temporada-tab .card:first-child').style.display = 'block';
-}
-
-async function saveTemporada() {
-  if(!st.jug) { showToast('Sin jugador vinculado'); return; }
-  const data = {
-    jugador_id: st.jug.id,
-    objetivo: document.getElementById('temp-objetivo').value.trim(),
-    fortaleza: document.getElementById('temp-fortaleza').value.trim(),
-    mejorar: document.getElementById('temp-mejorar').value.trim(),
-    motivacion: document.getElementById('temp-motivacion').value.trim(),
-  };
-  await DB.from('psico_temporada').upsert({...data, id: st.jug.id+'_temp'},{onConflict:'id'});
-  showToast('✓ Expectativas guardadas');
-  loadTemporada();
-}
-
-async function saveCheckSemanal() {
-  if(!st.jug) { showToast('Sin jugador vinculado'); return; }
-  const data = {
-    jugador_id: st.jug.id,
-    fecha: new Date().toISOString().slice(0,10),
-    balance: document.getElementById('sem-balance').value.trim(),
-    confianza: document.getElementById('sem-confianza').value.trim(),
-    reto: document.getElementById('sem-reto').value.trim(),
-  };
-  const { error } = await DB.from('psico_semanal').insert(data);
-  if(error) { showToast('Error: '+error.message); return; }
-  showToast('✓ Check-in guardado');
-  ['sem-balance','sem-confianza','sem-reto'].forEach(id => document.getElementById(id).value='');
-}
-
-// ── NUTRICIÓN ──
-let nutPerfil = null;
-let diaActual = 'entreno';
-
-function calcularMacros() {
-  const peso = parseFloat(document.getElementById('nut-peso').value);
-  const altura = parseFloat(document.getElementById('nut-altura').value);
-  const dias = parseInt(document.getElementById('nut-dias').value)||5;
-  const objetivo = document.getElementById('nut-objetivo').value;
-  const aversiones = document.getElementById('nut-aversiones').value.trim();
-
-  if(!peso||!altura) { showToast('Introduce peso y altura'); return; }
-
-  // Fórmula Mifflin-St Jeor adaptada para deportistas jóvenes
-  const cat = st.jug?.categoria||'Cadete';
-  const edades = {'Benjamín':9,'Alevín':11,'Infantil':13,'Cadete':15,'Juvenil':17};
-  const edad = edades[cat]||15;
-
-  // TMB base (Mifflin para hombres jóvenes deportistas)
-  const tmb = 10*peso + 6.25*altura - 5*edad + 5;
-
-  // Factor actividad según días entreno
-  const factores = {3:1.55, 4:1.65, 5:1.725, 6:1.8};
-  const factor = factores[dias]||1.725;
-  let tdee = Math.round(tmb * factor);
-
-  // Ajuste por objetivo
-  if(objetivo === 'masa') tdee += 300;
-  if(objetivo === 'perder') tdee -= 300;
-
-  // Macros deportivo: 55% carbos, 20% prot, 25% grasa (aprox)
-  const prot = Math.round(peso * 1.8); // 1.8g/kg para deportistas
-  const gras = Math.round((tdee * 0.25) / 9);
-  const carb = Math.round((tdee - (prot*4) - (gras*9)) / 4);
-
-  nutPerfil = { peso, altura, dias, objetivo, aversiones, kcal:tdee, prot, carb, gras };
-  localStorage.setItem('nut_perfil_'+st.jug?.id, JSON.stringify(nutPerfil));
-
-  document.getElementById('m-kcal').textContent = tdee;
-  document.getElementById('m-prot').textContent = prot+'g';
-  document.getElementById('m-carb').textContent = carb+'g';
-  document.getElementById('m-gras').textContent = gras+'g';
-
-  document.getElementById('nut-onboarding').style.display = 'none';
-  document.getElementById('nut-macros-card').style.display = 'block';
-
-  setDiaTipo('entreno');
-  showToast('✓ Macros calculados');
-}
-
-function setDiaTipo(tipo) {
-  diaActual = tipo;
-  ['partido','entreno','descanso'].forEach(t => {
-    const btn = document.getElementById('dt-'+t);
-    if(!btn) return;
-    const colors = {partido:'rgba(88,166,255,0.15)',entreno:'rgba(63,185,80,0.15)',descanso:'rgba(72,79,88,0.15)'};
-    const textColors = {partido:'var(--blue)',entreno:'var(--green)',descanso:'var(--text2)'};
-    const borderColors = {partido:'rgba(88,166,255,0.3)',entreno:'rgba(63,185,80,0.3)',descanso:'var(--border2)'};
-    btn.style.background = t===tipo ? colors[t] : 'none';
-    btn.style.color = t===tipo ? textColors[t] : 'var(--text3)';
-    btn.style.borderColor = t===tipo ? borderColors[t] : 'var(--border2)';
-  });
-  renderMealPlan(tipo);
-}
-
-function renderMealPlan(tipo) {
-  const av = nutPerfil?.aversiones||'';
-  const AVOIDS = av.toLowerCase().split(',').map(s=>s.trim()).filter(Boolean);
-  const noAv = (food) => !AVOIDS.some(a => food.toLowerCase().includes(a));
-
-  const PLANS = {
-    partido: [
-      {ico:'🌅',h:'3-4h antes',name:'Pre-partido',desc:'Pasta o arroz (200g cocido) + pollo a la plancha. Sin grasas ni fibra. Agua.'},
-      {ico:'⚡',h:'1h antes',  name:'Activación', desc:'Plátano + miel. Isotónico o agua. Nada pesado.'},
-      {ico:'💧',h:'Durante',   name:'Hidratación', desc:'Agua o isotónico cada 15-20min. Gel de glucosa si supera 60min.'},
-      {ico:'💪',h:'30min después',name:'Recuperación', desc:noAv('proteína')?'Batido de proteína + plátano o arroz con pollo.':'Arroz con pollo. Carbohidratos + proteína.'},
-      {ico:'🌙',h:'Cena',      name:'Recarga',    desc:'Proteína + carbohidrato moderado + verduras. Dormir bien es recuperación.'},
-    ],
-    entreno: [
-      {ico:'🌅',h:'Desayuno',   name:'Energía base', desc:'Avena (80g) + leche + plátano + frutos secos. O tostada integral + huevo + fruta.'},
-      {ico:'🍎',h:'Media mañana',name:'Mantenimiento',desc:noAv('yogur')?'Yogur griego + fruta + nueces.':'Fruta + almendras o anacardos.'},
-      {ico:'🍗',h:'Comida',     name:'Combustible',  desc:'Arroz o pasta (150g) + '+( noAv('pollo')?'pollo':'proteína de tu elección')+' + verduras.'},
-      {ico:'⚡',h:'Pre-entreno', name:'Activación',  desc:'30-60min antes: plátano + tostada con miel. Hidratación.'},
-      {ico:'💪',h:'Post-entreno',name:'Recuperación', desc:noAv('proteína')?'Batido de proteína + fruta. Máximo 30min después.':'Pollo + arroz. Máximo 30min después.'},
-      {ico:'🌙',h:'Cena',       name:'Reparación',   desc:noAv('pescado')?'Pescado + verduras + patata cocida.':'Huevos + verduras + arroz integral.'},
-    ],
-    descanso: [
-      {ico:'🌅',h:'Desayuno',   name:'Ligero',       desc:'Avena + fruta + nueces. Café o té. Sin prisa.'},
-      {ico:'🍎',h:'Media mañana',name:'Snack',        desc:'Fruta de temporada. Nada más.'},
-      {ico:'🥗',h:'Comida',     name:'Equilibrado',  desc:'Más verduras que en días de entreno. Proteína moderada. Menos carbohidratos.'},
-      {ico:'🌙',h:'Cena',       name:'Digestivo',    desc:'Sopa o crema + huevo o pescado blanco. Infusión antes de dormir.'},
-    ],
-  };
-
-  const meals = PLANS[tipo]||PLANS.entreno;
-  const mult = tipo==='partido' ? 1.1 : tipo==='descanso' ? 0.85 : 1;
-  const kcal = nutPerfil ? Math.round(nutPerfil.kcal * mult) : '—';
-
-  document.getElementById('nut-plan-content').innerHTML =
-    '<div style="font-size:11px;color:var(--text2);margin-bottom:.875rem;">'+
-      (tipo==='partido'?'🏆 Día de partido · ':'💪 Día de entrenamiento · ')+
-      '<strong style="color:var(--amber);">'+kcal+' kcal</strong>'+
-    '</div>'+
-    '<div style="border-top:0.5px solid var(--border);padding-top:.875rem;">'+
-    meals.map(m =>
-      '<div class="meal-item"><div class="meal-ico">'+m.ico+'</div>'+
-      '<div><div style="font-size:10px;color:var(--text3);margin-bottom:1px;">'+m.h+'</div>'+
-      '<div class="meal-name">'+m.name+'</div>'+
-      '<div class="meal-desc">'+m.desc+'</div></div></div>'
-    ).join('')+
-    '</div>';
-}
-
-async function loadNutPlan() {
-  if(!st.jug) return;
-  // Cargar perfil guardado
-  const saved = localStorage.getItem('nut_perfil_'+st.jug.id);
-  if(saved) {
-    nutPerfil = JSON.parse(saved);
-    document.getElementById('m-kcal').textContent = nutPerfil.kcal;
-    document.getElementById('m-prot').textContent = nutPerfil.prot+'g';
-    document.getElementById('m-carb').textContent = nutPerfil.carb+'g';
-    document.getElementById('m-gras').textContent = nutPerfil.gras+'g';
-    document.getElementById('nut-onboarding').style.display = 'none';
-    document.getElementById('nut-macros-card').style.display = 'block';
-    setDiaTipo('entreno');
-  } else {
-    // Sin perfil: macros genéricos por categoría
-    const cat = st.jug.categoria||'Cadete';
-    const PLANS = {'Benjamín':{kcal:1800,prot:70,carb:220,gras:55},'Alevín':{kcal:2000,prot:75,carb:250,gras:60},'Infantil':{kcal:2300,prot:90,carb:290,gras:70},'Cadete':{kcal:2600,prot:110,carb:320,gras:78},'Juvenil':{kcal:2900,prot:130,carb:360,gras:88}};
-    const m = PLANS[cat]||PLANS['Cadete'];
-    document.getElementById('m-kcal').textContent = m.kcal;
-    document.getElementById('m-prot').textContent = m.prot+'g';
-    document.getElementById('m-carb').textContent = m.carb+'g';
-    if(document.getElementById('m-gras')) document.getElementById('m-gras').textContent = m.gras+'g';
-  }
-}
-
-async function saveNutLog() {
-  if(!st.jug) { showToast('Sin jugador vinculado'); return; }
-  const texto = document.getElementById('nut-log').value.trim();
-  if(!texto) { showToast('Escribe lo que comiste'); return; }
-  const fecha = document.getElementById('nut-fecha').value || new Date().toISOString().slice(0,10);
-  const { error } = await DB.from('nutricion_log').insert({ jugador_id: st.jug.id, fecha, texto });
-  if(error) { showToast('Error al guardar'); return; }
-  document.getElementById('nut-log').value = '';
-  showToast('✓ Registro guardado');
-  loadNutHist();
-}
-
-async function loadNutHist() {
-  if(!st.jug) return;
-  const { data } = await DB.from('nutricion_log').select('*').eq('jugador_id', st.jug.id).order('fecha',{ascending:false}).limit(7);
-  const cont = document.getElementById('nut-hist');
-  if(!data||!data.length) { cont.innerHTML='<div style="font-size:12px;color:var(--text3);padding:.5rem 0;">Sin registros todavía.</div>'; return; }
-  cont.innerHTML = data.map(d=>{
-    const fecha = new Date(d.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
-    return '<div style="padding:.75rem 0;border-bottom:0.5px solid var(--border);">'+
-      '<div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:4px;">'+fecha+'</div>'+
-      '<div style="font-size:12px;color:var(--text2);line-height:1.6;">'+d.texto+'</div></div>';
-  }).join('');
-}
-
-// ── NAVEGACIÓN ──
-function goSec(id) {
-  document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
-  document.getElementById('sec-'+id).classList.add('active');
-  const nb = document.getElementById('nb-'+id);
-  if(nb) nb.classList.add('active');
-  window.scrollTo(0,0);
-}
-
-// ── UTILS ──
-function initials(n) { return (n||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.style.opacity = '1';
-  setTimeout(()=>t.style.opacity='0', 2500);
-}
-const AV_COLORS = {
-  Central:   {bg:'rgba(0,212,255,0.12)',color:'#00D4FF'},
-  Lateral:   {bg:'rgba(0,255,148,0.12)',color:'#00FF94'},
-  Pivote:    {bg:'rgba(255,184,0,0.12)', color:'#FFB800'},
-  Interior:  {bg:'rgba(168,85,247,0.12)',color:'#A855F7'},
-  Extremo:   {bg:'rgba(255,107,53,0.12)',color:'#FF6B35'},
-  Delantero: {bg:'rgba(255,51,102,0.12)',color:'#FF3366'},
-};
-
-// ── INIT ──
-window.addEventListener('load', async () => {
-  const { data: { session } } = await DB.auth.getSession();
-  if(session?.user) { await loadApp(session.user); }
-});
-
-DB.auth.onAuthStateChange((event, session) => {
-  if(event === 'SIGNED_IN' && session?.user) { loadApp(session.user); }
-});
-</script>
-</body>
-</html>
