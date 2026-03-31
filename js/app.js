@@ -69,6 +69,8 @@ async function loadAll() {
   state.microconceptos = m.data||[];
   state.informesPartido = inf.data||[];
   state.clipsInforme = cl.data||[];
+  const cjRes = await DB.from('clips_jugador').select('*').order('created_at');
+  state.clipsJugador = cjRes.data||[];
   const plRes = await DB.from('planes_partido').select('*').order('created_at',{ascending:false});
   state.planesPartido = plRes.data||[];
   // Cargar clips de microconceptos
@@ -259,7 +261,7 @@ function openJug(id){
 }
 
 function switchDT(tab){
-  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','partidos','sesion','informe','historial','tareas','plan'][i]===tab));
+  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','clips','informe','historial','tareas','plan'][i]===tab));
   renderDT(tab);
 }
 
@@ -401,6 +403,80 @@ function renderDT(tab){
       body.appendChild(guionDiv);
     }
   }
+
+  // ─── TAB CLIPS ───
+  if(tab==='clips'){
+    const clipsJug = (state.clipsJugador||[]).filter(c => String(c.jugador_id) === String(id));
+    const TIPO_CFG = {
+      mejorar:   {bg:'#FAECE7', color:'#993C1D', label:'△ A mejorar',      desc:'Aspectos que necesita trabajar'},
+      positivo:  {bg:'#E1F5EE', color:'#085041', label:'✓ Puntos fuertes', desc:'Lo que hace bien'},
+      referencia:{bg:'#FAEEDA', color:'#633806', label:'★ Referencias élite', desc:'Ejemplos de jugadores profesionales'},
+    };
+
+    let html = '<div style="'+CARD+'border-left:3px solid #1D9E75;">'+
+      '<div style="font-size:12px;font-weight:700;margin-bottom:4px;">Añadir clip al jugador</div>'+
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:.875rem;">Los clips aparecen directamente en la app del jugador</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'+
+        '<div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Categoría</label>'+
+        '<select id="clip-jug-tipo" style="'+SI+'">'+
+          '<option value="mejorar">△ A mejorar</option>'+
+          '<option value="positivo">✓ Punto fuerte</option>'+
+          '<option value="referencia">★ Referencia élite</option>'+
+        '</select></div>'+
+        '<div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Título</label>'+
+        '<input type="text" id="clip-jug-titulo" placeholder="Ej: Anticipación vs Alzira" style="'+SI+'"></div>'+
+      '</div>'+
+      '<input type="file" id="clip-jug-file" accept="video/*" style="width:100%;font-size:11px;margin-bottom:6px;">'+
+      '<div style="font-size:10px;color:var(--text3);margin-bottom:5px;">O enlace de Google Drive:</div>'+
+      '<input type="text" id="clip-jug-url" placeholder="https://drive.google.com/..." style="'+SI+'margin-bottom:8px;">'+
+      '<button class="btn" style="width:100%;" onclick="subirClipJugadorDirecto(\''+id+'\')">↑ Subir clip</button>'+
+    '</div>';
+
+    // Mostrar por categoría
+    const tipos = ['mejorar','positivo','referencia'];
+    let hayClips = false;
+    tipos.forEach(tipo => {
+      const clips = clipsJug.filter(c => c.tipo === tipo);
+      if(!clips.length) return;
+      hayClips = true;
+      const tc = TIPO_CFG[tipo];
+      html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:'+tc.color+';margin-bottom:.5rem;margin-top:1rem;display:flex;align-items:center;gap:6px;">'+
+        '<div style="width:3px;height:14px;border-radius:2px;background:'+tc.color+';"></div>'+
+        tc.label+' ('+clips.length+')'+
+      '</div>';
+      clips.forEach(c => {
+        let videoHtml = '';
+        if(c.url) {
+          const m2 = c.url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || c.url.match(/id=([a-zA-Z0-9_-]+)/);
+          if(m2) videoHtml = '<div style="width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;"><iframe src="https://drive.google.com/file/d/'+m2[1]+'/preview" width="100%" height="100%" style="border:none;" allowfullscreen allow="autoplay"></iframe></div>';
+          else if(c.url.includes('supabase.co')) videoHtml = '<video controls playsinline style="width:100%;border-radius:8px;max-height:200px;background:#000;" src="'+c.url+'"></video>';
+          else videoHtml = '<video controls playsinline style="width:100%;border-radius:8px;max-height:200px;background:#000;" src="'+c.url+'"></video>';
+        }
+        html += '<div style="'+CARD+'padding:.875rem;margin-bottom:8px;border-left:3px solid '+tc.color+'30;">'+
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'+
+            '<div style="display:flex;align-items:center;gap:7px;">'+
+              '<span style="font-size:9px;padding:2px 8px;border-radius:99px;background:'+tc.bg+';color:'+tc.color+';font-weight:700;">'+tc.label+'</span>'+
+              (c.titulo?'<span style="font-size:12px;font-weight:600;">'+c.titulo+'</span>':'')+ 
+            '</div>'+
+            '<button onclick="eliminarClipJugadorDirecto(\''+c.id+'\',\''+id+'\')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1;">×</button>'+
+          '</div>'+
+          videoHtml+
+        '</div>';
+      });
+    });
+
+    if(!hayClips) {
+      html += '<div style="text-align:center;padding:2.5rem 1rem;color:var(--text3);">'+
+        '<div style="font-size:32px;margin-bottom:10px;opacity:.4;">▶</div>'+
+        '<div style="font-size:13px;font-weight:600;margin-bottom:5px;">Sin clips todavía</div>'+
+        '<div style="font-size:11px;line-height:1.6;">Sube clips de los 3 tipos.<br>Aparecerán al instante en la app del jugador.</div>'+
+      '</div>';
+    }
+
+    body.innerHTML = html;
+    return;
+  }
+
 
   // ─── TAB INFORME ───
   if(tab==='informe'){
@@ -3466,4 +3542,94 @@ async function guardarEdicionJugador() {
   if(updates.email_jugador) {
     setTimeout(() => showToast(`✓ Vinculado con ${updates.email_jugador}`), 1500);
   }
+}
+
+// ─── SUBIR CLIP DESDE LA FICHA DEL JUGADOR ───
+async function subirClipJugador(jugId) {
+  const microId = document.getElementById('clip-jug-micro')?.value;
+  const tipo = document.getElementById('clip-jug-tipo')?.value || 'mejorar';
+  const titulo = document.getElementById('clip-jug-titulo')?.value.trim() || '';
+  const fileInput = document.getElementById('clip-jug-file');
+  let url = document.getElementById('clip-jug-url')?.value.trim() || '';
+
+  if(!microId) { showToast('Selecciona un microconcepto'); return; }
+
+  if(fileInput?.files?.[0]) {
+    if(fileInput.files[0].size > 50*1024*1024) { showToast('El archivo supera 50MB'); return; }
+    showToast('Subiendo clip...');
+    const uploaded = await uploadVideoClip(fileInput.files[0]);
+    if(!uploaded) return;
+    url = uploaded;
+  }
+
+  if(!url) { showToast('Selecciona un archivo o pega un enlace'); return; }
+
+  const { data, error } = await DB.from('clips_microconcepto').insert({
+    micro_id: microId, titulo, tipo, url
+  }).select();
+
+  if(error) { showToast('Error: ' + error.message); return; }
+  if(!state.micClips) state.micClips = [];
+  state.micClips.push(data[0]);
+
+  if(fileInput) fileInput.value = '';
+  document.getElementById('clip-jug-url').value = '';
+  document.getElementById('clip-jug-titulo').value = '';
+
+  showToast('✓ Clip subido — visible en la app del jugador');
+  renderDT('clips');
+}
+
+async function eliminarClipJugador(clipId, jugId) {
+  if(!confirm('¿Eliminar este clip?')) return;
+  await DB.from('clips_microconcepto').delete().eq('id', clipId);
+  state.micClips = (state.micClips||[]).filter(c => c.id !== clipId);
+  showToast('Clip eliminado');
+  renderDT('clips');
+}
+
+// ─── CLIPS DIRECTOS DEL JUGADOR ───
+
+async function subirClipJugadorDirecto(jugId) {
+  const tipo = document.getElementById('clip-jug-tipo')?.value || 'mejorar';
+  const titulo = document.getElementById('clip-jug-titulo')?.value.trim() || '';
+  const fileInput = document.getElementById('clip-jug-file');
+  let url = document.getElementById('clip-jug-url')?.value.trim() || '';
+
+  if(fileInput?.files?.[0]) {
+    if(fileInput.files[0].size > 50*1024*1024) { showToast('El archivo supera 50MB'); return; }
+    showToast('Subiendo clip...');
+    const uploaded = await uploadVideoClip(fileInput.files[0]);
+    if(!uploaded) { showToast('Error al subir'); return; }
+    url = uploaded;
+  }
+
+  if(!url) { showToast('Selecciona un archivo o pega un enlace de Drive'); return; }
+
+  const { data, error } = await DB.from('clips_jugador').insert({
+    jugador_id: jugId,
+    tipo,
+    titulo,
+    url,
+  }).select();
+
+  if(error) { showToast('Error: ' + error.message); return; }
+
+  if(!state.clipsJugador) state.clipsJugador = [];
+  state.clipsJugador.push(data[0]);
+
+  if(fileInput) fileInput.value = '';
+  document.getElementById('clip-jug-url').value = '';
+  document.getElementById('clip-jug-titulo').value = '';
+
+  showToast('✓ Clip subido — ya visible en la app del jugador');
+  renderDT('clips');
+}
+
+async function eliminarClipJugadorDirecto(clipId, jugId) {
+  if(!confirm('¿Eliminar este clip?')) return;
+  await DB.from('clips_jugador').delete().eq('id', clipId);
+  state.clipsJugador = (state.clipsJugador||[]).filter(c => c.id !== clipId);
+  renderDT('clips');
+  showToast('Clip eliminado');
 }
