@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
-  --bg:#0d1117; --bg2:#161b22; --bg3:#1hc21h28; --card:#21262d;
+  --bg:#0d1117; --bg2:#161b22; --bg3:#1c2128; --card:#21262d;
   --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.15);
   --text:#e6edf3; --text2:#8b949e; --text3:#484f58;
   --green:#3fb950; --blue:#58a6ff; --amber:#d29922;
@@ -281,58 +281,173 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- PSICOLOGÍA -->
     <div class="sec" id="sec-psico">
-      <div class="card">
-        <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>¿Cómo te sientes hoy?</div>
-        <div class="mood-grid">
-          <button class="mood-btn" onclick="selMood(1,this)"><span class="mood-emoji">😞</span><span class="mood-label">Bajo</span></button>
-          <button class="mood-btn" onclick="selMood(2,this)"><span class="mood-emoji">😐</span><span class="mood-label">Regular</span></button>
-          <button class="mood-btn" onclick="selMood(3,this)"><span class="mood-emoji">🙂</span><span class="mood-label">Bien</span></button>
-          <button class="mood-btn" onclick="selMood(4,this)"><span class="mood-emoji">😊</span><span class="mood-label">Muy bien</span></button>
-          <button class="mood-btn" onclick="selMood(5,this)"><span class="mood-emoji">🔥</span><span class="mood-label">Top</span></button>
-        </div>
 
-        <div class="slider-wrap">
-          <div class="ctitle" style="margin-bottom:.5rem;"><div class="cdot" style="background:var(--purple);"></div>Nivel de energía</div>
-          <div class="slider-val" id="energia-val">5</div>
-          <input type="range" class="slider" min="1" max="10" value="5" id="energia-sl" oninput="document.getElementById('energia-val').textContent=this.value">
-          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);"><span>Sin energía</span><span>Explosivo</span></div>
-        </div>
+      <!-- Selector de modo -->
+      <div style="display:flex;gap:8px;margin-bottom:1rem;">
+        <button class="psico-tab active" id="pt-diario" onclick="switchPsicoTab('diario')" style="flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:700;background:rgba(163,113,247,0.15);color:var(--purple);border:0.5px solid rgba(163,113,247,0.3);cursor:pointer;font-family:inherit;">📅 Diario</button>
+        <button class="psico-tab" id="pt-partido" onclick="switchPsicoTab('partido')" style="flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">⚽ Post-partido</button>
+        <button class="psico-tab" id="pt-temporada" onclick="switchPsicoTab('temporada')" style="flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">🏆 Temporada</button>
+      </div>
 
-        <div class="slider-wrap">
-          <div class="ctitle" style="margin-bottom:.5rem;"><div class="cdot" style="background:var(--blue);"></div>Nivel de estrés</div>
-          <div class="slider-val" id="estres-val" style="color:var(--blue);">5</div>
-          <input type="range" class="slider" style="--c:var(--blue);" min="1" max="10" value="5" id="estres-sl" oninput="document.getElementById('estres-val').textContent=this.value">
-          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);"><span>Tranquilo</span><span>Muy estresado</span></div>
+      <!-- TAB DIARIO -->
+      <div id="psico-diario-tab">
+        <div class="card">
+          <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>¿Cómo te sientes hoy?</div>
+          <div class="mood-grid">
+            <button class="mood-btn" onclick="selMood(1,this)"><span class="mood-emoji">😞</span><span class="mood-label">Bajo</span></button>
+            <button class="mood-btn" onclick="selMood(2,this)"><span class="mood-emoji">😐</span><span class="mood-label">Regular</span></button>
+            <button class="mood-btn" onclick="selMood(3,this)"><span class="mood-emoji">🙂</span><span class="mood-label">Bien</span></button>
+            <button class="mood-btn" onclick="selMood(4,this)"><span class="mood-emoji">😊</span><span class="mood-label">Muy bien</span></button>
+            <button class="mood-btn" onclick="selMood(5,this)"><span class="mood-emoji">🔥</span><span class="mood-label">Top</span></button>
+          </div>
+          <div class="slider-wrap">
+            <div class="ctitle" style="margin-bottom:.5rem;"><div class="cdot" style="background:var(--purple);"></div>Energía</div>
+            <div class="slider-val" id="energia-val">5</div>
+            <input type="range" class="slider" min="1" max="10" value="5" id="energia-sl" oninput="document.getElementById('energia-val').textContent=this.value">
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);"><span>Sin energía</span><span>Explosivo</span></div>
+          </div>
+          <div class="slider-wrap">
+            <div class="ctitle" style="margin-bottom:.5rem;"><div class="cdot" style="background:var(--blue);"></div>Estrés</div>
+            <div class="slider-val" id="estres-val" style="color:var(--blue);">5</div>
+            <input type="range" class="slider" min="1" max="10" value="5" id="estres-sl" oninput="document.getElementById('estres-val').textContent=this.value">
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);"><span>Tranquilo</span><span>Muy estresado</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>Reflexión del día</div>
+          <div class="psico-q">¿Qué fue lo mejor del entrenamiento/partido de hoy?</div>
+          <textarea class="psico-ta" id="psico-mejor" rows="3" placeholder="Escribe aquí..."></textarea>
+          <div class="psico-q" style="margin-top:12px;">¿Qué fue lo más difícil o lo que no te salió?</div>
+          <textarea class="psico-ta" id="psico-dificil" rows="3" placeholder="Escribe aquí..."></textarea>
+          <div class="psico-q" style="margin-top:12px;">¿Qué quieres mejorar mañana?</div>
+          <textarea class="psico-ta" id="psico-mejorar" rows="3" placeholder="Escribe aquí..."></textarea>
+          <button class="btn-save" style="margin-top:12px;" onclick="savePsico()">Guardar reflexión</button>
+        </div>
+        <div class="card">
+          <div class="ctitle"><div class="cdot" style="background:var(--text3);"></div>Historial de bienestar</div>
+          <div id="psico-hist"><div class="loading">Cargando...</div></div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>Reflexión del día</div>
-        <div class="psico-q">¿Qué fue lo mejor del entrenamiento/partido de hoy?</div>
-        <textarea class="psico-ta" id="psico-mejor" rows="3" placeholder="Escribe aquí..."></textarea>
-        <div class="psico-q" style="margin-top:12px;">¿Qué fue lo más difícil o lo que no te salió?</div>
-        <textarea class="psico-ta" id="psico-dificil" rows="3" placeholder="Escribe aquí..."></textarea>
-        <div class="psico-q" style="margin-top:12px;">¿Qué quieres mejorar mañana?</div>
-        <textarea class="psico-ta" id="psico-mejorar" rows="3" placeholder="Escribe aquí..."></textarea>
-        <button class="btn-save" style="margin-top:12px;" onclick="savePsico()">Guardar reflexión</button>
+      <!-- TAB POST-PARTIDO -->
+      <div id="psico-partido-tab" style="display:none;">
+        <div class="card">
+          <div class="ctitle"><div class="cdot" style="background:var(--blue);"></div>Datos del partido</div>
+          <input type="text" id="pp-partido" placeholder="vs Rival (ej: vs Alzira J8)" style="width:100%;height:38px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;color:var(--text);margin-bottom:8px;outline:none;">
+          <input type="date" id="pp-fecha" style="width:100%;height:38px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;color:var(--text);outline:none;">
+        </div>
+
+        <div class="card">
+          <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>Valoración psicológica del partido</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:1rem;line-height:1.5;">Valora del 1 al 5 cada aspecto mental durante el partido</div>
+
+          <div id="pp-stars-container">
+            <!-- Se genera con JS -->
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>Reflexión post-partido</div>
+          <div class="psico-q">¿En qué momentos te sentiste más concentrado?</div>
+          <textarea class="psico-ta" id="pp-concentrado" rows="2" placeholder="Escribe aquí..."></textarea>
+          <div class="psico-q" style="margin-top:10px;">¿Hubo momentos donde te alteraste o perdiste el control?</div>
+          <textarea class="psico-ta" id="pp-altero" rows="2" placeholder="Qué pasó, cuándo, por qué..."></textarea>
+          <div class="psico-q" style="margin-top:10px;">¿Cómo gestionaste los errores durante el partido?</div>
+          <textarea class="psico-ta" id="pp-errores" rows="2" placeholder="Escribe aquí..."></textarea>
+          <div class="psico-q" style="margin-top:10px;">¿Qué harías diferente mentalmente en el próximo partido?</div>
+          <textarea class="psico-ta" id="pp-mejorar" rows="2" placeholder="Escribe aquí..."></textarea>
+          <button class="btn-save" style="margin-top:12px;" onclick="savePsicoPartido()">Guardar valoración del partido</button>
+        </div>
+
+        <div class="card">
+          <div class="ctitle"><div class="cdot" style="background:var(--text3);"></div>Historial mental de partidos</div>
+          <div id="pp-hist"><div class="loading">Cargando...</div></div>
+        </div>
       </div>
 
-      <div class="card">
-        <div class="ctitle"><div class="cdot" style="background:var(--text3);"></div>Historial de bienestar</div>
-        <div id="psico-hist"><div class="loading">Cargando...</div></div>
+      <!-- TAB TEMPORADA -->
+      <div id="psico-temporada-tab" style="display:none;">
+        <div class="card" style="border:0.5px solid rgba(163,113,247,0.3);background:rgba(163,113,247,0.05);">
+          <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>Expectativas de esta temporada</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:1rem;line-height:1.5;">Rellena esto una vez al inicio. Servirá de referencia para ver tu evolución.</div>
+          <div class="psico-q">¿Qué quieres conseguir este año?</div>
+          <textarea class="psico-ta" id="temp-objetivo" rows="3" placeholder="Ser titular, mejorar mi posición, aprender a..."></textarea>
+          <div class="psico-q" style="margin-top:10px;">¿Cuál es tu mayor fortaleza mental?</div>
+          <textarea class="psico-ta" id="temp-fortaleza" rows="2" placeholder="Soy competitivo, no me rindo..."></textarea>
+          <div class="psico-q" style="margin-top:10px;">¿Qué aspecto mental quieres mejorar más?</div>
+          <textarea class="psico-ta" id="temp-mejorar" rows="2" placeholder="Controlar la frustración, concentrarme más..."></textarea>
+          <div class="psico-q" style="margin-top:10px;">¿Qué te motiva a entrenar y competir?</div>
+          <textarea class="psico-ta" id="temp-motivacion" rows="2" placeholder="Escribe aquí..."></textarea>
+          <button class="btn-save" style="margin-top:12px;" onclick="saveTemporada()">Guardar expectativas</button>
+        </div>
+
+        <div class="card" id="temp-resumen-card" style="display:none;">
+          <div class="ctitle"><div class="cdot" style="background:var(--purple);"></div>Mis expectativas de temporada</div>
+          <div id="temp-resumen"></div>
+          <button onclick="editarTemporada()" style="margin-top:10px;background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:6px 14px;font-size:12px;color:var(--text2);cursor:pointer;font-family:inherit;">✏ Editar</button>
+        </div>
+
+        <div class="card">
+          <div class="ctitle"><div class="cdot" style="background:var(--text3);"></div>Check-in semanal</div>
+          <div class="psico-q">¿Cómo fue la semana respecto a lo que esperabas?</div>
+          <textarea class="psico-ta" id="sem-balance" rows="2" placeholder="Escribe aquí..."></textarea>
+          <div class="psico-q" style="margin-top:10px;">¿Qué momento de la semana te dio más confianza?</div>
+          <textarea class="psico-ta" id="sem-confianza" rows="2" placeholder="Escribe aquí..."></textarea>
+          <div class="psico-q" style="margin-top:10px;">¿Qué reto mental te pones para la próxima semana?</div>
+          <textarea class="psico-ta" id="sem-reto" rows="2" placeholder="Escribe aquí..."></textarea>
+          <button class="btn-save" style="margin-top:12px;" onclick="saveCheckSemanal()">Guardar check-in semanal</button>
+        </div>
       </div>
     </div>
 
     <!-- NUTRICIÓN -->
     <div class="sec" id="sec-nut">
-      <div class="card" id="nut-macros-card">
-        <div class="ctitle"><div class="cdot" style="background:var(--amber);"></div>Macros recomendados</div>
-        <div class="macro-grid">
-          <div class="macro-card"><div class="macro-num" style="color:var(--amber);" id="m-kcal">—</div><div class="macro-lbl">kcal/día</div></div>
-          <div class="macro-card"><div class="macro-num" style="color:var(--blue);" id="m-prot">—g</div><div class="macro-lbl">Proteína</div></div>
-          <div class="macro-card"><div class="macro-num" style="color:var(--green);" id="m-carb">—g</div><div class="macro-lbl">Carbohidratos</div></div>
+
+      <!-- Onboarding / perfil nutricional -->
+      <div class="card" id="nut-onboarding" style="border:0.5px solid rgba(210,153,34,0.3);background:rgba(210,153,34,0.05);">
+        <div class="ctitle"><div class="cdot" style="background:var(--amber);"></div>Tu perfil nutricional</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:1rem;">Rellena esto para que calculemos tus macros exactos</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Peso (kg)</label>
+          <input type="number" id="nut-peso" placeholder="65" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;"></div>
+          <div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Altura (cm)</label>
+          <input type="number" id="nut-altura" placeholder="175" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;"></div>
         </div>
+        <div style="margin-bottom:8px;"><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Días de entrenamiento por semana</label>
+        <select id="nut-dias" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;">
+          <option value="3">3 días</option><option value="4">4 días</option><option value="5" selected>5 días</option><option value="6">6 días</option>
+        </select></div>
+        <div style="margin-bottom:8px;"><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Objetivo principal</label>
+        <select id="nut-objetivo" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;">
+          <option value="rendimiento">Máximo rendimiento deportivo</option>
+          <option value="masa">Ganar masa muscular</option>
+          <option value="peso">Mantener peso</option>
+          <option value="perder">Perder peso manteniendo rendimiento</option>
+        </select></div>
+        <div style="margin-bottom:10px;"><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Alimentos que no te gustan o no comes</label>
+        <input type="text" id="nut-aversiones" placeholder="atún, brócoli, leche..." style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;"></div>
+        <button class="btn-save" onclick="calcularMacros()">Calcular mis macros personalizados</button>
+      </div>
+
+      <!-- Macros calculados -->
+      <div class="card" id="nut-macros-card" style="display:none;">
+        <div class="ctitle"><div class="cdot" style="background:var(--amber);"></div>Tus macros personalizados</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem;">
+          <div class="macro-card"><div class="macro-num" style="color:var(--amber);" id="m-kcal">—</div><div class="macro-lbl">kcal</div></div>
+          <div class="macro-card"><div class="macro-num" style="color:var(--blue);" id="m-prot">—g</div><div class="macro-lbl">Proteína</div></div>
+          <div class="macro-card"><div class="macro-num" style="color:var(--green);" id="m-carb">—g</div><div class="macro-lbl">Carbos</div></div>
+          <div class="macro-card"><div class="macro-num" style="color:var(--purple);" id="m-gras">—g</div><div class="macro-lbl">Grasas</div></div>
+        </div>
+
+        <!-- Selector día partido/entreno/descanso -->
+        <div style="display:flex;gap:6px;margin-bottom:1rem;">
+          <button onclick="setDiaTipo('partido')" id="dt-partido" style="flex:1;padding:6px;border-radius:8px;font-size:11px;font-weight:700;background:rgba(88,166,255,0.15);color:var(--blue);border:0.5px solid rgba(88,166,255,0.3);cursor:pointer;font-family:inherit;">⚽ Partido</button>
+          <button onclick="setDiaTipo('entreno')" id="dt-entreno" style="flex:1;padding:6px;border-radius:8px;font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">💪 Entreno</button>
+          <button onclick="setDiaTipo('descanso')" id="dt-descanso" style="flex:1;padding:6px;border-radius:8px;font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">😴 Descanso</button>
+        </div>
+
         <div id="nut-plan-content"></div>
+        <button onclick="document.getElementById('nut-onboarding').style.display='block';document.getElementById('nut-macros-card').style.display='none';" style="margin-top:8px;background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:6px 14px;font-size:11px;color:var(--text2);cursor:pointer;font-family:inherit;">✏ Editar perfil</button>
       </div>
 
       <div class="card">
@@ -460,6 +575,7 @@ async function loadApp(user) {
   renderInformes();
   renderTareas();
   loadPsicoHist();
+  loadPPHist();
   loadNutPlan();
   loadNutHist();
   document.getElementById('nut-fecha').value = new Date().toISOString().slice(0,10);
@@ -479,7 +595,7 @@ async function loadAllData() {
   const [o, inf, mc, nv, pl, ps, nl] = await Promise.all([
     DB.from('objetivos').select('*').eq('jugador_id', id).order('created_at'),
     DB.from('informes_partido').select('*').eq('jugador_id', id).order('fecha', {ascending:false}),
-    DB.from('clips_microconcepto').select('*').order('created_at'),
+    DB.from('clips_jugador').select('*').eq('jugador_id', id).order('created_at'),
     DB.from('notas_video').select('*').eq('jugador_id', id).order('fecha', {ascending:false}),
     DB.from('planes_partido').select('*').eq('jugador_id', id).order('created_at', {ascending:false}),
     DB.from('psico_diario').select('*').eq('jugador_id', id).order('fecha', {ascending:false}).limit(14),
@@ -698,7 +814,7 @@ function renderInformeCompleto(inf) {
   };
 
   return `<div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:.875rem;overflow:hidden;">
-
+    <!-- Header -->
     <div style="padding:1rem;background:linear-gradient(135deg,rgba(29,158,117,0.06),transparent);border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:12px;">
       ${nota?`<div style="width:52px;height:52px;border-radius:50%;border:2px solid ${nc};background:${nc.replace('var(','').replace(')','').trim()}18 ?? rgba(0,0,0,0);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
         <span style="font-size:18px;font-weight:800;color:${nc};line-height:1;">${nota.toFixed(1)}</span>
@@ -709,7 +825,7 @@ function renderInformeCompleto(inf) {
         <div style="font-size:11px;color:var(--text2);margin-top:2px;">${fecha}${inf.rival?' · vs '+inf.rival:''}${inf.resultado?' · '+inf.resultado:''}</div>
       </div>
     </div>
-    
+    <!-- Fases con estrellas -->
     ${fases.map(f=>{
       const vals = starsData[f.k]||[];
       const avg = vals.filter(v=>v>0).length ? (vals.filter(v=>v>0).reduce((a,b)=>a+b,0)/vals.filter(v=>v>0).length) : 0;
@@ -717,12 +833,12 @@ function renderInformeCompleto(inf) {
       return `<div style="padding:.875rem 1rem;border-bottom:0.5px solid var(--border);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
           <div style="font-size:10px;font-weight:800;letter-spacing:.08em;color:${f.c};">${f.l.toUpperCase()}</div>
-          ${avg?`<div style="display:flex;gap:1px;">${[1,2,3,4,5].map(s=>`<span class="star" style="color:${s<=Math.round(avg)?'#d29922':'var(--text3)'};">★</span>`).join('')}<span style="font-size:11px;color:${f.c};margin-left:4px;font-weight:700;">${avg.toFixed(1)}</span></div>`:''}
+          ${avg?`<div style="display:flex;gap:1px;">${[1,2,3,4,5].map(s=>`<span class="star" style="color:${s<=Math.round(avg)?'#d29922':'var(--text3)';}">★</span>`).join('')}<span style="font-size:11px;color:${f.c};margin-left:4px;font-weight:700;">${avg.toFixed(1)}</span></div>`:''}
         </div>
         ${avg?`<div style="height:4px;background:var(--border2);border-radius:99px;overflow:hidden;margin-bottom:.5rem;"><div style="width:${pct}%;height:4px;background:${f.c};border-radius:99px;"></div></div>`:''}
         ${vals.length?vals.map((v,i)=>v>0?`<div class="star-line" style="font-size:11px;">
           <span style="flex:1;color:var(--text2);">${(ASPECTOS[f.k]||[])[i]||''}</span>
-          <div class="stars">${[1,2,3,4,5].map(s=>`<span class="star" style="font-size:12px;color:${s<=v?'#d29922':'var(--text3)'};">★</span>`).join('')}</div>
+          <div class="stars">${[1,2,3,4,5].map(s=>`<span class="star" style="font-size:12px;color:${s<=v?'#d29922':'var(--text3)';}">★</span>`).join('')}</div>
         </div>`:'').filter(Boolean).join(''):''}
         ${f.obs?`<div style="font-size:12px;color:var(--text2);line-height:1.7;margin-top:.5rem;padding:.75rem;background:var(--bg3);border-radius:6px;">${f.obs}</div>`:''}
       </div>`;
@@ -758,13 +874,27 @@ function renderTareas() {
   }).join('');
 }
 
-// ── PSICOLOGÍA ──
+// ── PSICOLOGÍA — TABS ──
+function switchPsicoTab(tab) {
+  ['diario','partido','temporada'].forEach(t => {
+    document.getElementById('psico-'+t+'-tab').style.display = t===tab ? 'block' : 'none';
+    const btn = document.getElementById('pt-'+t);
+    if(btn) {
+      btn.style.background = t===tab ? 'rgba(163,113,247,0.15)' : 'none';
+      btn.style.color = t===tab ? 'var(--purple)' : 'var(--text3)';
+      btn.style.borderColor = t===tab ? 'rgba(163,113,247,0.3)' : 'var(--border2)';
+    }
+  });
+  if(tab === 'partido') renderPsicoPartidoStars();
+  if(tab === 'temporada') loadTemporada();
+}
+
+// ── DIARIO ──
 let currentMoodBtn = null;
 function selMood(val, btn) {
   currentMood = val;
   document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('sel'));
   btn.classList.add('sel');
-  currentMoodBtn = btn;
 }
 
 async function savePsico() {
@@ -795,44 +925,311 @@ async function loadPsicoHist() {
   const EMOJIS = ['','😞','😐','🙂','😊','🔥'];
   cont.innerHTML = data.map(d=>{
     const fecha = new Date(d.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
-    return `<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:0.5px solid var(--border);">
-      <span style="font-size:20px;">${EMOJIS[d.mood]||'—'}</span>
-      <div style="flex:1;">
-        <div style="font-size:12px;font-weight:600;">${fecha}</div>
-        <div style="font-size:10px;color:var(--text2);">Energía: ${d.energia}/10 · Estrés: ${d.estres}/10</div>
-      </div>
-      ${d.mejor?`<div style="font-size:11px;color:var(--text3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.mejor}</div>`:''}
-    </div>`;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:0.5px solid var(--border);">'+
+      '<span style="font-size:20px;">'+(EMOJIS[d.mood]||'—')+'</span>'+
+      '<div style="flex:1;"><div style="font-size:12px;font-weight:600;">'+fecha+'</div>'+
+      '<div style="font-size:10px;color:var(--text2);">Energía: '+d.energia+'/10 · Estrés: '+d.estres+'/10</div></div>'+
+      (d.mejor?'<div style="font-size:11px;color:var(--text3);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+d.mejor+'</div>':'')+
+    '</div>';
   }).join('');
 }
 
+// ── POST-PARTIDO PSICOLÓGICO ──
+const PSICO_PARTIDO_ITEMS = [
+  {id:'ansiedad',   label:'Control de la ansiedad',    desc:'¿Estuviste nervioso o controlado?',      color:'#a371f7'},
+  {id:'concentra',  label:'Concentración',              desc:'¿Mantuviste el foco durante el partido?', color:'#58a6ff'},
+  {id:'emociones',  label:'Gestión emocional',          desc:'¿Gestionaste bien tus emociones?',        color:'#3fb950'},
+  {id:'frustrac',   label:'Tolerancia a la frustración',desc:'¿Cómo respondiste a los errores?',        color:'#d29922'},
+  {id:'enfado',     label:'Control del enfado',         desc:'¿Te alteraste con compañeros o rivales?', color:'#f85149'},
+  {id:'confianza',  label:'Confianza en ti mismo',      desc:'¿Tomaste decisiones con seguridad?',      color:'#a371f7'},
+  {id:'rendimiento',label:'Rendimiento bajo presión',   desc:'¿Respondiste bien en los momentos clave?',color:'#58a6ff'},
+];
+
+let ppStars = {};
+
+function renderPsicoPartidoStars() {
+  const cont = document.getElementById('pp-stars-container');
+  if(!cont) return;
+  ppStars = {};
+  cont.innerHTML = PSICO_PARTIDO_ITEMS.map(item => {
+    ppStars[item.id] = 0;
+    return '<div style="padding:.75rem 0;border-bottom:0.5px solid var(--border);">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">'+
+        '<div>'+
+          '<div style="font-size:13px;font-weight:600;">'+item.label+'</div>'+
+          '<div style="font-size:10px;color:var(--text3);">'+item.desc+'</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:3px;" id="stars-'+item.id+'">'+
+          [1,2,3,4,5].map(s =>
+            '<span onclick="setPPStar(''+item.id+'','+s+')" style="font-size:26px;cursor:pointer;color:var(--border2);transition:color .1s;" data-val="'+s+'" class="pp-star">★</span>'
+          ).join('')+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  // Fecha por defecto
+  const fp = document.getElementById('pp-fecha');
+  if(fp && !fp.value) fp.value = new Date().toISOString().slice(0,10);
+}
+
+function setPPStar(itemId, val) {
+  ppStars[itemId] = val;
+  const cfg = PSICO_PARTIDO_ITEMS.find(i => i.id === itemId);
+  const color = cfg ? cfg.color : 'var(--amber)';
+  document.querySelectorAll('#stars-'+itemId+' .pp-star').forEach(s => {
+    s.style.color = parseInt(s.dataset.val) <= val ? color : 'var(--border2)';
+  });
+}
+
+async function savePsicoPartido() {
+  if(!st.jug) { showToast('Sin jugador vinculado'); return; }
+  const partido = document.getElementById('pp-partido').value.trim();
+  if(!partido) { showToast('Escribe el nombre del partido'); return; }
+  const data = {
+    jugador_id: st.jug.id,
+    fecha: document.getElementById('pp-fecha').value || new Date().toISOString().slice(0,10),
+    partido,
+    estrellas: JSON.stringify(ppStars),
+    concentrado: document.getElementById('pp-concentrado').value.trim(),
+    altero: document.getElementById('pp-altero').value.trim(),
+    errores: document.getElementById('pp-errores').value.trim(),
+    mejorar: document.getElementById('pp-mejorar').value.trim(),
+  };
+  const { error } = await DB.from('psico_partido').insert(data);
+  if(error) { showToast('Error: '+error.message); return; }
+  showToast('✓ Valoración guardada');
+  loadPPHist();
+  document.getElementById('pp-partido').value = '';
+  ['pp-concentrado','pp-altero','pp-errores','pp-mejorar'].forEach(id => document.getElementById(id).value='');
+  ppStars = {};
+  renderPsicoPartidoStars();
+}
+
+async function loadPPHist() {
+  if(!st.jug) return;
+  const { data } = await DB.from('psico_partido').select('*').eq('jugador_id', st.jug.id).order('fecha',{ascending:false}).limit(5);
+  const cont = document.getElementById('pp-hist');
+  if(!cont) return;
+  if(!data||!data.length) { cont.innerHTML='<div style="font-size:12px;color:var(--text3);">Sin valoraciones todavía.</div>'; return; }
+  cont.innerHTML = data.map(d => {
+    let stars = {};
+    try { stars = JSON.parse(d.estrellas||'{}'); } catch(e){}
+    const fecha = new Date(d.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+    const avg = Object.values(stars).filter(v=>v>0);
+    const media = avg.length ? (avg.reduce((a,b)=>a+b,0)/avg.length).toFixed(1) : null;
+    return '<div style="padding:.875rem 0;border-bottom:0.5px solid var(--border);">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'+
+        '<div><div style="font-size:13px;font-weight:700;">'+d.partido+'</div>'+
+        '<div style="font-size:10px;color:var(--text3);">'+fecha+'</div></div>'+
+        (media?'<div style="width:38px;height:38px;border-radius:50%;background:rgba(163,113,247,0.15);color:var(--purple);border:1.5px solid rgba(163,113,247,0.4);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">'+media+'</div>':'')+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">'+
+        PSICO_PARTIDO_ITEMS.map(item => {
+          const v = stars[item.id]||0;
+          if(!v) return '';
+          const pct = Math.round((v/5)*100);
+          return '<div><div style="font-size:9px;color:var(--text3);margin-bottom:2px;">'+item.label.split(' ')[0]+'</div>'+
+            '<div style="height:4px;background:var(--border2);border-radius:99px;overflow:hidden;">'+
+            '<div style="width:'+pct+'%;height:4px;background:'+item.color+';border-radius:99px;"></div></div></div>';
+        }).filter(Boolean).join('')+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ── TEMPORADA ──
+async function loadTemporada() {
+  if(!st.jug) return;
+  const { data } = await DB.from('psico_temporada').select('*').eq('jugador_id', st.jug.id).order('created_at',{ascending:false}).limit(1).single();
+  if(data) {
+    document.getElementById('nut-onboarding') && null; // ignorar
+    document.getElementById('psico-diario-tab');
+    // Mostrar resumen
+    const card = document.getElementById('temp-resumen-card');
+    const res = document.getElementById('temp-resumen');
+    if(card && res) {
+      card.style.display = 'block';
+      document.querySelector('#psico-temporada-tab .card:first-child').style.display = 'none';
+      res.innerHTML =
+        (data.objetivo?'<div style="margin-bottom:10px;"><div style="font-size:10px;color:var(--purple);font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Objetivo de temporada</div><div style="font-size:13px;line-height:1.6;">'+data.objetivo+'</div></div>':'')+
+        (data.fortaleza?'<div style="margin-bottom:10px;"><div style="font-size:10px;color:var(--green);font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Mi fortaleza mental</div><div style="font-size:13px;line-height:1.6;">'+data.fortaleza+'</div></div>':'')+
+        (data.mejorar?'<div style="margin-bottom:10px;"><div style="font-size:10px;color:var(--amber);font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">A mejorar mentalmente</div><div style="font-size:13px;line-height:1.6;">'+data.mejorar+'</div></div>':'')+
+        (data.motivacion?'<div><div style="font-size:10px;color:var(--blue);font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Mi motivación</div><div style="font-size:13px;line-height:1.6;">'+data.motivacion+'</div></div>':'');
+    }
+  }
+}
+
+function editarTemporada() {
+  document.getElementById('temp-resumen-card').style.display = 'none';
+  document.querySelector('#psico-temporada-tab .card:first-child').style.display = 'block';
+}
+
+async function saveTemporada() {
+  if(!st.jug) { showToast('Sin jugador vinculado'); return; }
+  const data = {
+    jugador_id: st.jug.id,
+    objetivo: document.getElementById('temp-objetivo').value.trim(),
+    fortaleza: document.getElementById('temp-fortaleza').value.trim(),
+    mejorar: document.getElementById('temp-mejorar').value.trim(),
+    motivacion: document.getElementById('temp-motivacion').value.trim(),
+  };
+  await DB.from('psico_temporada').upsert({...data, id: st.jug.id+'_temp'},{onConflict:'id'});
+  showToast('✓ Expectativas guardadas');
+  loadTemporada();
+}
+
+async function saveCheckSemanal() {
+  if(!st.jug) { showToast('Sin jugador vinculado'); return; }
+  const data = {
+    jugador_id: st.jug.id,
+    fecha: new Date().toISOString().slice(0,10),
+    balance: document.getElementById('sem-balance').value.trim(),
+    confianza: document.getElementById('sem-confianza').value.trim(),
+    reto: document.getElementById('sem-reto').value.trim(),
+  };
+  const { error } = await DB.from('psico_semanal').insert(data);
+  if(error) { showToast('Error: '+error.message); return; }
+  showToast('✓ Check-in guardado');
+  ['sem-balance','sem-confianza','sem-reto'].forEach(id => document.getElementById(id).value='');
+}
+
 // ── NUTRICIÓN ──
+let nutPerfil = null;
+let diaActual = 'entreno';
+
+function calcularMacros() {
+  const peso = parseFloat(document.getElementById('nut-peso').value);
+  const altura = parseFloat(document.getElementById('nut-altura').value);
+  const dias = parseInt(document.getElementById('nut-dias').value)||5;
+  const objetivo = document.getElementById('nut-objetivo').value;
+  const aversiones = document.getElementById('nut-aversiones').value.trim();
+
+  if(!peso||!altura) { showToast('Introduce peso y altura'); return; }
+
+  // Fórmula Mifflin-St Jeor adaptada para deportistas jóvenes
+  const cat = st.jug?.categoria||'Cadete';
+  const edades = {'Benjamín':9,'Alevín':11,'Infantil':13,'Cadete':15,'Juvenil':17};
+  const edad = edades[cat]||15;
+
+  // TMB base (Mifflin para hombres jóvenes deportistas)
+  const tmb = 10*peso + 6.25*altura - 5*edad + 5;
+
+  // Factor actividad según días entreno
+  const factores = {3:1.55, 4:1.65, 5:1.725, 6:1.8};
+  const factor = factores[dias]||1.725;
+  let tdee = Math.round(tmb * factor);
+
+  // Ajuste por objetivo
+  if(objetivo === 'masa') tdee += 300;
+  if(objetivo === 'perder') tdee -= 300;
+
+  // Macros deportivo: 55% carbos, 20% prot, 25% grasa (aprox)
+  const prot = Math.round(peso * 1.8); // 1.8g/kg para deportistas
+  const gras = Math.round((tdee * 0.25) / 9);
+  const carb = Math.round((tdee - (prot*4) - (gras*9)) / 4);
+
+  nutPerfil = { peso, altura, dias, objetivo, aversiones, kcal:tdee, prot, carb, gras };
+  localStorage.setItem('nut_perfil_'+st.jug?.id, JSON.stringify(nutPerfil));
+
+  document.getElementById('m-kcal').textContent = tdee;
+  document.getElementById('m-prot').textContent = prot+'g';
+  document.getElementById('m-carb').textContent = carb+'g';
+  document.getElementById('m-gras').textContent = gras+'g';
+
+  document.getElementById('nut-onboarding').style.display = 'none';
+  document.getElementById('nut-macros-card').style.display = 'block';
+
+  setDiaTipo('entreno');
+  showToast('✓ Macros calculados');
+}
+
+function setDiaTipo(tipo) {
+  diaActual = tipo;
+  ['partido','entreno','descanso'].forEach(t => {
+    const btn = document.getElementById('dt-'+t);
+    if(!btn) return;
+    const colors = {partido:'rgba(88,166,255,0.15)',entreno:'rgba(63,185,80,0.15)',descanso:'rgba(72,79,88,0.15)'};
+    const textColors = {partido:'var(--blue)',entreno:'var(--green)',descanso:'var(--text2)'};
+    const borderColors = {partido:'rgba(88,166,255,0.3)',entreno:'rgba(63,185,80,0.3)',descanso:'var(--border2)'};
+    btn.style.background = t===tipo ? colors[t] : 'none';
+    btn.style.color = t===tipo ? textColors[t] : 'var(--text3)';
+    btn.style.borderColor = t===tipo ? borderColors[t] : 'var(--border2)';
+  });
+  renderMealPlan(tipo);
+}
+
+function renderMealPlan(tipo) {
+  const av = nutPerfil?.aversiones||'';
+  const AVOIDS = av.toLowerCase().split(',').map(s=>s.trim()).filter(Boolean);
+  const noAv = (food) => !AVOIDS.some(a => food.toLowerCase().includes(a));
+
+  const PLANS = {
+    partido: [
+      {ico:'🌅',h:'3-4h antes',name:'Pre-partido',desc:'Pasta o arroz (200g cocido) + pollo a la plancha. Sin grasas ni fibra. Agua.'},
+      {ico:'⚡',h:'1h antes',  name:'Activación', desc:'Plátano + miel. Isotónico o agua. Nada pesado.'},
+      {ico:'💧',h:'Durante',   name:'Hidratación', desc:'Agua o isotónico cada 15-20min. Gel de glucosa si supera 60min.'},
+      {ico:'💪',h:'30min después',name:'Recuperación', desc:noAv('proteína')?'Batido de proteína + plátano o arroz con pollo.':'Arroz con pollo. Carbohidratos + proteína.'},
+      {ico:'🌙',h:'Cena',      name:'Recarga',    desc:'Proteína + carbohidrato moderado + verduras. Dormir bien es recuperación.'},
+    ],
+    entreno: [
+      {ico:'🌅',h:'Desayuno',   name:'Energía base', desc:'Avena (80g) + leche + plátano + frutos secos. O tostada integral + huevo + fruta.'},
+      {ico:'🍎',h:'Media mañana',name:'Mantenimiento',desc:noAv('yogur')?'Yogur griego + fruta + nueces.':'Fruta + almendras o anacardos.'},
+      {ico:'🍗',h:'Comida',     name:'Combustible',  desc:'Arroz o pasta (150g) + '+( noAv('pollo')?'pollo':'proteína de tu elección')+' + verduras.'},
+      {ico:'⚡',h:'Pre-entreno', name:'Activación',  desc:'30-60min antes: plátano + tostada con miel. Hidratación.'},
+      {ico:'💪',h:'Post-entreno',name:'Recuperación', desc:noAv('proteína')?'Batido de proteína + fruta. Máximo 30min después.':'Pollo + arroz. Máximo 30min después.'},
+      {ico:'🌙',h:'Cena',       name:'Reparación',   desc:noAv('pescado')?'Pescado + verduras + patata cocida.':'Huevos + verduras + arroz integral.'},
+    ],
+    descanso: [
+      {ico:'🌅',h:'Desayuno',   name:'Ligero',       desc:'Avena + fruta + nueces. Café o té. Sin prisa.'},
+      {ico:'🍎',h:'Media mañana',name:'Snack',        desc:'Fruta de temporada. Nada más.'},
+      {ico:'🥗',h:'Comida',     name:'Equilibrado',  desc:'Más verduras que en días de entreno. Proteína moderada. Menos carbohidratos.'},
+      {ico:'🌙',h:'Cena',       name:'Digestivo',    desc:'Sopa o crema + huevo o pescado blanco. Infusión antes de dormir.'},
+    ],
+  };
+
+  const meals = PLANS[tipo]||PLANS.entreno;
+  const mult = tipo==='partido' ? 1.1 : tipo==='descanso' ? 0.85 : 1;
+  const kcal = nutPerfil ? Math.round(nutPerfil.kcal * mult) : '—';
+
+  document.getElementById('nut-plan-content').innerHTML =
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:.875rem;">'+
+      (tipo==='partido'?'🏆 Día de partido · ':'💪 Día de entrenamiento · ')+
+      '<strong style="color:var(--amber);">'+kcal+' kcal</strong>'+
+    '</div>'+
+    '<div style="border-top:0.5px solid var(--border);padding-top:.875rem;">'+
+    meals.map(m =>
+      '<div class="meal-item"><div class="meal-ico">'+m.ico+'</div>'+
+      '<div><div style="font-size:10px;color:var(--text3);margin-bottom:1px;">'+m.h+'</div>'+
+      '<div class="meal-name">'+m.name+'</div>'+
+      '<div class="meal-desc">'+m.desc+'</div></div></div>'
+    ).join('')+
+    '</div>';
+}
+
 async function loadNutPlan() {
   if(!st.jug) return;
-  // Plan nutricional basado en posición y categoría
-  const pos = st.jug.posicion||'Central';
-  const cat = st.jug.categoria||'Cadete';
-  const PLANS = {
-    'Benjamín': {kcal:1800,prot:70,carb:220,grasa:60},
-    'Alevín':   {kcal:2000,prot:75,carb:250,grasa:65},
-    'Infantil': {kcal:2300,prot:90,carb:290,grasa:75},
-    'Cadete':   {kcal:2600,prot:110,carb:320,grasa:80},
-    'Juvenil':  {kcal:2900,prot:130,carb:360,grasa:90},
-  };
-  const macros = PLANS[cat]||PLANS['Cadete'];
-  document.getElementById('m-kcal').textContent = macros.kcal;
-  document.getElementById('m-prot').textContent = macros.prot+'g';
-  document.getElementById('m-carb').textContent = macros.carb+'g';
-
-  const MEALS = [
-    {ico:'🌅',name:'Desayuno',desc:'Avena con plátano y frutos secos. Leche o yogur. Tostada integral con huevo.'},
-    {ico:'🍎',name:'Media mañana',desc:'Fruta + puñado de almendras o nueces. Opcional: yogur griego.'},
-    {ico:'🍗',name:'Comida',desc:'Arroz o pasta integral (150g) + proteína (pollo, atún, legumbres) + verduras. Ensalada.'},
-    {ico:'⚡',name:'Pre-entreno (1h antes)',desc:'Plátano + tostada con miel. Agua. Evitar grasas y fibra excesiva.'},
-    {ico:'💪',name:'Post-entreno (30min)',desc:'Batido de proteína + plátano, o pollo + arroz. Prioridad: reponer glucógeno.'},
-    {ico:'🌙',name:'Cena',desc:'Proteína ligera (pescado, huevos) + verduras salteadas + carbohidrato moderado.'},
-  ];
-  document.getElementById('nut-plan-content').innerHTML = `<div style="border-top:0.5px solid var(--border);margin-top:.875rem;padding-top:.875rem;">${MEALS.map(m=>`<div class="meal-item"><div class="meal-ico">${m.ico}</div><div><div class="meal-name">${m.name}</div><div class="meal-desc">${m.desc}</div></div></div>`).join('')}</div>`;
+  // Cargar perfil guardado
+  const saved = localStorage.getItem('nut_perfil_'+st.jug.id);
+  if(saved) {
+    nutPerfil = JSON.parse(saved);
+    document.getElementById('m-kcal').textContent = nutPerfil.kcal;
+    document.getElementById('m-prot').textContent = nutPerfil.prot+'g';
+    document.getElementById('m-carb').textContent = nutPerfil.carb+'g';
+    document.getElementById('m-gras').textContent = nutPerfil.gras+'g';
+    document.getElementById('nut-onboarding').style.display = 'none';
+    document.getElementById('nut-macros-card').style.display = 'block';
+    setDiaTipo('entreno');
+  } else {
+    // Sin perfil: macros genéricos por categoría
+    const cat = st.jug.categoria||'Cadete';
+    const PLANS = {'Benjamín':{kcal:1800,prot:70,carb:220,gras:55},'Alevín':{kcal:2000,prot:75,carb:250,gras:60},'Infantil':{kcal:2300,prot:90,carb:290,gras:70},'Cadete':{kcal:2600,prot:110,carb:320,gras:78},'Juvenil':{kcal:2900,prot:130,carb:360,gras:88}};
+    const m = PLANS[cat]||PLANS['Cadete'];
+    document.getElementById('m-kcal').textContent = m.kcal;
+    document.getElementById('m-prot').textContent = m.prot+'g';
+    document.getElementById('m-carb').textContent = m.carb+'g';
+    if(document.getElementById('m-gras')) document.getElementById('m-gras').textContent = m.gras+'g';
+  }
 }
 
 async function saveNutLog() {
@@ -854,10 +1251,9 @@ async function loadNutHist() {
   if(!data||!data.length) { cont.innerHTML='<div style="font-size:12px;color:var(--text3);padding:.5rem 0;">Sin registros todavía.</div>'; return; }
   cont.innerHTML = data.map(d=>{
     const fecha = new Date(d.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
-    return `<div style="padding:.75rem 0;border-bottom:0.5px solid var(--border);">
-      <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:4px;">${fecha}</div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.6;">${d.texto}</div>
-    </div>`;
+    return '<div style="padding:.75rem 0;border-bottom:0.5px solid var(--border);">'+
+      '<div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:4px;">'+fecha+'</div>'+
+      '<div style="font-size:12px;color:var(--text2);line-height:1.6;">'+d.texto+'</div></div>';
   }).join('');
 }
 
