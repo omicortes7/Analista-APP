@@ -504,7 +504,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 const SUPA_URL = 'https://ghxwdauwrzupjmrujcns.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
 let DB;
-try { DB = supabase.createClient(SUPA_URL, SUPA_KEY); } catch(e) { console.error('Supabase no cargó:', e); }
+
+window.addEventListener('load', function() {
+  if(typeof supabase === 'undefined') {
+    document.getElementById('l-err').textContent = 'Error de conexión. Recarga la página.';
+    return;
+  }
+  DB = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+
+
 
 let st = { jug: null, user: null, objs:[], informes:[], clips:[], tareas:[], planes:[], psico:[], nutLogs:[], nutPlan:null };
 let currentMood = 0;
@@ -864,4 +873,6 @@ function renderInformeCompleto(inf) {
   return html;
 }
 
+
+});
 
