@@ -40,3 +40,15 @@ CREATE TABLE IF NOT EXISTS nutricion_log (
 );
 ALTER TABLE nutricion_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Acceso publico nutricion" ON nutricion_log FOR ALL USING (true);
+
+-- ── CLIPS DIRECTOS DEL JUGADOR (analista → jugador, tabla principal) ──
+CREATE TABLE IF NOT EXISTS clips_jugador (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  jugador_id UUID NOT NULL,
+  tipo TEXT DEFAULT 'mejorar',
+  titulo TEXT DEFAULT '',
+  url TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+ALTER TABLE clips_jugador ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Acceso publico clips jugador" ON clips_jugador FOR ALL USING (true);
