@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
-  --bg:#0d1117; --bg2:#161b22; --bg3:#1c2128; --card:#21262d;
+  --bg:#0d1117; --bg2:#161b22; --bg3:#1hc21h28; --card:#21262d;
   --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.15);
   --text:#e6edf3; --text2:#8b949e; --text3:#484f58;
   --green:#3fb950; --blue:#58a6ff; --amber:#d29922;
@@ -698,7 +698,7 @@ function renderInformeCompleto(inf) {
   };
 
   return `<div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:.875rem;overflow:hidden;">
-    <!-- Header -->
+
     <div style="padding:1rem;background:linear-gradient(135deg,rgba(29,158,117,0.06),transparent);border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:12px;">
       ${nota?`<div style="width:52px;height:52px;border-radius:50%;border:2px solid ${nc};background:${nc.replace('var(','').replace(')','').trim()}18 ?? rgba(0,0,0,0);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
         <span style="font-size:18px;font-weight:800;color:${nc};line-height:1;">${nota.toFixed(1)}</span>
@@ -709,7 +709,7 @@ function renderInformeCompleto(inf) {
         <div style="font-size:11px;color:var(--text2);margin-top:2px;">${fecha}${inf.rival?' · vs '+inf.rival:''}${inf.resultado?' · '+inf.resultado:''}</div>
       </div>
     </div>
-    <!-- Fases con estrellas -->
+    
     ${fases.map(f=>{
       const vals = starsData[f.k]||[];
       const avg = vals.filter(v=>v>0).length ? (vals.filter(v=>v>0).reduce((a,b)=>a+b,0)/vals.filter(v=>v>0).length) : 0;
