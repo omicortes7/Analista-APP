@@ -261,7 +261,7 @@ function openJug(id){
 }
 
 function switchDT(tab){
-  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','clips','informe','historial','tareas','plan','calendario','chat'][i]===tab));
+  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','clips','informe','historial','tareas','plan','calendario','seguimiento','chat'][i]===tab));
   renderDT(tab);
 }
 
@@ -3883,4 +3883,183 @@ async function eliminarEvento(evId, jugId) {
   await DB.from('calendario_semana').delete().eq('id', evId);
   showToast('Evento eliminado');
   renderCalendarioSection();
+}
+
+// ─── SEGUIMIENTO DEL JUGADOR (nutrición + bienestar) ───
+
+async function renderSeguimientoSection() {
+  const id = state.currentJugador;
+  const j = state.jugadores.find(x => x.id === id);
+  if(!j) return;
+  const body = document.getElementById('djbody');
+  if(!body) return;
+
+  body.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text3);">Cargando seguimiento...</div>';
+
+  // Cargar datos de las últimas 2 semanas
+  const hace14 = new Date(); hace14.setDate(hace14.getDate() - 14);
+  const fechaMin = hace14.toISOString().slice(0,10);
+
+  const [nutRes, psicoRes, ppRes] = await Promise.all([
+    DB.from('nutricion_log').select('*').eq('jugador_id', id).gte('fecha', fechaMin).order('fecha', {ascending:false}),
+    DB.from('psico_diario').select('*').eq('jugador_id', id).gte('fecha', fechaMin).order('fecha', {ascending:false}),
+    DB.from('psico_partido').select('*').eq('jugador_id', id).order('fecha', {ascending:false}).limit(5),
+  ]);
+
+  const nutLogs = nutRes.data || [];
+  const psicoDiario = psicoRes.data || [];
+  const psicoPartido = ppRes.data || [];
+
+  const CARD = 'background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:.875rem;';
+  const EMOJIS = ['','😞','😐','🙂','😊','🔥'];
+
+  let html = '';
+
+  // ── RESUMEN RÁPIDO ──
+  const avgMood = psicoDiario.length ? (psicoDiario.reduce((a,b) => a + (b.mood||0), 0) / psicoDiario.length).toFixed(1) : '—';
+  const avgEnergia = psicoDiario.length ? Math.round(psicoDiario.reduce((a,b) => a + (b.energia||0), 0) / psicoDiario.length) : '—';
+  const diasNut = nutLogs.length;
+
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1rem;">
+    <div style="background:rgba(163,113,247,0.08);border:0.5px solid rgba(163,113,247,0.2);border-radius:10px;padding:.75rem;text-align:center;">
+      <div style="font-size:22px;font-weight:800;color:#a371f7;">${avgMood}</div>
+      <div style="font-size:9px;color:var(--text2);">Mood medio</div>
+    </div>
+    <div style="background:rgba(63,185,80,0.08);border:0.5px solid rgba(63,185,80,0.2);border-radius:10px;padding:.75rem;text-align:center;">
+      <div style="font-size:22px;font-weight:800;color:#3fb950;">${avgEnergia}</div>
+      <div style="font-size:9px;color:var(--text2);">Energía media</div>
+    </div>
+    <div style="background:rgba(210,153,34,0.08);border:0.5px solid rgba(210,153,34,0.2);border-radius:10px;padding:.75rem;text-align:center;">
+      <div style="font-size:22px;font-weight:800;color:#d29922;">${diasNut}</div>
+      <div style="font-size:9px;color:var(--text2);">Días con log</div>
+    </div>
+  </div>`;
+
+  // ── NUTRICIÓN ──
+  html += `<div style="${CARD}">
+    <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#d29922;margin-bottom:.875rem;">🥗 Seguimiento nutricional (14 días)</div>`;
+
+  if(!nutLogs.length) {
+    html += '<div style="font-size:12px;color:var(--text3);">Sin registros de nutrición todavía.</div>';
+  } else {
+    nutLogs.forEach(d => {
+      const fecha = new Date(d.fecha + 'T12:00:00').toLocaleDateString('es-ES', {weekday:'short',day:'numeric',month:'short'});
+      const lineas = (d.texto||'').split('\n');
+      const macroLinea = lineas.find(l => l.startsWith('MACROS:'));
+      const tipoLinea = lineas.find(l => l.startsWith('TIPO_DIA:'));
+      const tipo = tipoLinea ? tipoLinea.replace('TIPO_DIA:','').trim() : 'entreno';
+      const tc = {partido:{c:'#58a6ff',l:'⚽'},descanso:{c:'#484f58',l:'😴'},entreno:{c:'#3fb950',l:'💪'}};
+      const tcc = tc[tipo] || tc.entreno;
+
+      html += `<div style="padding:.75rem 0;border-bottom:0.5px solid var(--border);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+          <div style="font-size:12px;font-weight:600;">${fecha}</div>
+          <span style="font-size:9px;padding:2px 7px;border-radius:99px;background:${tcc.c}20;color:${tcc.c};">${tcc.l} ${tipo}</span>
+        </div>`;
+
+      if(macroLinea) {
+        const kcalM = macroLinea.match(/(\d+)kcal/);
+        const protM = macroLinea.match(/Prot:\s*(\d+)/);
+        const carbM = macroLinea.match(/Carb:\s*(\d+)/);
+        const aguaM = macroLinea.match(/Agua:\s*(\d+)/);
+        if(kcalM || protM) {
+          html += `<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:10px;">`;
+          if(kcalM) html += `<span style="background:rgba(210,153,34,0.12);color:#d29922;padding:2px 7px;border-radius:99px;">${kcalM[1]} kcal</span>`;
+          if(protM) {
+            const pct = Math.min(100, Math.round((parseInt(protM[1])/(j.peso_aprox||65)*1.6)*100));
+            const col = pct>=80?'#a371f7':pct>=50?'#d29922':'#f85149';
+            html += `<span style="background:${col}20;color:${col};padding:2px 7px;border-radius:99px;">${pct>=80?'🟢':'🔴'} Prot: ${protM[1]}g</span>`;
+          }
+          if(carbM) html += `<span style="background:rgba(88,166,255,0.12);color:#58a6ff;padding:2px 7px;border-radius:99px;">Carb: ${carbM[1]}g</span>`;
+          if(aguaM) {
+            const agua = parseInt(aguaM[1]);
+            const colA = agua>=7?'#3fb950':agua>=5?'#d29922':'#f85149';
+            html += `<span style="background:${colA}20;color:${colA};padding:2px 7px;border-radius:99px;">${agua>=7?'🟢':'🔴'} Agua: ${agua} vasos</span>`;
+          }
+          html += '</div>';
+        }
+      } else {
+        const comidasPreview = lineas.filter(l => l.length > 5 && !l.startsWith('---')).slice(0,2).join(' · ');
+        html += `<div style="font-size:11px;color:var(--text2);">${comidasPreview || 'Log registrado'}</div>`;
+      }
+      html += '</div>';
+    });
+  }
+  html += '</div>';
+
+  // ── BIENESTAR DIARIO ──
+  html += `<div style="${CARD}">
+    <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#a371f7;margin-bottom:.875rem;">🧠 Bienestar diario (14 días)</div>`;
+
+  if(!psicoDiario.length) {
+    html += '<div style="font-size:12px;color:var(--text3);">Sin registros de bienestar todavía.</div>';
+  } else {
+    // Gráfica de mood con puntos
+    html += '<div style="display:flex;align-items:flex-end;gap:4px;height:60px;margin-bottom:10px;padding:0 4px;">';
+    const ultimos7 = psicoDiario.slice(0,7).reverse();
+    ultimos7.forEach(d => {
+      const h = (d.mood||0) * 12;
+      const col = d.mood>=4?'#3fb950':d.mood>=3?'#d29922':'#f85149';
+      const fecha = new Date(d.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+      html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;" title="${fecha}: ${EMOJIS[d.mood]||'?'} Energía ${d.energia}/10">
+        <div style="font-size:14px;">${EMOJIS[d.mood]||'?'}</div>
+        <div style="width:100%;height:${h}px;background:${col};border-radius:4px 4px 0 0;min-height:4px;"></div>
+        <div style="font-size:8px;color:var(--text3);">${new Date(d.fecha+'T12:00:00').getDate()}</div>
+      </div>`;
+    });
+    html += '</div>';
+
+    // Listado detallado
+    psicoDiario.slice(0,5).forEach(d => {
+      const fecha = new Date(d.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
+      html += `<div style="padding:.625rem 0;border-bottom:0.5px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span style="font-size:18px;">${EMOJIS[d.mood]||'—'}</span>
+          <div style="flex:1;"><div style="font-size:12px;font-weight:600;">${fecha}</div>
+          <div style="font-size:10px;color:var(--text2);">Energía: ${d.energia||'—'}/10 · Estrés: ${d.estres||'—'}/10</div></div>
+        </div>
+        ${d.mejor?`<div style="font-size:11px;color:var(--text2);line-height:1.5;padding-left:26px;"><b>✓</b> ${d.mejor}</div>`:''}
+        ${d.dificil?`<div style="font-size:11px;color:var(--text3);line-height:1.5;padding-left:26px;"><b>△</b> ${d.dificil}</div>`:''}
+      </div>`;
+    });
+  }
+  html += '</div>';
+
+  // ── VALORACIONES POST-PARTIDO ──
+  if(psicoPartido.length) {
+    html += `<div style="${CARD}">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#58a6ff;margin-bottom:.875rem;">⚽ Valoraciones psicológicas post-partido</div>`;
+
+    const PP_LABELS = {ansiedad:'Ansiedad',nervios:'Nervios',concentra:'Concentración',frustrac:'Frustración',enfado:'Enfado',miedo:'Miedo al error',personalidad:'Personalidad',confianza:'Confianza',rendimiento:'Bajo presión',presente:'Al presente'};
+
+    psicoPartido.forEach(pp => {
+      let stars = {};
+      try { stars = JSON.parse(pp.estrellas||'{}'); } catch(e) {}
+      const vals = Object.values(stars).filter(v=>v>0);
+      const media = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : null;
+      const fecha = new Date(pp.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+      const nc = media>=4?'#3fb950':media>=3?'#d29922':'#f85149';
+
+      html += `<div style="padding:.875rem 0;border-bottom:0.5px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          ${media?`<div style="width:36px;height:36px;border-radius:50%;background:${nc}15;color:${nc};border:1.5px solid ${nc}40;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">${media}</div>`:''}
+          <div><div style="font-size:13px;font-weight:700;">${pp.partido||'Partido'}</div><div style="font-size:10px;color:var(--text2);">${fecha}</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px;">
+          ${Object.keys(stars).filter(k=>stars[k]>0).map(k=>{
+            const v=stars[k];const pct=Math.round((v/5)*100);
+            const col=v>=4?'#3fb950':v>=3?'#d29922':'#f85149';
+            return `<div><div style="font-size:9px;color:var(--text3);margin-bottom:2px;">${PP_LABELS[k]||k}</div>
+              <div style="height:4px;background:var(--border2);border-radius:99px;overflow:hidden;">
+              <div style="width:${pct}%;height:4px;background:${col};"></div></div></div>`;
+          }).join('')}
+        </div>
+        ${pp.altero?`<div style="font-size:11px;color:var(--text2);"><b>Alteraciones:</b> ${pp.altero}</div>`:''}
+        ${pp.mejorar?`<div style="font-size:11px;color:var(--text3);margin-top:3px;"><b>Mejora:</b> ${pp.mejorar}</div>`:''}
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  body.innerHTML = html;
 }
