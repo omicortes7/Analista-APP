@@ -52,3 +52,72 @@ CREATE TABLE IF NOT EXISTS clips_jugador (
 );
 ALTER TABLE clips_jugador ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Acceso publico clips jugador" ON clips_jugador FOR ALL USING (true);
+
+-- ── VALORACIÓN PSICOLÓGICA POST-PARTIDO ──
+CREATE TABLE IF NOT EXISTS psico_partido (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  jugador_id UUID NOT NULL,
+  fecha TEXT NOT NULL,
+  partido TEXT DEFAULT '',
+  estrellas JSONB DEFAULT '{}',
+  concentrado TEXT DEFAULT '',
+  altero TEXT DEFAULT '',
+  errores TEXT DEFAULT '',
+  mejorar TEXT DEFAULT '',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+ALTER TABLE psico_partido ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Acceso publico psico partido" ON psico_partido FOR ALL USING (true);
+
+-- ── EXPECTATIVAS DE TEMPORADA ──
+CREATE TABLE IF NOT EXISTS psico_temporada (
+  id TEXT PRIMARY KEY,
+  jugador_id UUID NOT NULL,
+  objetivo TEXT DEFAULT '',
+  fortaleza TEXT DEFAULT '',
+  mejorar TEXT DEFAULT '',
+  motivacion TEXT DEFAULT '',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+ALTER TABLE psico_temporada ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Acceso publico psico temporada" ON psico_temporada FOR ALL USING (true);
+
+-- ── CHECK-IN SEMANAL ──
+CREATE TABLE IF NOT EXISTS psico_semanal (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  jugador_id UUID NOT NULL,
+  fecha TEXT NOT NULL,
+  balance TEXT DEFAULT '',
+  confianza TEXT DEFAULT '',
+  reto TEXT DEFAULT '',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+ALTER TABLE psico_semanal ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Acceso publico psico semanal" ON psico_semanal FOR ALL USING (true);
+
+-- ── CHAT ANALISTA ↔ JUGADOR ──
+CREATE TABLE IF NOT EXISTS mensajes_chat (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  jugador_id UUID NOT NULL,
+  autor TEXT NOT NULL,  -- 'analista' o 'jugador'
+  texto TEXT NOT NULL,
+  leido BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+ALTER TABLE mensajes_chat ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Acceso publico chat" ON mensajes_chat FOR ALL USING (true);
+
+-- ── CALENDARIO SEMANAL ──
+CREATE TABLE IF NOT EXISTS calendario_semana (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  jugador_id UUID NOT NULL,
+  fecha TEXT NOT NULL,  -- YYYY-MM-DD
+  tipo TEXT DEFAULT 'entreno',  -- 'entreno', 'partido', 'descanso', 'otros'
+  hora TEXT DEFAULT '',
+  rival TEXT DEFAULT '',
+  foco TEXT DEFAULT '',  -- objetivos/foco del entrenamiento
+  notas TEXT DEFAULT '',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+ALTER TABLE calendario_semana ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Acceso publico calendario" ON calendario_semana FOR ALL USING (true);

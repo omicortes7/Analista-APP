@@ -1,0 +1,10 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" rx="40" fill="#0d1117"/>
+  <circle cx="96" cy="96" r="72" fill="none" stroke="#1D9E75" stroke-width="6"/>
+  <circle cx="96" cy="96" r="72" fill="#1D9E7518"/>
+  <!-- Pelota de fútbol simplificada -->
+  <circle cx="96" cy="88" r="28" fill="none" stroke="#1D9E75" stroke-width="5"/>
+  <polygon points="96,68 108,78 104,92 88,92 84,78" fill="#1D9E7530" stroke="#1D9E75" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Check mark -->
+  <polyline points="78,130 90,142 116,116" stroke="#1D9E75" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
