@@ -77,6 +77,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div style="padding:1rem;">
     <!-- INICIO -->
     <div class="sec active" id="sec-inicio">
+      <div id="inicio-cal-block" style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:.875rem;margin-bottom:.875rem;display:none;"></div>
       <div id="app-content"><div class="loading">Cargando datos...</div></div>
     </div>
 
@@ -226,6 +227,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
   </div>
 
+    <!-- CALENDARIO -->
+    <div class="sec" id="sec-cal">
+      <div id="cal-jugador-content"><div style="text-align:center;padding:3rem;color:var(--text3);">Cargando...</div></div>
+    </div>
+
+    <!-- PLAN DE PARTIDO -->
+    <div class="sec" id="sec-plan">
+      <div id="plan-content-full">
+        <div style="text-align:center;padding:3rem;color:var(--text3);"><div style="font-size:32px;margin-bottom:10px;">📋</div><div style="font-size:13px;">Sin plan todavía.<br>Tu analista lo preparará antes del partido.</div></div>
+      </div>
+    </div>
+
     <!-- CHAT -->
     <div class="sec" id="sec-chat">
       <div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;" id="chat-box" style="height:calc(100vh - 180px);">
@@ -249,6 +262,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       Inicio
     </button>
+    <button class="nb" onclick="goSec('cal',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Semana
+    </button>
     <button class="nb" onclick="goSec('clips',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
       Clips
@@ -256,6 +273,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="nb" onclick="goSec('informes',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Informes
+    </button>
+    <button class="nb" onclick="goSec('plan',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Plan
     </button>
     <button class="nb" onclick="goSec('psico',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -470,6 +491,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     document.getElementById('app-content').innerHTML = html;
     if(window._setAppData) window._setAppData(clips, informes, jug);
     if(window.initChat) window.initChat(jug.id);
+    if(window._renderCalInicio) window._renderCalInicio();
   }
 
   function kpi(num, label, color) {
@@ -550,6 +572,8 @@ window.goSec = function(id, btn) {
   if (btn) btn.classList.add('active');
   window.scrollTo(0, 0);
   if (id === 'clips') renderClipsFiltro('mejorar');
+  if (id === 'plan') renderPlanCompleto();
+  if (id === 'cal') renderCalJugador();
   if (id === 'informes') renderInformes();
   if (id === 'nut') renderNut();
 };
@@ -927,5 +951,231 @@ window.enviarMensajeJugador = function() {
     if (res.error) { showToastGlobal('Error al enviar'); return; }
     loadMensajes();
   });
+};
+</script>
+<script>
+// ── PLAN DE PARTIDO COMPLETO ──
+window.renderPlanCompleto = function() {
+  var jugId = window._jugId;
+  if (!jugId || !window.DB_REF) return;
+  window.DB_REF.from('planes_partido')
+    .select('*')
+    .eq('jugador_id', jugId)
+    .order('created_at', {ascending: false})
+    .limit(3)
+    .then(function(res) {
+      var planes = res.data || [];
+      var cont = document.getElementById('plan-content-full');
+      if (!cont) return;
+      if (!planes.length) {
+        cont.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text3);"><div style="font-size:32px;margin-bottom:10px;">📋</div><div style="font-size:13px;">Sin plan todavía.<br>Tu analista lo preparará antes del partido.</div></div>';
+        return;
+      }
+      var html = '';
+      planes.forEach(function(plan, idx) {
+        var fecha = plan.fecha ? new Date(plan.fecha + 'T12:00:00').toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'long'}) : '';
+        var esUltimo = idx === 0;
+        html += '<div style="background:var(--card);border:0.5px solid ' + (esUltimo ? 'rgba(88,166,255,0.35)' : 'var(--border)') + ';border-radius:var(--radius);margin-bottom:.875rem;overflow:hidden;">';
+        // Header
+        html += '<div style="padding:.875rem 1rem;background:' + (esUltimo ? 'rgba(88,166,255,0.06)' : 'transparent') + ';border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;">';
+        html += '<div>';
+        if (esUltimo) html += '<div style="font-size:9px;font-weight:800;color:#58a6ff;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Próximo partido</div>';
+        html += '<div style="font-size:14px;font-weight:700;">' + (plan.rival ? 'vs ' + plan.rival : 'Partido') + '</div>';
+        if (fecha) html += '<div style="font-size:10px;color:var(--text2);margin-top:1px;">' + fecha + '</div>';
+        html += '</div>';
+        if (esUltimo) html += '<div style="width:36px;height:36px;border-radius:50%;background:rgba(88,166,255,0.12);display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>';
+        html += '</div>';
+        // Puntos del plan
+        if (plan.items && plan.items.length) {
+          html += '<div style="padding:.875rem 1rem;">';
+          html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.75rem;">Puntos clave</div>';
+          plan.items.forEach(function(item, i) {
+            html += '<div style="display:flex;gap:10px;padding:.625rem 0;border-bottom:0.5px solid var(--border);">';
+            html += '<div style="width:22px;height:22px;border-radius:50%;background:rgba(88,166,255,0.12);color:#58a6ff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;">' + (i+1) + '</div>';
+            html += '<div style="font-size:13px;line-height:1.6;color:var(--text);">' + item + '</div>';
+            html += '</div>';
+          });
+          html += '</div>';
+        }
+        // Notas
+        if (plan.notas) {
+          html += '<div style="margin:.5rem 1rem .875rem;padding:.75rem;background:var(--bg3);border-radius:8px;border-left:3px solid rgba(88,166,255,0.4);">';
+          html += '<div style="font-size:9px;font-weight:800;color:#58a6ff;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Notas del analista</div>';
+          html += '<div style="font-size:12px;color:var(--text2);line-height:1.7;">' + plan.notas + '</div>';
+          html += '</div>';
+        }
+        html += '</div>';
+      });
+      cont.innerHTML = html;
+    });
+};
+</script>
+<script>
+// ── CALENDARIO JUGADOR ──
+var DIAS_NOMBRES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+var DIAS_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+var TIPOS_CAL = {
+  entreno:  {color:'#3fb950', bg:'rgba(63,185,80,0.12)',   label:'Entrenamiento', ico:'💪'},
+  partido:  {color:'#58a6ff', bg:'rgba(88,166,255,0.12)',  label:'Partido',       ico:'⚽'},
+  descanso: {color:'#484f58', bg:'rgba(72,79,88,0.15)',    label:'Descanso',      ico:'😴'},
+  otros:    {color:'#d29922', bg:'rgba(210,153,34,0.12)', label:'Otros',          ico:'📌'},
+};
+
+window.renderCalJugador = function() {
+  var jugId = window._jugId;
+  if (!jugId || !window.DB_REF) return;
+
+  var hoy = new Date();
+  var dow = hoy.getDay() === 0 ? 6 : hoy.getDay() - 1;
+  var lunes = new Date(hoy); lunes.setDate(hoy.getDate() - dow);
+  var dias = [];
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(lunes); d.setDate(lunes.getDate() + i);
+    dias.push(d);
+  }
+
+  var fechaLunes = lunes.toISOString().slice(0,10);
+  var fechaDomingo = dias[6].toISOString().slice(0,10);
+
+  window.DB_REF.from('calendario_semana')
+    .select('*')
+    .eq('jugador_id', jugId)
+    .gte('fecha', fechaLunes)
+    .lte('fecha', fechaDomingo)
+    .then(function(res) {
+      var eventos = res.data || [];
+      var porFecha = {};
+      eventos.forEach(function(e) { porFecha[e.fecha] = e; });
+
+      var cont = document.getElementById('cal-jugador-content');
+      if (!cont) return;
+
+      var semLabel = lunes.toLocaleDateString('es-ES',{day:'numeric',month:'short'}) + ' — ' + dias[6].toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+      var html = '<div style="font-size:13px;font-weight:700;margin-bottom:.875rem;text-align:center;">' + semLabel + '</div>';
+
+      // Grid de 7 días
+      html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:1.25rem;">';
+      dias.forEach(function(d, i) {
+        var fecha = d.toISOString().slice(0,10);
+        var ev = porFecha[fecha];
+        var tc = ev ? (TIPOS_CAL[ev.tipo] || TIPOS_CAL.entreno) : null;
+        var esHoy = fecha === hoy.toISOString().slice(0,10);
+        html += '<div style="border-radius:10px;padding:8px 4px;text-align:center;border:0.5px solid ' + (esHoy ? 'rgba(255,255,255,0.3)' : ev ? tc.color+'50' : 'var(--border)') + ';background:' + (ev ? tc.bg : esHoy ? 'rgba(255,255,255,0.04)' : 'var(--card)') + ';">';
+        html += '<div style="font-size:9px;color:var(--text3);margin-bottom:2px;">' + ['L','M','X','J','V','S','D'][i] + '</div>';
+        html += '<div style="font-size:14px;font-weight:' + (esHoy ? '800' : '600') + ';color:' + (esHoy ? '#fff' : 'var(--text)') + ';">' + d.getDate() + '</div>';
+        html += ev ? '<div style="font-size:14px;margin-top:2px;">' + tc.ico + '</div>' : '<div style="height:18px;"></div>';
+        html += '</div>';
+      });
+      html += '</div>';
+
+      // Detalle de cada día
+      dias.forEach(function(d, i) {
+        var fecha = d.toISOString().slice(0,10);
+        var ev = porFecha[fecha];
+        var esHoy = fecha === hoy.toISOString().slice(0,10);
+
+        html += '<div style="background:var(--card);border:0.5px solid ' + (esHoy ? 'rgba(255,255,255,0.15)' : ev ? (TIPOS_CAL[ev.tipo]||TIPOS_CAL.entreno).color+'30' : 'var(--border)') + ';border-radius:var(--radius);padding:.875rem;margin-bottom:8px;">';
+
+        // Cabecera del día
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:' + (ev && (ev.foco || ev.notas) ? '10px' : '0') + ';">';
+        html += '<div style="width:36px;height:36px;border-radius:10px;background:' + (esHoy ? 'rgba(255,255,255,0.08)' : 'var(--bg3)') + ';display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">';
+        html += '<div style="font-size:9px;color:var(--text3);">' + ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'][i] + '</div>';
+        html += '<div style="font-size:15px;font-weight:800;' + (esHoy ? 'color:#fff;' : '') + '">' + d.getDate() + '</div>';
+        html += '</div>';
+
+        if (ev) {
+          var tc = TIPOS_CAL[ev.tipo] || TIPOS_CAL.entreno;
+          html += '<div style="flex:1;">';
+          html += '<div style="display:flex;align-items:center;gap:6px;">';
+          html += '<span style="font-size:9px;padding:2px 8px;border-radius:99px;background:' + tc.bg + ';color:' + tc.color + ';font-weight:700;">' + tc.ico + ' ' + tc.label + '</span>';
+          if (ev.hora) html += '<span style="font-size:10px;color:var(--text2);">⏰ ' + ev.hora + '</span>';
+          if (ev.rival) html += '<span style="font-size:11px;color:' + tc.color + ';font-weight:700;">vs ' + ev.rival + '</span>';
+          html += '</div>';
+          html += '</div>';
+        } else {
+          html += '<div style="font-size:12px;color:var(--text3);">Sin actividad programada</div>';
+        }
+        html += '</div>';
+
+        // Foco del entrenamiento
+        if (ev && ev.foco) {
+          html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem;border-left:3px solid ' + (TIPOS_CAL[ev.tipo]||TIPOS_CAL.entreno).color + ';">';
+          html += '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:' + (TIPOS_CAL[ev.tipo]||TIPOS_CAL.entreno).color + ';margin-bottom:4px;">Foco del día</div>';
+          html += '<div style="font-size:12px;line-height:1.7;color:var(--text2);">' + ev.foco + '</div>';
+          html += '</div>';
+        }
+        if (ev && ev.notas) {
+          html += '<div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5;">' + ev.notas + '</div>';
+        }
+        html += '</div>';
+      });
+
+      cont.innerHTML = html;
+    });
+};
+
+// Mostrar semana en el inicio también
+window._renderCalInicio = function() {
+  var jugId = window._jugId;
+  if (!jugId || !window.DB_REF) return;
+  var hoy = new Date();
+  var dow = hoy.getDay() === 0 ? 6 : hoy.getDay() - 1;
+  var lunes = new Date(hoy); lunes.setDate(hoy.getDate() - dow);
+  var domFecha = new Date(lunes); domFecha.setDate(lunes.getDate() + 6);
+
+  window.DB_REF.from('calendario_semana')
+    .select('*')
+    .eq('jugador_id', jugId)
+    .gte('fecha', lunes.toISOString().slice(0,10))
+    .lte('fecha', domFecha.toISOString().slice(0,10))
+    .then(function(res) {
+      var eventos = res.data || [];
+      var bloque = document.getElementById('inicio-cal-block');
+      if (!bloque) return;
+      if (!eventos.length) { bloque.style.display = 'none'; return; }
+      bloque.style.display = 'block';
+
+      var dias = [];
+      for (var i = 0; i < 7; i++) {
+        var d = new Date(lunes); d.setDate(lunes.getDate() + i);
+        dias.push(d);
+      }
+      var porFecha = {};
+      eventos.forEach(function(e) { porFecha[e.fecha] = e; });
+
+      var html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:.75rem;">';
+      dias.forEach(function(d, i) {
+        var fecha = d.toISOString().slice(0,10);
+        var ev = porFecha[fecha];
+        var tc = ev ? (TIPOS_CAL[ev.tipo]||TIPOS_CAL.entreno) : null;
+        var esHoy = fecha === hoy.toISOString().slice(0,10);
+        html += '<div style="border-radius:8px;padding:6px 2px;text-align:center;border:0.5px solid ' + (esHoy?'rgba(255,255,255,0.25)':ev?tc.color+'40':'var(--border)') + ';background:' + (ev?tc.bg:esHoy?'rgba(255,255,255,0.04)':'transparent') + ';">';
+        html += '<div style="font-size:8px;color:var(--text3);">'+['L','M','X','J','V','S','D'][i]+'</div>';
+        html += '<div style="font-size:12px;font-weight:' + (esHoy?'800':'500') + ';' + (esHoy?'color:#fff;':'') + '">' + d.getDate() + '</div>';
+        html += ev ? '<div style="font-size:11px;">' + tc.ico + '</div>' : '<div style="height:14px;"></div>';
+        html += '</div>';
+      });
+      html += '</div>';
+
+      // Próximo evento relevante (hoy o futuro)
+      var proxEv = null, proxDia = null;
+      dias.forEach(function(d, i) {
+        if (d >= hoy && !proxEv) {
+          var ev = porFecha[d.toISOString().slice(0,10)];
+          if (ev) { proxEv = ev; proxDia = d; }
+        }
+      });
+
+      if (proxEv) {
+        var tc = TIPOS_CAL[proxEv.tipo]||TIPOS_CAL.entreno;
+        var esHoyProx = proxDia.toISOString().slice(0,10) === hoy.toISOString().slice(0,10);
+        html += '<div style="background:' + tc.bg + ';border-radius:8px;padding:.75rem;border-left:3px solid ' + tc.color + ';">';
+        html += '<div style="font-size:10px;font-weight:700;color:' + tc.color + ';margin-bottom:3px;">' + tc.ico + ' ' + (esHoyProx ? 'Hoy' : ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'][proxDia.getDay()===0?6:proxDia.getDay()-1]) + (proxEv.hora ? ' · ' + proxEv.hora : '') + (proxEv.rival ? ' · vs ' + proxEv.rival : '') + '</div>';
+        if (proxEv.foco) html += '<div style="font-size:11px;color:var(--text2);line-height:1.5;">' + proxEv.foco + '</div>';
+        html += '</div>';
+      }
+
+      bloque.innerHTML = '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.625rem;">Esta semana</div>' + html;
+    });
 };
 </script>
