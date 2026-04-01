@@ -2062,3 +2062,314 @@ window.toggleNutOpt = function(bloque, opt, btn) {
   }
 };
 </script>
+<script>
+// ── ALIMENTOS LIBRES CON CÁLCULO DE MACROS ──
+
+// Base de datos ampliada de alimentos (por 100g o por porción estándar)
+var FOOD_DB = [
+  // [regex, g_tipicos, prot_x100g, carb_x100g, gras_x100g, kcal_x100g]
+  // Cereales y harinas
+  [/macarr[oó]n|pasta|espagueti|fideo|tallar[ií]n/i, 180, 5, 30, 1, 150],
+  [/arroz/i, 180, 2.7, 28, 0.3, 130],
+  [/pan\b/i, 60, 7, 50, 2, 250],
+  [/pan integral/i, 60, 8, 45, 2, 235],
+  [/tostada/i, 30, 7, 50, 2, 250],
+  [/avena|copos/i, 80, 13, 66, 7, 389],
+  [/cereal/i, 60, 7, 75, 3, 370],
+  [/galleta/i, 30, 6, 70, 15, 440],
+  // Proteínas animales
+  [/pollo|pechuga/i, 150, 23, 0, 3, 120],
+  [/pavo/i, 150, 22, 0, 1, 105],
+  [/ternera|carne picada|filete/i, 150, 21, 0, 8, 155],
+  [/cerdo|lomo/i, 150, 22, 0, 9, 165],
+  [/jamón\b/i, 60, 22, 0, 5, 130],
+  [/chorizo|salchich/i, 60, 13, 1, 35, 370],
+  [/merluza|bacalao|pescadilla/i, 150, 18, 0, 1, 80],
+  [/salmón/i, 150, 20, 0, 12, 190],
+  [/atún|bonito/i, 100, 25, 0, 1, 110],
+  [/sardina/i, 100, 21, 0, 9, 170],
+  [/gamba|marisco/i, 100, 18, 0, 1, 80],
+  [/huevo/i, 60, 13, 0, 11, 155],
+  // Lácteos
+  [/leche\b/i, 250, 3.2, 4.8, 3.5, 65],
+  [/yogur/i, 125, 4, 6, 3, 65],
+  [/queso fresco/i, 80, 11, 3, 8, 130],
+  [/queso\b/i, 40, 25, 0, 30, 370],
+  // Legumbres
+  [/lenteja/i, 200, 9, 20, 0.5, 116],
+  [/garbanzo/i, 200, 9, 27, 3, 164],
+  [/jud[ií]a|alubia/i, 200, 8, 22, 0.5, 127],
+  [/guisante/i, 150, 6, 14, 0.5, 81],
+  [/tofu/i, 150, 8, 1, 4, 70],
+  // Verduras
+  [/tomate/i, 150, 0.9, 3.5, 0.2, 18],
+  [/lechuga|espinaca|acelga/i, 100, 2, 3, 0.3, 23],
+  [/zanahoria/i, 100, 0.9, 10, 0.2, 41],
+  [/brócoli/i, 150, 3, 7, 0.4, 34],
+  [/patata\b/i, 200, 2, 17, 0.1, 77],
+  [/boniato|camote/i, 150, 1.6, 20, 0.1, 86],
+  // Frutas
+  [/plátano/i, 120, 1.1, 23, 0.3, 89],
+  [/manzana/i, 150, 0.3, 14, 0.2, 52],
+  [/naranja/i, 180, 0.9, 12, 0.1, 47],
+  [/pera/i, 150, 0.4, 12, 0.1, 50],
+  [/uva/i, 150, 0.6, 18, 0.4, 69],
+  [/mango/i, 150, 0.8, 15, 0.4, 60],
+  [/fresas/i, 150, 0.7, 8, 0.3, 32],
+  [/kiwi/i, 100, 1, 15, 0.5, 61],
+  // Frutos secos
+  [/almendra/i, 30, 21, 20, 50, 580],
+  [/nuez/i, 30, 15, 14, 65, 654],
+  [/cacahuete/i, 30, 26, 16, 49, 567],
+  [/anacardo/i, 30, 18, 30, 44, 553],
+  // Grasas y salsas
+  [/aceite/i, 15, 0, 0, 100, 900],
+  [/mantequilla/i, 15, 0.7, 0, 82, 740],
+  [/aguacate/i, 100, 2, 9, 15, 160],
+  [/mayonesa/i, 20, 1, 3, 75, 680],
+  // Dulces / snacks
+  [/chocolate/i, 40, 5, 55, 30, 535],
+  [/barrita.energ/i, 40, 5, 30, 5, 185],
+  [/gel.energ/i, 30, 0, 22, 0, 88],
+  // Bebidas
+  [/leche\s*cacao|batido/i, 250, 4, 15, 3, 100],
+  [/zumo/i, 200, 0.7, 10, 0.2, 45],
+  [/bebida.iso|isotónico/i, 500, 0, 30, 0, 120],
+  // Platos preparados
+  [/bocadillo/i, 200, 15, 35, 8, 270],
+  [/pizza/i, 200, 11, 30, 8, 240],
+  [/hamburguesa/i, 150, 17, 25, 12, 275],
+  [/ensalada\b/i, 200, 3, 8, 5, 85],
+  [/sopa\b|crema\b/i, 300, 3, 10, 2, 70],
+  [/tortilla\b/i, 150, 12, 3, 12, 170],
+];
+
+// Parsear cantidad del texto escrito
+function parsearCantidad(texto) {
+  // Buscar gramos: "180g", "180 g", "180gr", "180 gramos"
+  var gMatch = texto.match(/(\d+\.?\d*)\s*(?:g|gr|gramos)/i);
+  if (gMatch) return { cantidad: parseFloat(gMatch[1]), tipo: 'g' };
+
+  // Buscar ml: "200ml", "200 ml"
+  var mlMatch = texto.match(/(\d+\.?\d*)\s*(?:ml|mililitros)/i);
+  if (mlMatch) return { cantidad: parseFloat(mlMatch[1]), tipo: 'ml' };
+
+  // Buscar unidades: "2 huevos", "3 tostadas"
+  var uMatch = texto.match(/(\d+)\s*(?:unidad|pieza|trozo|loncha|rebanada|vaso|taza)/i);
+  if (uMatch) return { cantidad: parseFloat(uMatch[1]), tipo: 'u' };
+
+  // Buscar "plato de", "bol de", "puñado de"
+  var platoMatch = texto.match(/(?:plato|bol|cuenco)\s+(?:grande|mediano|pequeño)?\s*de/i);
+  if (platoMatch) return { cantidad: 1, tipo: 'plato' };
+
+  var pugnadoMatch = texto.match(/puñado/i);
+  if (pugnadoMatch) return { cantidad: 30, tipo: 'g' };
+
+  return null;
+}
+
+function calcularMacrosAlimento(texto) {
+  var txtLower = texto.toLowerCase();
+  var match = null;
+
+  for (var i = 0; i < FOOD_DB.length; i++) {
+    if (FOOD_DB[i][0].test(txtLower)) {
+      match = FOOD_DB[i];
+      break;
+    }
+  }
+
+  if (!match) return null;
+
+  var ref_g_tipicos = match[1];
+  var prot_x100 = match[2];
+  var carb_x100 = match[3];
+  var gras_x100 = match[4];
+  var kcal_x100 = match[5];
+
+  var cantParsed = parsearCantidad(texto);
+  var g_reales;
+
+  if (cantParsed) {
+    if (cantParsed.tipo === 'g' || cantParsed.tipo === 'ml') {
+      g_reales = cantParsed.cantidad;
+    } else if (cantParsed.tipo === 'u') {
+      g_reales = ref_g_tipicos * cantParsed.cantidad;
+    } else {
+      g_reales = ref_g_tipicos; // plato = porción estándar
+    }
+  } else {
+    g_reales = ref_g_tipicos; // sin cantidad = porción estándar
+  }
+
+  return {
+    nombre: texto.trim(),
+    g: Math.round(g_reales),
+    prot: Math.round((prot_x100 * g_reales) / 100),
+    carb: Math.round((carb_x100 * g_reales) / 100),
+    gras: Math.round((gras_x100 * g_reales) / 100),
+    kcal: Math.round((kcal_x100 * g_reales) / 100),
+  };
+}
+
+// Almacén de alimentos libres añadidos
+var _alimentosLibres = {};
+
+window.initNutExtras = function() {
+  // Añadir listener a todos los inputs extra de cada bloque
+  ['desayuno','manana','comida','preentreno','merienda','cena'].forEach(function(bloque) {
+    var input = document.getElementById('extra-' + bloque);
+    if (!input) return;
+
+    // Enter para añadir
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        procesarAlimentoLibre(bloque, input.value.trim());
+      }
+    });
+
+    // También al salir del campo
+    input.addEventListener('blur', function() {
+      if (input.value.trim()) {
+        procesarAlimentoLibre(bloque, input.value.trim());
+      }
+    });
+  });
+};
+
+function procesarAlimentoLibre(bloque, texto) {
+  if (!texto) return;
+  var macros = calcularMacrosAlimento(texto);
+  if (!macros) {
+    // No encontrado — guardar igual sin macros
+    if (!_alimentosLibres[bloque]) _alimentosLibres[bloque] = [];
+    _alimentosLibres[bloque].push({ nombre: texto, prot: 0, carb: 0, gras: 0, kcal: 0 });
+    showMiniToast(bloque, '✓ "' + texto + '" añadido');
+  } else {
+    if (!_alimentosLibres[bloque]) _alimentosLibres[bloque] = [];
+    _alimentosLibres[bloque].push(macros);
+    showMiniToast(bloque, '✓ ' + macros.kcal + 'kcal · ' + macros.prot + 'g prot · ' + macros.carb + 'g carb');
+  }
+
+  // Actualizar log visual del bloque
+  updateLogBloqueConExtras(bloque);
+
+  // Actualizar macros en tiempo real
+  actualizarMacrosTiempoReal();
+}
+
+function showMiniToast(bloque, msg) {
+  var form = document.getElementById('nc-' + bloque + '-form');
+  if (!form) return;
+  var t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'font-size:11px;color:#1D9E75;padding:4px 8px;background:rgba(29,158,117,0.1);border-radius:6px;margin-top:4px;transition:opacity .3s;';
+  form.appendChild(t);
+  setTimeout(function() { t.style.opacity = '0'; setTimeout(function(){ t.remove(); }, 300); }, 2000);
+}
+
+function updateLogBloqueConExtras(bloque) {
+  var log = document.getElementById('log-' + bloque);
+  if (!log) return;
+  var seleccionados = nutSeleccionados[bloque] ? nutSeleccionados[bloque].slice() : [];
+  var libres = (_alimentosLibres[bloque] || []).map(function(a) { return a.nombre; });
+  var todos = seleccionados.concat(libres);
+
+  if (!todos.length) { log.innerHTML = ''; return; }
+  log.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">' +
+    todos.map(function(i) {
+      return '<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(29,158,117,0.12);color:#1D9E75;border:0.5px solid rgba(29,158,117,0.2);">' + i + '</span>';
+    }).join('') + '</div>';
+}
+
+function actualizarMacrosTiempoReal() {
+  // Sumar macros de seleccionados + libres
+  var totalProt = 0, totalCarb = 0, totalGras = 0, totalKcal = 0;
+
+  // De seleccionados (estimación por alimento)
+  Object.keys(nutSeleccionados).forEach(function(bloque) {
+    nutSeleccionados[bloque].forEach(function(opt) {
+      var m = calcularMacrosAlimento(opt);
+      if (m) {
+        totalProt += m.prot; totalCarb += m.carb;
+        totalGras += m.gras; totalKcal += m.kcal;
+      }
+    });
+  });
+
+  // De libres (con cálculo exacto)
+  Object.keys(_alimentosLibres).forEach(function(bloque) {
+    (_alimentosLibres[bloque] || []).forEach(function(a) {
+      totalProt += a.prot; totalCarb += a.carb;
+      totalGras += a.gras; totalKcal += a.kcal;
+    });
+  });
+
+  // Añadir agua
+  var actualMacros = {
+    prot: Math.round(totalProt),
+    carb: Math.round(totalCarb),
+    gras: Math.round(totalGras),
+    kcal: Math.round(totalKcal),
+    agua: aguaVasos
+  };
+
+  if (totalKcal > 0 || totalProt > 0) {
+    document.getElementById('macro-resultado').style.display = 'block';
+    var objetivo = _nutPerfil ? (_nutPerfil[_diaActual] || _nutPerfil.entreno) : null;
+    renderMacrosBarra(actualMacros, objetivo, 'macro-barras-dia');
+  }
+
+  window._macrosActuales = actualMacros;
+}
+
+// Sobreescribir getNutLogTexto para incluir libres
+var _origGetNutLog = window.getNutLogTexto;
+window.getNutLogTexto = function() {
+  var partes = [];
+  var nombres = {desayuno:'Desayuno',manana:'Media mañana',comida:'Comida',preentreno:'Pre-entreno',merienda:'Merienda/Post-entreno',cena:'Cena'};
+  Object.keys(nutSeleccionados).forEach(function(bloque) {
+    var extra = document.getElementById('extra-' + bloque);
+    var items = nutSeleccionados[bloque].slice();
+    var libres = (_alimentosLibres[bloque] || []).map(function(a) { return a.nombre; });
+    var todos = items.concat(libres);
+    if (extra && extra.value.trim() && libres.indexOf(extra.value.trim()) === -1) todos.push(extra.value.trim());
+    if (todos.length) partes.push(nombres[bloque] + ': ' + todos.join(', '));
+  });
+  if (aguaVasos > 0) partes.push('Agua: ' + aguaVasos + ' vasos');
+  return partes.join('\n');
+};
+
+// Sobreescribir calcularMacrosDia para usar los macros ya calculados
+var _origCalcMacros = window.calcularMacrosDia;
+window.calcularMacrosDia = function() {
+  if (window._macrosActuales && window._macrosActuales.kcal > 0) {
+    return window._macrosActuales;
+  }
+  return _origCalcMacros ? _origCalcMacros() : null;
+};
+
+// Inicializar extras cuando se abren los bloques
+var _origToggleBlock = window.toggleNutBlock;
+window.toggleNutBlock = function(bloque) {
+  if (_origToggleBlock) _origToggleBlock(bloque);
+  setTimeout(function() { window.initNutExtras(); }, 50);
+};
+
+// También inicializar al cargar nutrición
+var _origRenderNutV3 = window.renderNut;
+window.renderNut = function() {
+  _alimentosLibres = {};
+  window._macrosActuales = null;
+  if (_origRenderNutV3) _origRenderNutV3();
+  setTimeout(window.initNutExtras, 200);
+};
+
+// Actualizar macros también al pulsar agua
+var _origSetAgua = window.setAgua;
+window.setAgua = function(n) {
+  if (_origSetAgua) _origSetAgua(n);
+  actualizarMacrosTiempoReal();
+};
+</script>
