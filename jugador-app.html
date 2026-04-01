@@ -1323,190 +1323,7 @@ window._renderCalInicio = function() {
 };
 </script>
 
-<script>
-// ── NUTRICIÓN GUIADA ──
-var NUT_OPTS = {
-  desayuno:   ['Avena con leche','Tostada con huevo','Cereales','Yogur con fruta','Bocadillo','Fruta','Zumo natural','Leche','Café con leche'],
-  manana:     ['Fruta','Nueces/almendras','Yogur','Barrita','Bocadillo pequeño','Nada'],
-  comida:     ['Arroz','Pasta','Patatas','Pollo','Carne','Pescado','Huevos','Legumbres','Verduras','Ensalada','Pan'],
-  preentreno: ['Plátano','Tostada con miel','Barrita energética','Fruta','Nada'],
-  merienda:   ['Plátano','Batido proteína','Bocadillo pavo/jamón','Yogur','Fruta','Nueces','Leche con cacao'],
-  cena:       ['Pasta','Arroz','Pollo','Pescado','Huevos','Verduras','Sopa/crema','Legumbres','Ensalada','Pan'],
-};
 
-var nutSeleccionados = {desayuno:[],manana:[],comida:[],preentreno:[],merienda:[],cena:[]};
-var aguaVasos = 0;
-
-// Inicializar opciones
-window.initNutOpts = function() {
-  Object.keys(NUT_OPTS).forEach(function(bloque) {
-    var cont = document.getElementById('opts-' + bloque);
-    if (!cont) return;
-    cont.innerHTML = NUT_OPTS[bloque].map(function(opt) {
-      return '<button onclick="toggleNutOpt(\'' + bloque + '\',\'' + opt + '\',this)" style="padding:5px 10px;border-radius:99px;font-size:11px;background:var(--bg2);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .12s;">' + opt + '</button>';
-    }).join('');
-  });
-
-  // Vasos de agua
-  var aguaCont = document.getElementById('agua-vasos');
-  if (aguaCont) {
-    aguaCont.innerHTML = '';
-    for (var i = 1; i <= 8; i++) {
-      aguaCont.innerHTML += '<button onclick="setAgua(' + i + ')" id="agua-' + i + '" style="font-size:18px;background:none;border:none;cursor:pointer;opacity:0.3;padding:2px;">💧</button>';
-    }
-  }
-};
-
-
-
-window.toggleNutOpt = function(bloque, opt, btn) {
-  var arr = nutSeleccionados[bloque];
-  var idx = arr.indexOf(opt);
-  if (idx === -1) {
-    arr.push(opt);
-    btn.style.background = 'rgba(29,158,117,0.2)';
-    btn.style.color = '#1D9E75';
-    btn.style.borderColor = 'rgba(29,158,117,0.4)';
-  } else {
-    arr.splice(idx, 1);
-    btn.style.background = 'var(--bg2)';
-    btn.style.color = 'var(--text2)';
-    btn.style.borderColor = 'var(--border2)';
-  }
-  updateLogBloque(bloque);
-};
-
-function updateLogBloque(bloque) {
-  var log = document.getElementById('log-' + bloque);
-  if (!log) return;
-  var extra = document.getElementById('extra-' + bloque);
-  var items = nutSeleccionados[bloque].slice();
-  if (extra && extra.value.trim()) items.push(extra.value.trim());
-  if (items.length) {
-    log.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">' +
-      items.map(function(i) { return '<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(29,158,117,0.12);color:#1D9E75;border:0.5px solid rgba(29,158,117,0.2);">' + i + '</span>'; }).join('') +
-    '</div>';
-  } else {
-    log.innerHTML = '';
-  }
-}
-
-window.setAgua = function(n) {
-  aguaVasos = n;
-  for (var i = 1; i <= 8; i++) {
-    var btn = document.getElementById('agua-' + i);
-    if (btn) btn.style.opacity = i <= n ? '1' : '0.3';
-  }
-  var lbl = document.getElementById('agua-label');
-  if (lbl) lbl.textContent = n + ' / 8 vasos';
-};
-
-function getNutLogTexto() {
-  var partes = [];
-  var nombres = {desayuno:'Desayuno',manana:'Media mañana',comida:'Comida',preentreno:'Pre-entreno',merienda:'Merienda/Post-entreno',cena:'Cena'};
-  Object.keys(nutSeleccionados).forEach(function(bloque) {
-    var extra = document.getElementById('extra-' + bloque);
-    var items = nutSeleccionados[bloque].slice();
-    if (extra && extra.value.trim()) items.push(extra.value.trim());
-    if (items.length) partes.push(nombres[bloque] + ': ' + items.join(', '));
-  });
-  if (aguaVasos > 0) partes.push('Agua: ' + aguaVasos + ' vasos');
-  return partes.join('\n');
-}
-
-// Guardar usando el texto generado
-
-
-// Analizar con IA — usando Claude API correctamente via artifact
-window.analizarNutricion = function() {
-  ['desayuno','manana','comida','preentreno','merienda','cena'].forEach(updateLogBloque);
-  var texto = getNutLogTexto();
-  if (!texto) { showToastGlobal('Añade al menos una comida primero'); return; }
-
-  var resp = document.getElementById('ia-nut-response');
-  var respText = document.getElementById('ia-nut-text');
-  if (!resp || !respText) return;
-
-  resp.style.display = 'block';
-  respText.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--text2);font-size:12px;"><span style="display:inline-block;width:14px;height:14px;border:2px solid #1D9E75;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;"></span>Analizando tu alimentación...</div>';
-
-  if (!document.getElementById('spin-css')) {
-    var s = document.createElement('style');
-    s.id = 'spin-css';
-    s.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
-    document.head.appendChild(s);
-  }
-
-  var jugPos = document.getElementById('app-pos') ? document.getElementById('app-pos').textContent : 'Cadete';
-  var macrosKcal = document.getElementById('m-kcal') ? document.getElementById('m-kcal').textContent : '2600';
-  var macrosProt = document.getElementById('m-prot') ? document.getElementById('m-prot').textContent : '110g';
-  var macrosCarb = document.getElementById('m-carb') ? document.getElementById('m-carb').textContent : '320g';
-  var tipoDia = window._diaActual || 'entreno';
-
-  var prompt = 'Eres un asistente de nutrición deportiva para fútbol base (cadete, 14-16 años). Tono directo, motivador, como un entrenador. Máximo 180 palabras.\n\nJUGADOR: ' + jugPos + '\nMACROS OBJETIVO: ' + macrosKcal + ' kcal | Proteína: ' + macrosProt + ' | Carbos: ' + macrosCarb + '\nTIPO DE DÍA: ' + tipoDia + '\n\nCOMIDAS DE HOY:\n' + texto + '\n\nResponde con:\n1. Semáforo: usa 🟢🟡🔴 para Calorías, Proteína, Carbohidratos, Hidratación (' + aguaVasos + ' vasos)\n2. 2 sugerencias concretas para mañana o el próximo entreno\n3. Si es día de partido, aviso específico\n4. Una frase corta de motivación al final';
-
-  // Usar iframe con postMessage para evitar CORS
-  var ia = document.getElementById('ia-hidden-frame');
-  if (!ia) {
-    ia = document.createElement('iframe');
-    ia.id = 'ia-hidden-frame';
-    ia.style.display = 'none';
-    document.body.appendChild(ia);
-  }
-
-  // Fallback: análisis local sin API si hay problemas de CORS
-  analizarLocal(texto, tipoDia, macrosProt, macrosCarb, macrosKcal);
-};
-
-function analizarLocal(texto, tipoDia, prot, carb, kcal) {
-  // Análisis basado en reglas simples cuando la API no está disponible
-  var tLower = texto.toLowerCase();
-  
-  // Detectar alimentos clave
-  var tieneProteina = /pollo|carne|pescado|huevo|atún|pavo|jamón|batido|legumbres/.test(tLower);
-  var tieneCarbs = /arroz|pasta|pan|patata|plátano|avena|cereal|tostada/.test(tLower);
-  var tieneVerdura = /verdura|ensalada|fruta|manzana|naranja|tomate/.test(tLower);
-  var tieneDesayuno = tLower.includes('desayuno') && tLower.split('\n')[0].length > 12;
-  var nComidas = texto.split('\n').filter(function(l) { return l.trim().length > 10; }).length;
-
-  var semaforo = '';
-  semaforo += (nComidas >= 4 ? '🟢' : nComidas >= 2 ? '🟡' : '🔴') + ' Calorías: ' + (nComidas >= 4 ? 'bien distribuidas' : nComidas >= 2 ? 'pocas tomas' : 'insuficiente') + '\n';
-  semaforo += (tieneProteina ? '🟢' : '🔴') + ' Proteína: ' + (tieneProteina ? 'cubierta' : 'falta proteína — añade pollo, huevo o pescado') + '\n';
-  semaforo += (tieneCarbs ? '🟢' : '🟡') + ' Carbohidratos: ' + (tieneCarbs ? 'bien' : 'añade arroz o pasta en comida principal') + '\n';
-  semaforo += (aguaVasos >= 6 ? '🟢' : aguaVasos >= 4 ? '🟡' : '🔴') + ' Hidratación: ' + aguaVasos + ' vasos ' + (aguaVasos >= 6 ? '✓' : '— bebe más, objetivo 8 vasos');
-
-  var sugerencias = [];
-  if (!tieneDesayuno) sugerencias.push('El desayuno es clave — empieza el día con avena o huevo para tener energía en el entrenamiento.');
-  if (!tieneProteina) sugerencias.push('Añade proteína en cada comida principal: pollo, pescado, huevos o legumbres.');
-  if (!tieneCarbs) sugerencias.push('Los carbohidratos son tu combustible — arroz o pasta antes del entrenamiento son esenciales.');
-  if (aguaVasos < 6) sugerencias.push('Hidratación: bebe al menos ' + (8 - aguaVasos) + ' vasos más. La deshidratación baja el rendimiento hasta un 15%.');
-  if (!tieneVerdura) sugerencias.push('Añade verduras o fruta — vitaminas y minerales para recuperar mejor.');
-  if (sugerencias.length === 0) sugerencias.push('Buena distribución de comidas. Mantén esta rutina los días de entrenamiento.');
-
-  var partidoMsg = '';
-  if (tipoDia === 'partido') {
-    partidoMsg = '\n⚽ Día de partido: Comida 3h antes ligera (arroz + pollo, sin grasas). Plátano 1h antes. Post-partido recupera en los primeros 30 min con proteína + carbohidrato.';
-  }
-
-  var motivacion = ['¡Buena alimentación es medio entrenamiento!', 'Lo que comes hoy es la energía de mañana.', 'Cuida el combustible y el rendimiento vendrá solo.', '¡Sigue así!'][Math.floor(Math.random()*4)];
-
-  var respText = document.getElementById('ia-nut-text');
-  if (respText) {
-    respText.innerHTML = 
-      '<b>Semáforo de hoy:</b><br>' + semaforo.replace(/\n/g,'<br>') +
-      '<br><br><b>Sugerencias:</b><br>' + sugerencias.slice(0,2).map(function(s){return '• '+s;}).join('<br>') +
-      (partidoMsg ? '<br><br>' + partidoMsg : '') +
-      '<br><br><i>' + motivacion + '</i>';
-  }
-}
-
-// Inicializar al cargar la sección nutrición
-var _origRenderNut = window.renderNut;
-window.renderNut = function() {
-  if (_origRenderNut) _origRenderNut();
-  setTimeout(window.initNutOpts, 50);
-};
-</script>
 <script>
 // ── NUTRICIÓN PERSONALIZADA v3 ── Basada en UEFA/FIFA/evidencia científica
 var _nutPerfil = null;
@@ -1719,7 +1536,7 @@ window.renderPlanComidas = function(tipo) {
   cont.innerHTML = html;
 };
 
-window.renderNut = function() {
+window._renderNutCore = function() {
   // Cargar perfil guardado
   if (window._jugId) {
     var saved = localStorage.getItem('nut_perfil_v3_' + window._jugId);
@@ -1729,14 +1546,12 @@ window.renderNut = function() {
         document.getElementById('nut-perfil-card').style.display = 'none';
         document.getElementById('nut-plan-card').style.display = 'block';
         setDia('entreno', document.getElementById('dt-entreno'));
-        setTimeout(window.initNutOpts, 50);
         return;
       } catch(e) {}
     }
   }
   document.getElementById('nut-perfil-card').style.display = 'block';
   document.getElementById('nut-plan-card').style.display = 'none';
-  setTimeout(window.initNutOpts, 50);
 };
 
 // Análisis mejorado con perfil real
@@ -1810,562 +1625,8 @@ window.analizarNutricion = function() {
     nota;
 };
 </script>
-<script>
-// ── MACROS VISUALES + HISTORIAL NUTRICIÓN ──
-
-function calcularMacrosDia() {
-  var tLower = getNutLogTexto().toLowerCase();
-  if (!tLower) return null;
-
-  // Base de estimación por alimentos detectados (g de macro)
-  var ALIMENTOS = [
-    // [regex, prot, carb, gras, kcal]
-    [/avena|oat/,         8,  60,  4, 310],
-    [/leche/,             8,  12,  4, 110],
-    [/huevo/,             6,   0,  5,  70],
-    [/tostada|pan/,       3,  25,  1, 120],
-    [/arroz/,             3,  45,  0, 195],
-    [/pasta/,             5,  50,  1, 230],
-    [/patata/,            2,  35,  0, 150],
-    [/pollo|pechuga/,    30,   0,  3, 165],
-    [/pavo/,             28,   0,  2, 140],
-    [/carne/,            25,   0, 10, 190],
-    [/pescado|merluza/,  22,   0,  2, 110],
-    [/salmón/,           20,   0, 12, 190],
-    [/atún/,             25,   0,  1, 110],
-    [/huevo/,             6,   0,  5,  70],
-    [/legumbre|lenteja|garbanzo|judía/, 9, 20, 1, 130],
-    [/yogur/,             5,   7,  3,  70],
-    [/queso/,             7,   0,  9, 110],
-    [/fruta|manzana|naranja|pera/, 0, 15, 0,  60],
-    [/plátano/,           1,  23,  0, 100],
-    [/fruto.seco|nuez|almendra/, 4, 4, 14, 160],
-    [/ensalada|verdura|lechuga/, 1, 5, 0,  30],
-    [/aceite/,            0,   0, 14, 125],
-    [/bocadillo/,         8,  30,  5, 200],
-  ];
-
-  var prot = 0, carb = 0, gras = 0, kcal = 0;
-  ALIMENTOS.forEach(function(a) {
-    if (a[0].test(tLower)) {
-      prot += a[1]; carb += a[2]; gras += a[3]; kcal += a[4];
-    }
-  });
-
-  // Multiplicar por número de tomas detectadas
-  var nTomas = tLower.split('\n').filter(function(l){ return l.length > 8; }).length;
-  var factor = Math.max(1, nTomas / 3);
-
-  return {
-    prot: Math.round(prot),
-    carb: Math.round(carb),
-    gras: Math.round(gras),
-    kcal: Math.round(kcal),
-    agua: aguaVasos
-  };
-}
-
-function renderMacrosBarra(actual, objetivo, id) {
-  var cont = document.getElementById(id);
-  if (!cont || !actual) return;
-  var obj = objetivo || { kcal:2600, prot:110, carb:320, grasas:80 };
-  var html =
-    macroBarraConCantidad(actual.kcal, obj.kcal, 'Calorías', ' kcal', '#3fb950') +
-    macroBarraConCantidad(actual.prot, obj.prot, 'Proteína', 'g', '#a371f7') +
-    macroBarraConCantidad(actual.carb, obj.carb, 'Carbohidratos', 'g', '#d29922') +
-    macroBarraConCantidad(actual.gras, obj.grasas || 80, 'Grasas', 'g', '#58a6ff') +
-    macroBarraConCantidad(actual.agua * 250, 2000, 'Hidratación', 'ml', '#3fb950');
-  cont.innerHTML = html;
-}
-
-// ── GUARDADO NUTRICIÓN (sistema unificado) ──
-document.addEventListener('click', function(e) {
-  if (!e.target || e.target.id !== 'btn-save-nut') return;
-
-  var texto = window.getNutLogTexto ? window.getNutLogTexto() : '';
-  if (!texto || texto.trim().length < 5) {
-    showToastGlobal('Añade al menos un alimento antes de guardar');
-    return;
-  }
-
-  var jugId = window._jugId;
-  if (!jugId || !window.DB_REF) {
-    showToastGlobal('Sin conexión — inténtalo de nuevo');
-    return;
-  }
-
-  var macros = window._macrosActuales || {prot:0,carb:0,gras:0,kcal:0,agua:0};
-  var objetivo = _nutPerfil ? (_nutPerfil[_diaActual] || _nutPerfil.entreno) : null;
-
-  // Mostrar barras
-  if (macros.kcal > 0) {
-    var mr = document.getElementById('macro-resultado');
-    if (mr) mr.style.display = 'block';
-    renderMacrosBarra(macros, objetivo, 'macro-barras-dia');
-  }
-
-  var fechaHoy = new Date().toISOString().slice(0,10);
-
-  var textoCompleto = texto.trim();
-  textoCompleto += '\n---';
-  textoCompleto += '\nMACROS: ' + macros.kcal + 'kcal | Prot: ' + macros.prot + 'g | Carb: ' + macros.carb + 'g | Gras: ' + macros.gras + 'g | Agua: ' + (macros.agua||aguaVasos||0) + ' vasos';
-  textoCompleto += '\nOBJETIVO: ' + (objetivo ? objetivo.kcal + 'kcal | ' + objetivo.prot + 'g prot | ' + objetivo.carb + 'g carb' : 'Sin perfil');
-  textoCompleto += '\nTIPO_DIA: ' + (_diaActual || 'entreno');
-
-  // Borrar registro del día y reinsertar
-  window.DB_REF.from('nutricion_log')
-    .delete()
-    .eq('jugador_id', jugId)
-    .eq('fecha', fechaHoy)
-    .then(function() {
-      window.DB_REF.from('nutricion_log').insert({
-        jugador_id: jugId,
-        fecha: fechaHoy,
-        texto: textoCompleto
-      }).then(function(res) {
-        if (res.error) {
-          showToastGlobal('Error al guardar: ' + res.error.message);
-          console.error('Error guardando nutrición:', res.error);
-          return;
-        }
-
-        showToastGlobal('✓ Día guardado correctamente');
-
-        // Guardar resumen en calendario_semana
-        var notaNut = '🥗 ' + macros.kcal + ' kcal · Prot ' + macros.prot + 'g · Carb ' + macros.carb + 'g · Gras ' + macros.gras + 'g';
-        window.DB_REF.from('calendario_semana')
-          .select('id')
-          .eq('jugador_id', jugId)
-          .eq('fecha', fechaHoy)
-          .then(function(calRes) {
-            if (calRes.data && calRes.data.length > 0) {
-              window.DB_REF.from('calendario_semana')
-                .update({ notas: notaNut })
-                .eq('id', calRes.data[0].id)
-                .then(function(){});
-            } else {
-              window.DB_REF.from('calendario_semana').insert({
-                jugador_id: jugId,
-                fecha: fechaHoy,
-                tipo: _diaActual || 'entreno',
-                notas: notaNut
-              }).then(function(){});
-            }
-          });
-
-        // Recargar historial
-        setTimeout(window.loadNutHist, 200);
-      });
-    });
-});
 
 
-// Mejorar historial con macros visuales
-window.loadNutHist = function() {
-  var jugId = window._jugId;
-  if (!jugId || !window.DB_REF) return;
-  window.DB_REF.from('nutricion_log').select('*').eq('jugador_id', jugId).order('fecha', {ascending: false}).limit(10).then(function(res) {
-    var cont = document.getElementById('nut-hist');
-    if (!cont) return;
-    var data = res.data || [];
-    if (!data.length) { cont.innerHTML = '<div style="font-size:12px;color:var(--text3);">Sin registros todavía.</div>'; return; }
-
-    var html = '';
-    data.forEach(function(d) {
-      var fecha = new Date(d.fecha + 'T12:00:00').toLocaleDateString('es-ES', {weekday:'short', day:'numeric', month:'short'});
-      var lineas = d.texto.split('\n');
-      var comidas = lineas.filter(function(l) { return !l.startsWith('---') && !l.startsWith('MACRO') && !l.startsWith('OBJETIVO') && !l.startsWith('TIPO'); });
-      var macroLinea = lineas.find(function(l) { return l.startsWith('MACROS:'); });
-      var objLinea = lineas.find(function(l) { return l.startsWith('OBJETIVO:'); });
-      var tipoLinea = lineas.find(function(l) { return l.startsWith('TIPO_DIA:'); });
-      var tipo = tipoLinea ? tipoLinea.replace('TIPO_DIA:', '').trim() : 'entreno';
-      var tipoCfg = { partido: {c:'#58a6ff', l:'⚽ Partido'}, descanso: {c:'#484f58', l:'😴 Descanso'}, entreno: {c:'#3fb950', l:'💪 Entreno'} };
-      var tc = tipoCfg[tipo] || tipoCfg.entreno;
-
-      html += '<div style="background:var(--bg3);border-radius:var(--radius-sm);padding:.875rem;margin-bottom:8px;border:0.5px solid var(--border);">';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
-      html += '<div style="font-size:12px;font-weight:700;">' + fecha + '</div>';
-      html += '<span style="font-size:9px;padding:2px 8px;border-radius:99px;background:' + tc.c + '20;color:' + tc.c + ';font-weight:700;">' + tc.l + '</span>';
-      html += '</div>';
-
-      if (macroLinea) {
-        // Parsear macros del texto guardado
-        var parts = macroLinea.replace('MACROS:', '').trim().split('|');
-        var macrosParsed = {};
-        parts.forEach(function(p) {
-          var kv = p.trim().split(':');
-          if (kv.length === 2) macrosParsed[kv[0].trim()] = parseInt(kv[1]);
-        });
-        var objParts = objLinea ? objLinea.replace('OBJETIVO:', '').trim().split('|') : [];
-        var objParsed = {};
-        objParts.forEach(function(p) {
-          var kv = p.trim().split(':');
-          if (kv.length === 2) objParsed[kv[0].trim()] = parseInt(kv[1]);
-        });
-
-        var macroItems = [
-          { k: 'Prot', label: 'Proteína', unit: 'g', color_ok: '#a371f7' },
-          { k: 'Carb', label: 'Carbos', unit: 'g', color_ok: '#d29922' },
-        ];
-        macroItems.forEach(function(mi) {
-          var actual = macrosParsed[mi.k] || 0;
-          var obj = objParsed[mi.k + ' prot'] || objParsed[mi.k + ' carb'] || 0;
-          // Buscar objetivo de otra forma
-          if (!obj) obj = mi.k === 'Prot' ? 110 : 320;
-          var pct = Math.min(100, Math.round((actual / obj) * 100));
-          var color = pct >= 80 ? mi.color_ok : pct >= 50 ? '#d29922' : '#f85149';
-          var icono = pct >= 80 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
-          html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
-          html += '<span style="font-size:11px;color:var(--text2);width:60px;">' + icono + ' ' + mi.label + '</span>';
-          html += '<div style="flex:1;height:6px;background:var(--border2);border-radius:99px;overflow:hidden;">';
-          html += '<div style="width:' + pct + '%;height:6px;background:' + color + ';border-radius:99px;"></div></div>';
-          html += '<span style="font-size:10px;color:' + color + ';font-weight:700;width:50px;text-align:right;">' + actual + 'g</span>';
-          html += '</div>';
-        });
-        // kcal
-        var kcalActual = macrosParsed[''] || 0; // 'kcal' sin clave
-        var kcalStr = macroLinea.match(/(\d+)kcal/);
-        if (kcalStr) {
-          html += '<div style="font-size:10px;color:var(--text3);text-align:right;margin-top:2px;">' + kcalStr[1] + ' kcal · ' + (macrosParsed['Agua'] || 0) + ' vasos agua</div>';
-        }
-      } else {
-        // Sin macros calculados, mostrar texto simple
-        html += '<div style="font-size:11px;color:var(--text2);line-height:1.6;">' + comidas.slice(0,3).join('<br>') + '</div>';
-      }
-      html += '</div>';
-    });
-    cont.innerHTML = html;
-  });
-};
-
-// Mostrar macros en tiempo real al seleccionar comidas
-var _origToggleNutOpt = window.toggleNutOpt;
-window.toggleNutOpt = function(bloque, opt, btn) {
-  if (_origToggleNutOpt) _origToggleNutOpt(bloque, opt, btn);
-  // Actualizar preview de macros
-  var macros = calcularMacrosDia();
-  if (macros && _nutPerfil) {
-    document.getElementById('macro-resultado').style.display = 'block';
-    renderMacrosBarra(macros, _nutPerfil[_diaActual] || _nutPerfil.entreno, 'macro-barras-dia');
-  }
-};
-</script>
-<script>
-// ── ALIMENTOS LIBRES CON CÁLCULO DE MACROS ──
-
-// Base de datos ampliada de alimentos (por 100g o por porción estándar)
-var FOOD_DB = [
-  // [regex, g_tipicos, prot_x100g, carb_x100g, gras_x100g, kcal_x100g]
-  // Cereales y harinas
-  [/macarr[oó]n|pasta|espagueti|fideo|tallar[ií]n/i, 180, 5, 30, 1, 150],
-  [/arroz/i, 180, 2.7, 28, 0.3, 130],
-  [/pan\b/i, 60, 7, 50, 2, 250],
-  [/pan integral/i, 60, 8, 45, 2, 235],
-  [/tostada/i, 30, 7, 50, 2, 250],
-  [/avena|copos/i, 80, 13, 66, 7, 389],
-  [/cereal/i, 60, 7, 75, 3, 370],
-  [/galleta/i, 30, 6, 70, 15, 440],
-  // Proteínas animales
-  [/pollo|pechuga/i, 150, 23, 0, 3, 120],
-  [/pavo/i, 150, 22, 0, 1, 105],
-  [/ternera|carne picada|filete/i, 150, 21, 0, 8, 155],
-  [/cerdo|lomo/i, 150, 22, 0, 9, 165],
-  [/jamón\b/i, 60, 22, 0, 5, 130],
-  [/chorizo|salchich/i, 60, 13, 1, 35, 370],
-  [/merluza|bacalao|pescadilla/i, 150, 18, 0, 1, 80],
-  [/salmón/i, 150, 20, 0, 12, 190],
-  [/atún|bonito/i, 100, 25, 0, 1, 110],
-  [/sardina/i, 100, 21, 0, 9, 170],
-  [/gamba|marisco/i, 100, 18, 0, 1, 80],
-  [/huevo/i, 60, 13, 0, 11, 155],
-  // Lácteos
-  [/leche\b/i, 250, 3.2, 4.8, 3.5, 65],
-  [/yogur/i, 125, 4, 6, 3, 65],
-  [/queso fresco/i, 80, 11, 3, 8, 130],
-  [/queso\b/i, 40, 25, 0, 30, 370],
-  // Legumbres
-  [/lenteja/i, 200, 9, 20, 0.5, 116],
-  [/garbanzo/i, 200, 9, 27, 3, 164],
-  [/jud[ií]a|alubia/i, 200, 8, 22, 0.5, 127],
-  [/guisante/i, 150, 6, 14, 0.5, 81],
-  [/tofu/i, 150, 8, 1, 4, 70],
-  // Verduras
-  [/tomate/i, 150, 0.9, 3.5, 0.2, 18],
-  [/lechuga|espinaca|acelga/i, 100, 2, 3, 0.3, 23],
-  [/zanahoria/i, 100, 0.9, 10, 0.2, 41],
-  [/brócoli/i, 150, 3, 7, 0.4, 34],
-  [/patata\b/i, 200, 2, 17, 0.1, 77],
-  [/boniato|camote/i, 150, 1.6, 20, 0.1, 86],
-  // Frutas
-  [/plátano/i, 120, 1.1, 23, 0.3, 89],
-  [/manzana/i, 150, 0.3, 14, 0.2, 52],
-  [/naranja/i, 180, 0.9, 12, 0.1, 47],
-  [/pera/i, 150, 0.4, 12, 0.1, 50],
-  [/uva/i, 150, 0.6, 18, 0.4, 69],
-  [/mango/i, 150, 0.8, 15, 0.4, 60],
-  [/fresas/i, 150, 0.7, 8, 0.3, 32],
-  [/kiwi/i, 100, 1, 15, 0.5, 61],
-  // Frutos secos
-  [/almendra/i, 30, 21, 20, 50, 580],
-  [/nuez/i, 30, 15, 14, 65, 654],
-  [/cacahuete/i, 30, 26, 16, 49, 567],
-  [/anacardo/i, 30, 18, 30, 44, 553],
-  // Grasas y salsas
-  [/aceite/i, 15, 0, 0, 100, 900],
-  [/mantequilla/i, 15, 0.7, 0, 82, 740],
-  [/aguacate/i, 100, 2, 9, 15, 160],
-  [/mayonesa/i, 20, 1, 3, 75, 680],
-  // Dulces / snacks
-  [/chocolate/i, 40, 5, 55, 30, 535],
-  [/barrita.energ/i, 40, 5, 30, 5, 185],
-  [/gel.energ/i, 30, 0, 22, 0, 88],
-  // Bebidas
-  [/leche\s*cacao|batido/i, 250, 4, 15, 3, 100],
-  [/zumo/i, 200, 0.7, 10, 0.2, 45],
-  [/bebida.iso|isotónico/i, 500, 0, 30, 0, 120],
-  // Platos preparados
-  [/bocadillo/i, 200, 15, 35, 8, 270],
-  [/pizza/i, 200, 11, 30, 8, 240],
-  [/hamburguesa/i, 150, 17, 25, 12, 275],
-  [/ensalada\b/i, 200, 3, 8, 5, 85],
-  [/sopa\b|crema\b/i, 300, 3, 10, 2, 70],
-  [/tortilla\b/i, 150, 12, 3, 12, 170],
-];
-
-// Parsear cantidad del texto escrito
-function parsearCantidad(texto) {
-  // Buscar gramos: "180g", "180 g", "180gr", "180 gramos"
-  var gMatch = texto.match(/(\d+\.?\d*)\s*(?:g|gr|gramos)/i);
-  if (gMatch) return { cantidad: parseFloat(gMatch[1]), tipo: 'g' };
-
-  // Buscar ml: "200ml", "200 ml"
-  var mlMatch = texto.match(/(\d+\.?\d*)\s*(?:ml|mililitros)/i);
-  if (mlMatch) return { cantidad: parseFloat(mlMatch[1]), tipo: 'ml' };
-
-  // Buscar unidades: "2 huevos", "3 tostadas"
-  var uMatch = texto.match(/(\d+)\s*(?:unidad|pieza|trozo|loncha|rebanada|vaso|taza)/i);
-  if (uMatch) return { cantidad: parseFloat(uMatch[1]), tipo: 'u' };
-
-  // Buscar "plato de", "bol de", "puñado de"
-  var platoMatch = texto.match(/(?:plato|bol|cuenco)\s+(?:grande|mediano|pequeño)?\s*de/i);
-  if (platoMatch) return { cantidad: 1, tipo: 'plato' };
-
-  var pugnadoMatch = texto.match(/puñado/i);
-  if (pugnadoMatch) return { cantidad: 30, tipo: 'g' };
-
-  return null;
-}
-
-function calcularMacrosAlimento(texto) {
-  var txtLower = texto.toLowerCase();
-  var match = null;
-
-  for (var i = 0; i < FOOD_DB.length; i++) {
-    if (FOOD_DB[i][0].test(txtLower)) {
-      match = FOOD_DB[i];
-      break;
-    }
-  }
-
-  if (!match) return null;
-
-  var ref_g_tipicos = match[1];
-  var prot_x100 = match[2];
-  var carb_x100 = match[3];
-  var gras_x100 = match[4];
-  var kcal_x100 = match[5];
-
-  var cantParsed = parsearCantidad(texto);
-  var g_reales;
-
-  if (cantParsed) {
-    if (cantParsed.tipo === 'g' || cantParsed.tipo === 'ml') {
-      g_reales = cantParsed.cantidad;
-    } else if (cantParsed.tipo === 'u') {
-      g_reales = ref_g_tipicos * cantParsed.cantidad;
-    } else {
-      g_reales = ref_g_tipicos; // plato = porción estándar
-    }
-  } else {
-    g_reales = ref_g_tipicos; // sin cantidad = porción estándar
-  }
-
-  return {
-    nombre: texto.trim(),
-    g: Math.round(g_reales),
-    prot: Math.round((prot_x100 * g_reales) / 100),
-    carb: Math.round((carb_x100 * g_reales) / 100),
-    gras: Math.round((gras_x100 * g_reales) / 100),
-    kcal: Math.round((kcal_x100 * g_reales) / 100),
-  };
-}
-
-// Almacén de alimentos libres añadidos
-var _alimentosLibres = {};
-
-window.initNutExtras = function() {
-  ['desayuno','manana','comida','preentreno','merienda','cena'].forEach(function(bloque) {
-    var input = document.getElementById('extra-' + bloque);
-    if (!input || input._nutListenerAdded) return;
-    input._nutListenerAdded = true;
-
-    var _enterPressed = false;
-
-    // Enter para añadir
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        _enterPressed = true;
-        var txt = input.value.trim();
-        if (txt) {
-          procesarAlimentoLibre(bloque, txt);
-          input.value = '';
-        }
-        setTimeout(function() { _enterPressed = false; }, 100);
-      }
-    });
-
-    // Blur solo si no fue por Enter
-    input.addEventListener('blur', function() {
-      if (!_enterPressed && input.value.trim()) {
-        procesarAlimentoLibre(bloque, input.value.trim());
-        input.value = '';
-      }
-    });
-  });
-};
-
-function procesarAlimentoLibre(bloque, texto) {
-  if (!texto) return;
-  var macros = calcularMacrosAlimento(texto);
-  if (!macros) {
-    // No encontrado — guardar igual sin macros
-    if (!_alimentosLibres[bloque]) _alimentosLibres[bloque] = [];
-    _alimentosLibres[bloque].push({ nombre: texto, prot: 0, carb: 0, gras: 0, kcal: 0 });
-    showMiniToast(bloque, '✓ "' + texto + '" añadido');
-  } else {
-    if (!_alimentosLibres[bloque]) _alimentosLibres[bloque] = [];
-    _alimentosLibres[bloque].push(macros);
-    showMiniToast(bloque, '✓ ' + macros.kcal + 'kcal · ' + macros.prot + 'g prot · ' + macros.carb + 'g carb');
-  }
-
-  // Actualizar log visual del bloque
-  updateLogBloqueConExtras(bloque);
-
-  // Actualizar macros en tiempo real
-  actualizarMacrosTiempoReal();
-}
-
-function showMiniToast(bloque, msg) {
-  var form = document.getElementById('nc-' + bloque + '-form');
-  if (!form) return;
-  var t = document.createElement('div');
-  t.textContent = msg;
-  t.style.cssText = 'font-size:11px;color:#1D9E75;padding:4px 8px;background:rgba(29,158,117,0.1);border-radius:6px;margin-top:4px;transition:opacity .3s;';
-  form.appendChild(t);
-  setTimeout(function() { t.style.opacity = '0'; setTimeout(function(){ t.remove(); }, 300); }, 2000);
-}
-
-function updateLogBloqueConExtras(bloque) {
-  var log = document.getElementById('log-' + bloque);
-  if (!log) return;
-  var seleccionados = nutSeleccionados[bloque] ? nutSeleccionados[bloque].slice() : [];
-  var libres = (_alimentosLibres[bloque] || []).map(function(a) { return a.nombre; });
-  var todos = seleccionados.concat(libres);
-
-  if (!todos.length) { log.innerHTML = ''; return; }
-  log.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">' +
-    todos.map(function(i) {
-      return '<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(29,158,117,0.12);color:#1D9E75;border:0.5px solid rgba(29,158,117,0.2);">' + i + '</span>';
-    }).join('') + '</div>';
-}
-
-function actualizarMacrosTiempoReal() {
-  // Sumar macros de seleccionados + libres
-  var totalProt = 0, totalCarb = 0, totalGras = 0, totalKcal = 0;
-
-  // De seleccionados (estimación por alimento)
-  Object.keys(nutSeleccionados).forEach(function(bloque) {
-    nutSeleccionados[bloque].forEach(function(opt) {
-      var m = calcularMacrosAlimento(opt);
-      if (m) {
-        totalProt += m.prot; totalCarb += m.carb;
-        totalGras += m.gras; totalKcal += m.kcal;
-      }
-    });
-  });
-
-  // De libres (con cálculo exacto)
-  Object.keys(_alimentosLibres).forEach(function(bloque) {
-    (_alimentosLibres[bloque] || []).forEach(function(a) {
-      totalProt += a.prot; totalCarb += a.carb;
-      totalGras += a.gras; totalKcal += a.kcal;
-    });
-  });
-
-  // Añadir agua
-  var actualMacros = {
-    prot: Math.round(totalProt),
-    carb: Math.round(totalCarb),
-    gras: Math.round(totalGras),
-    kcal: Math.round(totalKcal),
-    agua: aguaVasos
-  };
-
-  if (totalKcal > 0 || totalProt > 0) {
-    document.getElementById('macro-resultado').style.display = 'block';
-    var objetivo = _nutPerfil ? (_nutPerfil[_diaActual] || _nutPerfil.entreno) : null;
-    renderMacrosBarra(actualMacros, objetivo, 'macro-barras-dia');
-  }
-
-  window._macrosActuales = actualMacros;
-}
-
-// Sobreescribir getNutLogTexto para incluir libres
-var _origGetNutLog = window.getNutLogTexto;
-window.getNutLogTexto = function() {
-  var partes = [];
-  var nombres = {desayuno:'Desayuno',manana:'Media mañana',comida:'Comida',preentreno:'Pre-entreno',merienda:'Merienda/Post-entreno',cena:'Cena'};
-  Object.keys(nutSeleccionados).forEach(function(bloque) {
-    var extra = document.getElementById('extra-' + bloque);
-    var items = nutSeleccionados[bloque].slice();
-    var libres = (_alimentosLibres[bloque] || []).map(function(a) { return a.nombre; });
-    var todos = items.concat(libres);
-    if (extra && extra.value.trim() && libres.indexOf(extra.value.trim()) === -1) todos.push(extra.value.trim());
-    if (todos.length) partes.push(nombres[bloque] + ': ' + todos.join(', '));
-  });
-  if (aguaVasos > 0) partes.push('Agua: ' + aguaVasos + ' vasos');
-  return partes.join('\n');
-};
-
-// Sobreescribir calcularMacrosDia para usar los macros ya calculados
-var _origCalcMacros = window.calcularMacrosDia;
-window.calcularMacrosDia = function() {
-  if (window._macrosActuales && window._macrosActuales.kcal > 0) {
-    return window._macrosActuales;
-  }
-  return _origCalcMacros ? _origCalcMacros() : null;
-};
-
-// Inicializar extras cuando se abren los bloques
-// También inicializar al cargar nutrición
-var _origRenderNutV3 = window.renderNut;
-window.renderNut = function() {
-  _alimentosLibres = {};
-  window._macrosActuales = null;
-  if (_origRenderNutV3) _origRenderNutV3();
-  setTimeout(window.initNutOpts, 200);
-  // Cargar historial siempre al abrir nutrición
-  setTimeout(window.loadNutHist, 300);
-};
-
-// Actualizar macros también al pulsar agua
-var _origSetAgua = window.setAgua;
-window.setAgua = function(n) {
-  if (_origSetAgua) _origSetAgua(n);
-  actualizarMacrosTiempoReal();
-};
-</script>
 <script>
 // ── BOTÓN ATRÁS EN TODAS LAS SECCIONES ──
 window.addEventListener('load', function() {
@@ -2691,12 +1952,19 @@ window.setAgua = function(n) {
 
 var _prevRenderNutFinal = window.renderNut;
 window.renderNut = function() {
+  // Reset estado
   _alimentosLog = {};
-  _foodCache = {};
+  if (typeof _foodCache !== 'undefined') _foodCache = {};
   window._macrosActuales = null;
-  if (_prevRenderNutFinal) _prevRenderNutFinal();
-  setTimeout(window.initNutOpts, 100);
-  setTimeout(window.loadNutHist, 400);
+  // Cargar perfil y mostrar sección correcta
+  if (window._renderNutCore) window._renderNutCore();
+  // Inicializar inputs y cargar historial
+  setTimeout(function() {
+    if (window.initNutOpts) window.initNutOpts();
+  }, 100);
+  setTimeout(function() {
+    if (window.loadNutHist) window.loadNutHist();
+  }, 400);
 };
 
 var _prevToggleBlockFinal = window.toggleNutBlock;
@@ -2730,6 +1998,130 @@ document.addEventListener('click', function(e) {
     document.querySelectorAll('[id^="ac-drop-"]').forEach(function(d){ d.style.display='none'; });
   }
 });
+
+// ── GUARDAR DÍA DE NUTRICIÓN ──
+document.addEventListener('click', function(e) {
+  if (!e.target || e.target.id !== 'btn-save-nut') return;
+
+  var texto = window.getNutLogTexto ? window.getNutLogTexto() : '';
+  if (!texto || texto.trim().length < 5) {
+    showToastGlobal('Añade al menos un alimento antes de guardar');
+    return;
+  }
+
+  var jugId = window._jugId;
+  if (!jugId || !window.DB_REF) {
+    showToastGlobal('Sin conexión — inténtalo de nuevo');
+    return;
+  }
+
+  var macros = window._macrosActuales || {prot:0,carb:0,gras:0,kcal:0,agua:0};
+  var objetivo = typeof _nutPerfil !== 'undefined' ? (_nutPerfil ? (_nutPerfil[_diaActual||'entreno'] || _nutPerfil.entreno) : null) : null;
+
+  // Mostrar barras si hay macros
+  if (macros.kcal > 0 || macros.prot > 0) {
+    var mr = document.getElementById('macro-resultado');
+    if (mr) mr.style.display = 'block';
+    if (window.renderMacrosBarra) renderMacrosBarra(macros, objetivo, 'macro-barras-dia');
+  }
+
+  var fechaHoy = new Date().toISOString().slice(0,10);
+  var textoCompleto = texto;
+
+  // Añadir macros al texto
+  textoCompleto += '\n---\nMACROS: ' + macros.kcal + 'kcal | Prot: ' + macros.prot + 'g | Carb: ' + macros.carb + 'g | Gras: ' + macros.gras + 'g | Agua: ' + (macros.agua||0) + ' vasos';
+  textoCompleto += '\nOBJETIVO: ' + (objetivo ? objetivo.kcal + 'kcal | ' + objetivo.prot + 'g prot | ' + objetivo.carb + 'g carb' : 'Sin perfil');
+  textoCompleto += '\nTIPO_DIA: ' + (typeof _diaActual !== 'undefined' ? _diaActual : 'entreno');
+
+  // Borrar y reinsertar
+  window.DB_REF.from('nutricion_log')
+    .delete()
+    .eq('jugador_id', jugId)
+    .eq('fecha', fechaHoy)
+    .then(function() {
+      window.DB_REF.from('nutricion_log').insert({
+        jugador_id: jugId,
+        fecha: fechaHoy,
+        texto: textoCompleto
+      }).then(function(res) {
+        if (res.error) {
+          showToastGlobal('Error al guardar: ' + res.error.message);
+          return;
+        }
+        showToastGlobal('✓ Día guardado');
+
+        // Guardar en calendario_semana
+        var notaNut = '🥗 ' + macros.kcal + ' kcal · Prot ' + macros.prot + 'g · Carb ' + macros.carb + 'g';
+        window.DB_REF.from('calendario_semana')
+          .select('id').eq('jugador_id', jugId).eq('fecha', fechaHoy)
+          .then(function(calRes) {
+            if (calRes.data && calRes.data.length > 0) {
+              window.DB_REF.from('calendario_semana').update({notas: notaNut}).eq('id', calRes.data[0].id).then(function(){});
+            } else {
+              window.DB_REF.from('calendario_semana').insert({
+                jugador_id: jugId, fecha: fechaHoy,
+                tipo: typeof _diaActual !== 'undefined' ? _diaActual : 'entreno',
+                notas: notaNut
+              }).then(function(){});
+            }
+          });
+
+        setTimeout(function() { if (window.loadNutHist) window.loadNutHist(); }, 300);
+      });
+    });
+});
+
+// ── CARGAR HISTORIAL NUTRICIÓN ──
+window.loadNutHist = function() {
+  var jugId = window._jugId;
+  if (!jugId || !window.DB_REF) return;
+  window.DB_REF.from('nutricion_log').select('*').eq('jugador_id', jugId).order('fecha',{ascending:false}).limit(10).then(function(res) {
+    var cont = document.getElementById('nut-hist');
+    if (!cont) return;
+    var data = res.data || [];
+    if (!data.length) { cont.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:.5rem;">Sin registros todavía. Añade alimentos y guarda el día.</div>'; return; }
+    var html = '';
+    data.forEach(function(d) {
+      var fecha = new Date(d.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
+      var lineas = (d.texto||'').split('\n');
+      var comidas = lineas.filter(function(l){ return l.length > 5 && !l.startsWith('---') && !l.startsWith('MACRO') && !l.startsWith('OBJETIVO') && !l.startsWith('TIPO'); });
+      var macroLinea = lineas.find(function(l){ return l.startsWith('MACROS:'); });
+      var tipoLinea = lineas.find(function(l){ return l.startsWith('TIPO_DIA:'); });
+      var tipo = tipoLinea ? tipoLinea.replace('TIPO_DIA:','').trim() : 'entreno';
+      var tcc = {partido:{c:'#58a6ff',l:'⚽ Partido'},descanso:{c:'#484f58',l:'😴 Descanso'},entreno:{c:'#3fb950',l:'💪 Entreno'}};
+      var tc = tcc[tipo] || tcc.entreno;
+
+      html += '<div style="background:var(--bg3);border-radius:var(--radius-sm);padding:.875rem;margin-bottom:8px;border:0.5px solid var(--border);">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
+      html += '<div style="font-size:12px;font-weight:700;">' + fecha + '</div>';
+      html += '<span style="font-size:9px;padding:2px 8px;border-radius:99px;background:'+tc.c+'20;color:'+tc.c+';font-weight:700;">' + tc.l + '</span>';
+      html += '</div>';
+
+      if (macroLinea) {
+        var kcalM = macroLinea.match(/(\d+)kcal/);
+        var protM = macroLinea.match(/Prot:\s*(\d+)/);
+        var carbM = macroLinea.match(/Carb:\s*(\d+)/);
+        var aguaM = macroLinea.match(/Agua:\s*(\d+)/);
+        html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;">';
+        if (kcalM) html += '<span style="background:rgba(210,153,34,0.12);color:#d29922;padding:2px 8px;border-radius:99px;font-size:10px;">' + kcalM[1] + ' kcal</span>';
+
+        if (protM) {
+          var pctP = 80; // simplificado
+          html += '<span style="background:rgba(163,113,247,0.12);color:#a371f7;padding:2px 8px;border-radius:99px;font-size:10px;">' + protM[1] + 'g prot</span>';
+        }
+        if (carbM) html += '<span style="background:rgba(88,166,255,0.12);color:#58a6ff;padding:2px 8px;border-radius:99px;font-size:10px;">' + carbM[1] + 'g carb</span>';
+        if (aguaM) html += '<span style="background:rgba(63,185,80,0.12);color:#3fb950;padding:2px 8px;border-radius:99px;font-size:10px;">💧' + aguaM[1] + ' vasos</span>';
+        html += '</div>';
+      }
+
+      if (comidas.length) {
+        html += '<div style="font-size:11px;color:var(--text2);line-height:1.6;">' + comidas.slice(0,3).join('<br>') + '</div>';
+      }
+      html += '</div>';
+    });
+    cont.innerHTML = html;
+  });
+};
 </script>
 <style>
 .ac-wrap { position: relative; }
