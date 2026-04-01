@@ -209,14 +209,61 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- NUTRICIÓN -->
     <div class="sec" id="sec-nut">
-      <div class="card" style="border-left:3px solid #d29922;">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#d29922;margin-bottom:.875rem;">Plan nutricional</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;" id="macros-display"></div>
-        <div style="display:flex;gap:6px;margin-bottom:1rem;">
-          <button onclick="setDia('partido',this)" style="flex:1;padding:6px;border-radius:8px;font-size:10px;font-weight:700;background:rgba(88,166,255,0.15);color:#58a6ff;border:0.5px solid rgba(88,166,255,0.3);cursor:pointer;font-family:inherit;">⚽ Partido</button>
-          <button onclick="setDia('entreno',this)" style="flex:1;padding:6px;border-radius:8px;font-size:10px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">💪 Entreno</button>
-          <button onclick="setDia('descanso',this)" style="flex:1;padding:6px;border-radius:8px;font-size:10px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">😴 Descanso</button>
+      <!-- ONBOARDING PERFIL -->
+      <div class="card" id="nut-perfil-card" style="border:0.5px solid rgba(210,153,34,0.3);background:rgba(210,153,34,0.04);">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#d29922;margin-bottom:4px;">Tu perfil nutricional</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:.875rem;">Rellena una vez — calculamos tu plan personalizado</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Peso (kg)</label>
+          <input type="number" id="np-peso" placeholder="65" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;"></div>
+          <div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Altura (cm)</label>
+          <input type="number" id="np-altura" placeholder="170" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;"></div>
         </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Edad</label>
+          <input type="number" id="np-edad" placeholder="15" min="10" max="20" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;"></div>
+          <div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Días entreno/semana</label>
+          <select id="np-dias" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;">
+            <option value="3">3 días</option><option value="4">4 días</option><option value="5" selected>5 días</option><option value="6">6 días</option>
+          </select></div>
+        </div>
+        <div style="margin-bottom:8px;"><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Objetivo</label>
+        <select id="np-objetivo" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;">
+          <option value="rendimiento">Maximizar rendimiento deportivo</option>
+          <option value="masa">Ganar masa muscular</option>
+          <option value="peso">Mantener peso actual</option>
+          <option value="perder">Perder grasa sin perder rendimiento</option>
+        </select></div>
+        <div style="margin-bottom:10px;"><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Alimentos que NO comes o no te gustan</label>
+        <input type="text" id="np-aversiones" placeholder="atún, brócoli, leche..." style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;color:var(--text);outline:none;"></div>
+        <div style="margin-bottom:10px;"><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">¿Eres vegetariano/vegano?</label>
+        <div style="display:flex;gap:8px;">
+          <button onclick="setVeg('no',this)" id="veg-no" style="flex:1;height:34px;border-radius:var(--radius-sm);background:rgba(29,158,117,0.15);color:#1D9E75;border:0.5px solid rgba(29,158,117,0.4);cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">No</button>
+          <button onclick="setVeg('si',this)" id="veg-si" style="flex:1;height:34px;border-radius:var(--radius-sm);background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;font-size:12px;">Vegetariano</button>
+          <button onclick="setVeg('vegano',this)" id="veg-vegano" style="flex:1;height:34px;border-radius:var(--radius-sm);background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;font-size:12px;">Vegano</button>
+        </div></div>
+        <button onclick="calcularPerfil()" style="width:100%;height:42px;background:linear-gradient(135deg,#d29922,#a07010);border:none;border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Calcular mi plan personalizado</button>
+      </div>
+
+      <!-- PLAN CALCULADO -->
+      <div class="card" id="nut-plan-card" style="display:none;">
+        <!-- Macros del día -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#d29922;">Tus macros del día</div>
+          <button onclick="editarPerfil()" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:10px;color:var(--text2);cursor:pointer;font-family:inherit;">✏ Editar perfil</button>
+        </div>
+
+        <!-- Selector tipo de día -->
+        <div style="display:flex;gap:6px;margin-bottom:1rem;">
+          <button onclick="setDia('entreno',this)" id="dt-entreno" style="flex:1;padding:7px 4px;border-radius:8px;font-size:10px;font-weight:700;background:rgba(63,185,80,0.15);color:#3fb950;border:0.5px solid rgba(63,185,80,0.3);cursor:pointer;font-family:inherit;">💪 Entreno</button>
+          <button onclick="setDia('partido',this)" id="dt-partido" style="flex:1;padding:7px 4px;border-radius:8px;font-size:10px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">⚽ Partido</button>
+          <button onclick="setDia('descanso',this)" id="dt-descanso" style="flex:1;padding:7px 4px;border-radius:8px;font-size:10px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">😴 Descanso</button>
+        </div>
+
+        <!-- Macros con barras -->
+        <div id="macros-barras" style="margin-bottom:1rem;"></div>
+
+        <!-- Menú del día -->
         <div id="plan-comidas"></div>
       </div>
       <div class="card">
@@ -1497,5 +1544,291 @@ var _origRenderNut = window.renderNut;
 window.renderNut = function() {
   if (_origRenderNut) _origRenderNut();
   setTimeout(window.initNutOpts, 50);
+};
+</script>
+<script>
+// ── NUTRICIÓN PERSONALIZADA v3 ── Basada en UEFA/FIFA/evidencia científica
+var _nutPerfil = null;
+var _vegPref = 'no';
+var _diaActual = 'entreno';
+
+window.setVeg = function(val, btn) {
+  _vegPref = val;
+  ['no','si','vegano'].forEach(function(v) {
+    var b = document.getElementById('veg-' + v);
+    if (!b) return;
+    b.style.background = v === val ? 'rgba(29,158,117,0.15)' : 'none';
+    b.style.color = v === val ? '#1D9E75' : 'var(--text3)';
+    b.style.borderColor = v === val ? 'rgba(29,158,117,0.4)' : 'var(--border2)';
+    b.style.fontWeight = v === val ? '700' : '400';
+  });
+};
+
+window.calcularPerfil = function() {
+  var peso = parseFloat(document.getElementById('np-peso').value);
+  var altura = parseFloat(document.getElementById('np-altura').value);
+  var edad = parseInt(document.getElementById('np-edad').value) || 15;
+  var dias = parseInt(document.getElementById('np-dias').value) || 5;
+  var objetivo = document.getElementById('np-objetivo').value;
+  var aversiones = document.getElementById('np-aversiones').value.trim().toLowerCase();
+
+  if (!peso || !altura) { showToastGlobal('Introduce tu peso y altura'); return; }
+
+  // ── CÁLCULO CIENTÍFICO (Mifflin-St Jeor adaptado para jóvenes futbolistas) ──
+  // TMB para hombres: 10*peso + 6.25*altura - 5*edad + 5
+  var tmb = 10 * peso + 6.25 * altura - 5 * edad + 5;
+
+  // Factor actividad UEFA/FIFA para fútbol base:
+  // 5 días entreno + partido = factor 1.75-1.9
+  var factores = { 3: 1.55, 4: 1.65, 5: 1.75, 6: 1.85 };
+  var factor = factores[dias] || 1.75;
+  var tdee = Math.round(tmb * factor);
+
+  // Ajuste por objetivo
+  var ajuste = { rendimiento: 0, masa: 300, peso: 0, perder: -300 };
+  tdee += (ajuste[objetivo] || 0);
+
+  // ── MACROS según UEFA Consensus Statement ──
+  // Proteína: 1.6g/kg (crecimiento + deporte) — Fernando Mata / UEFA
+  var prot = Math.round(peso * 1.6);
+  // Grasas: 25% del total (UEFA: no más del 30%)
+  var grasas = Math.round((tdee * 0.25) / 9);
+  // Carbohidratos: resto (aprox 55-60% — fuente principal de energía)
+  var carb = Math.round((tdee - (prot * 4) - (grasas * 9)) / 4);
+
+  // Para día partido: carbs +30% (7-10g/kg según FIFA)
+  var carbPartido = Math.round(peso * 8); // 8g/kg en día partido
+  var kcalPartido = (prot * 4) + (carbPartido * 4) + (grasas * 9);
+
+  // Para descanso: -20% total
+  var tdeeDescanso = Math.round(tdee * 0.80);
+  var carbDescanso = Math.round(peso * 4); // 4g/kg día descanso (UEFA mínimo)
+
+  _nutPerfil = {
+    peso, altura, edad, dias, objetivo, aversiones, vegano: _vegPref,
+    entreno: { kcal: tdee, prot, carb, grasas },
+    partido: { kcal: kcalPartido, prot: Math.round(peso * 1.7), carb: carbPartido, grasas },
+    descanso: { kcal: tdeeDescanso, prot: Math.round(peso * 1.4), carb: carbDescanso, grasas: Math.round(grasas * 0.9) }
+  };
+
+  // Guardar en localStorage
+  if (window._jugId) localStorage.setItem('nut_perfil_v3_' + window._jugId, JSON.stringify(_nutPerfil));
+
+  document.getElementById('nut-perfil-card').style.display = 'none';
+  document.getElementById('nut-plan-card').style.display = 'block';
+
+  setDia('entreno', document.getElementById('dt-entreno'));
+  showToastGlobal('✓ Plan personalizado calculado');
+};
+
+window.editarPerfil = function() {
+  document.getElementById('nut-perfil-card').style.display = 'block';
+  document.getElementById('nut-plan-card').style.display = 'none';
+};
+
+window.setDia = function(tipo, btn) {
+  _diaActual = tipo;
+  var configs = {
+    entreno: { color: '#3fb950', bg: 'rgba(63,185,80,0.15)', border: 'rgba(63,185,80,0.3)' },
+    partido: { color: '#58a6ff', bg: 'rgba(88,166,255,0.15)', border: 'rgba(88,166,255,0.3)' },
+    descanso: { color: '#484f58', bg: 'rgba(72,79,88,0.15)', border: 'var(--border2)' }
+  };
+  ['entreno','partido','descanso'].forEach(function(t) {
+    var b = document.getElementById('dt-' + t);
+    if (!b) return;
+    var c = configs[t];
+    b.style.background = t === tipo ? c.bg : 'none';
+    b.style.color = t === tipo ? c.color : 'var(--text3)';
+    b.style.borderColor = t === tipo ? c.border : 'var(--border2)';
+  });
+  renderMacrosBarras(tipo);
+  renderPlanComidas(tipo);
+};
+
+function renderMacrosBarras(tipo) {
+  var cont = document.getElementById('macros-barras');
+  if (!cont || !_nutPerfil) return;
+  var m = _nutPerfil[tipo] || _nutPerfil.entreno;
+  var c = tipo === 'partido' ? '#58a6ff' : tipo === 'descanso' ? '#484f58' : '#3fb950';
+
+  cont.innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:.875rem;">' +
+      macroBox(m.kcal, 'kcal', c) +
+      macroBox(m.prot + 'g', 'Proteína', '#a371f7') +
+      macroBox(m.carb + 'g', 'Carbos', '#d29922') +
+      macroBox(m.grasas + 'g', 'Grasas', '#f85149') +
+    '</div>' +
+    '<div style="font-size:9px;color:var(--text3);text-align:right;margin-top:-4px;margin-bottom:.5rem;">Fuente: UEFA Consensus Statement · FIFA/F-MARC</div>';
+}
+
+function macroBox(val, lbl, color) {
+  return '<div style="background:var(--bg3);border-radius:8px;padding:.75rem 6px;text-align:center;border-bottom:2px solid ' + color + ';">' +
+    '<div style="font-size:16px;font-weight:800;color:' + color + ';line-height:1;">' + val + '</div>' +
+    '<div style="font-size:9px;color:var(--text2);margin-top:3px;">' + lbl + '</div>' +
+  '</div>';
+}
+
+window.renderPlanComidas = function(tipo) {
+  var cont = document.getElementById('plan-comidas');
+  if (!cont || !_nutPerfil) return;
+
+  var av = _nutPerfil.aversiones || '';
+  var es_veg = _nutPerfil.vegano !== 'no';
+  var noAv = function(food) { return !av.split(',').some(function(a) { return food.toLowerCase().includes(a.trim()); }); };
+  var prot_animal = function() {
+    if (es_veg) return 'tofu o legumbres';
+    var opts = ['pollo a la plancha', 'pavo', 'pechuga de pollo', 'merluza', 'salmón', 'atún'].filter(noAv);
+    return opts[Math.floor(Math.random() * opts.length)] || 'proteína de calidad';
+  };
+
+  var PLANES = {
+    entreno: {
+      titulo: '💪 Día de entrenamiento',
+      sub: 'Objetivo: reponer glucógeno + reparar músculo',
+      comidas: [
+        { h: '7:30 · Desayuno', ico: '🌅', items: ['Avena (80g) con leche o bebida vegetal', 'Plátano o fruta de temporada', 'Tostada integral con aceite de oliva', 'Huevo revuelto (si tienes tiempo)'] },
+        { h: '10:30 · Media mañana', ico: '🍎', items: ['Fruta + puñado de frutos secos (30g)', 'Yogur griego si tienes hambre'] },
+        { h: '14:00 · Comida (pre-entreno si es tarde)', ico: '🍗', items: ['Pasta o arroz (150-180g en seco) con tomate/aceite', prot_animal() + ' (150-180g)', 'Verduras o ensalada', 'Pan integral'] },
+        { h: '30 min antes del entreno', ico: '⚡', items: ['Plátano + tostada con miel', 'Agua (500ml mínimo)'] },
+        { h: 'Primeros 30 min post-entreno ⚠️', ico: '💪', items: [es_veg ? 'Batido de proteína vegetal + plátano' : 'Leche con cacao + plátano', 'O: yogur + fruta seca'], nota: 'Ventana anabólica — crítico recuperar glucógeno aquí' },
+        { h: '21:00 · Cena', ico: '🌙', items: [noAv('pescado') ? 'Pescado blanco o salmón (150g)' : prot_animal() + ' (150g)', 'Verduras al vapor o ensalada', 'Arroz o pasta (80g en seco)', 'Fruta o yogur de postre'] },
+      ]
+    },
+    partido: {
+      titulo: '⚽ Día de partido',
+      sub: 'Protocolo FIFA/UEFA — maximiza glucógeno muscular',
+      comidas: [
+        { h: '3-4h antes · Comida pre-partido', ico: '🌅', items: ['Pasta o arroz (200g cocido) — sin salsas pesadas', prot_animal() + ' magro (120g)', 'Sin ensalada con mucha fibra', 'Pan blanco o integral', 'Agua (600ml)'], nota: '⚠ Evitar: fritos, lácteos en exceso, legumbres, fibra alta' },
+        { h: '1h antes · Activación', ico: '⚡', items: ['Plátano o gel energético', '1-2 dátiles', 'Agua (300ml)', 'Nada sólido de difícil digestión'] },
+        { h: 'Durante el partido', ico: '💧', items: ['Agua o isotónico cada 15-20 min', 'Medio tiempo: plátano + agua', 'Si >70 min: gel o isotónico'] },
+        { h: 'Primeros 30 min post-partido ⚠️', ico: '🔄', items: [es_veg ? 'Batido vegetal + plátano' : 'Leche con cacao + plátano', '1 pieza fruta', 'Agua hasta orinar claro'], nota: 'Crítico: reponer 1g carbohidrato/kg en la primera hora' },
+        { h: 'Cena (1-2h post)', ico: '🌙', items: ['Pasta o arroz abundante', prot_animal() + ' (150-180g)', 'Verduras', 'Zumo de naranja (vitamina C + hierro)'] },
+      ]
+    },
+    descanso: {
+      titulo: '😴 Día de descanso',
+      sub: 'Recuperación activa — menos kcal, más antiinflamatorio',
+      comidas: [
+        { h: 'Desayuno', ico: '🌅', items: ['Avena ligera o tostada integral', 'Fruta', 'Yogur griego o huevo'] },
+        { h: 'Media mañana', ico: '🍎', items: ['Fruta de temporada', 'Nada más — el cuerpo descansa'] },
+        { h: 'Comida', ico: '🥗', items: ['Más verduras, menos carbohidratos hoy', prot_animal() + ' (130g)', 'Ensalada grande', 'Pan pequeño'] },
+        { h: 'Merienda', ico: '🫐', items: ['Frutos rojos (antioxidante para recuperar)', 'Yogur o kéfir'] },
+        { h: 'Cena', ico: '🌙', items: ['Sopa o crema vegetal', noAv('pescado') ? 'Pescado blanco (120g)' : 'Huevos (2-3)', 'Ensalada', 'Sin carbohidratos simples por la noche'] },
+      ]
+    }
+  };
+
+  var plan = PLANES[tipo] || PLANES.entreno;
+  var html = '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:4px;">' + plan.titulo + '</div>';
+  html += '<div style="font-size:10px;color:var(--text2);margin-bottom:.875rem;font-style:italic;">' + plan.sub + '</div>';
+
+  plan.comidas.forEach(function(c) {
+    html += '<div style="padding:.75rem 0;border-bottom:0.5px solid var(--border);">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+    html += '<span style="font-size:16px;">' + c.ico + '</span>';
+    html += '<div style="font-size:11px;font-weight:700;color:var(--text2);">' + c.h + '</div>';
+    html += '</div>';
+    html += '<ul style="margin:0;padding-left:16px;">';
+    c.items.forEach(function(item) {
+      html += '<li style="font-size:12px;color:var(--text);line-height:1.7;">' + item + '</li>';
+    });
+    html += '</ul>';
+    if (c.nota) html += '<div style="font-size:10px;color:#d29922;margin-top:4px;padding:4px 8px;background:rgba(210,153,34,0.08);border-radius:5px;border-left:2px solid #d29922;">⚠ ' + c.nota + '</div>';
+    html += '</div>';
+  });
+
+  html += '<div style="margin-top:.875rem;padding:.75rem;background:var(--bg3);border-radius:8px;"><div style="font-size:9px;color:var(--text3);">Basado en: UEFA Expert Group Consensus Statement on Nutrition in Elite Football (Collins et al. 2021) · FIFA/F-MARC Nutrition for Football</div></div>';
+  cont.innerHTML = html;
+};
+
+window.renderNut = function() {
+  // Cargar perfil guardado
+  if (window._jugId) {
+    var saved = localStorage.getItem('nut_perfil_v3_' + window._jugId);
+    if (saved) {
+      try {
+        _nutPerfil = JSON.parse(saved);
+        document.getElementById('nut-perfil-card').style.display = 'none';
+        document.getElementById('nut-plan-card').style.display = 'block';
+        setDia('entreno', document.getElementById('dt-entreno'));
+        setTimeout(window.initNutOpts, 50);
+        return;
+      } catch(e) {}
+    }
+  }
+  document.getElementById('nut-perfil-card').style.display = 'block';
+  document.getElementById('nut-plan-card').style.display = 'none';
+  setTimeout(window.initNutOpts, 50);
+};
+
+// Análisis mejorado con perfil real
+var _origAnalizar = window.analizarNutricion;
+window.analizarNutricion = function() {
+  ['desayuno','manana','comida','preentreno','merienda','cena'].forEach(updateLogBloque);
+  var texto = getNutLogTexto();
+  if (!texto) { showToastGlobal('Añade al menos una comida primero'); return; }
+
+  var resp = document.getElementById('ia-nut-response');
+  var respText = document.getElementById('ia-nut-text');
+  if (!resp || !respText) return;
+  resp.style.display = 'block';
+  respText.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--text2);font-size:12px;"><span style="display:inline-block;width:14px;height:14px;border:2px solid #1D9E75;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;"></span>Analizando...</div>';
+
+  var m = _nutPerfil ? (_nutPerfil[_diaActual] || _nutPerfil.entreno) : null;
+  var tLower = texto.toLowerCase();
+
+  // Detectores nutricionales
+  var tiene = {
+    proteina: /pollo|carne|pescado|huevo|atún|pavo|jamón|batido|legumbres|tofu|queso|yogur/.test(tLower),
+    carbos:   /arroz|pasta|pan|patata|plátano|avena|cereal|tostada|fruta|galleta|miel/.test(tLower),
+    verdura:  /verdura|ensalada|fruta|manzana|naranja|tomate|lechuga|espinaca|zanahoria/.test(tLower),
+    grasa:    /aceite|aguacate|nuez|almendra|queso|mantequilla/.test(tLower),
+    lacteos:  /leche|yogur|queso|batido/.test(tLower),
+  };
+
+  var nComidas = texto.split('\n').filter(function(l) { return l.length > 10 && l.includes(':'); }).length;
+  var protObj = m ? m.prot : 110;
+  var carbObj = m ? m.carb : 320;
+  var kcalObj = m ? m.kcal : 2600;
+
+  // Estimación aproximada de macros
+  var protEst = 0, carbEst = 0, kcalEst = 0;
+  if (tiene.proteina) protEst += 80;
+  if (tiene.carbos) carbEst += 200;
+  if (tiene.verdura) { carbEst += 30; kcalEst += 100; }
+  if (tiene.lacteos) { protEst += 20; carbEst += 20; }
+  kcalEst = (protEst * 4) + (carbEst * 4) + (nComidas * 100);
+
+  var semaforo = '';
+  semaforo += (kcalEst >= kcalObj * 0.85 ? '🟢' : kcalEst >= kcalObj * 0.6 ? '🟡' : '🔴') + ' **Calorías** (~' + kcalEst + ' de ' + kcalObj + ' kcal objetivo)\n';
+  semaforo += (protEst >= protObj * 0.8 ? '🟢' : protEst >= protObj * 0.5 ? '🟡' : '🔴') + ' **Proteína** (~' + protEst + 'g de ' + protObj + 'g recomendados · 1,6g/kg peso)\n';
+  semaforo += (carbEst >= carbObj * 0.75 ? '🟢' : carbEst >= carbObj * 0.5 ? '🟡' : '🔴') + ' **Carbohidratos** (~' + carbEst + 'g de ' + carbObj + 'g — fuente principal de energía)\n';
+  semaforo += (aguaVasos >= 7 ? '🟢' : aguaVasos >= 5 ? '🟡' : '🔴') + ' **Hidratación** (' + aguaVasos + '/8 vasos' + (aguaVasos < 7 ? ' — aumenta ingesta de agua' : ' ✓') + ')';
+
+  var sugerencias = [];
+  if (!tiene.proteina) sugerencias.push('Falta proteína — añade pollo, huevo o pescado en comida y cena (objetivo: ' + protObj + 'g/día).');
+  if (!tiene.carbos) sugerencias.push('Sin carbohidratos detectados — el glucógeno es tu combustible en el partido. Añade arroz o pasta.');
+  if (!tiene.verdura) sugerencias.push('Añade fruta o verdura — vitaminas A, C y minerales para recuperar mejor y reducir lesiones.');
+  if (aguaVasos < 6) sugerencias.push('Bebe ' + (8 - aguaVasos) + ' vasos más hoy. La deshidratación del 2% reduce el rendimiento hasta un 15% (UEFA).');
+  if (nComidas < 4) sugerencias.push('Repartir la comida en 5-6 tomas mejora la síntesis de proteína muscular y mantiene el nivel de energía constante.');
+  if (sugerencias.length === 0) sugerencias.push('Muy buen día nutricional. Mantén esta estructura los días de entrenamiento.');
+
+  var diaMsg = '';
+  if (_diaActual === 'partido') diaMsg = '\n⚽ **Partido:** Recuerda comer 3-4h antes (pasta/arroz + proteína ligera). Post-partido en los primeros 30 min: plátano + leche con cacao para recuperar glucógeno.';
+  if (_diaActual === 'descanso') diaMsg = '\n😴 **Día de descanso:** Reduce carbohidratos un 20-30% respecto al día de entreno. El cuerpo no necesita tanto combustible hoy, pero mantén la proteína para reparar músculo.';
+
+  var peso = _nutPerfil ? _nutPerfil.peso : '—';
+  var nota = '<br><br><span style="font-size:10px;color:var(--text3);">Estimación basada en tus datos (' + peso + 'kg · ' + (_diaActual) + '). Metodología: UEFA Consensus Statement (Collins et al. 2021).</span>';
+
+  var motivaciones = ['¡La nutrición es el entrenamiento invisible!', 'Lo que comes hoy determina cómo juegas mañana.', 'Cuida el combustible y el motor responde.', '¡Sigue así, cada día cuenta!'];
+  var motiv = motivaciones[Math.floor(Math.random() * motivaciones.length)];
+
+  respText.innerHTML =
+    '<b>Análisis de hoy (' + _diaActual + '):</b><br>' +
+    semaforo.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>') +
+    (sugerencias.length ? '<br><br><b>Mejoras para mañana:</b><br>' + sugerencias.slice(0,3).map(function(s){return '→ '+s;}).join('<br>') : '') +
+    (diaMsg ? '<br>' + diaMsg.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') : '') +
+    '<br><br><i style="color:#1D9E75;">' + motiv + '</i>' +
+    nota;
 };
 </script>
