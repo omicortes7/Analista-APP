@@ -261,7 +261,7 @@ function openJug(id){
 }
 
 function switchDT(tab){
-  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','clips','informe','historial','tareas','plan'][i]===tab));
+  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','clips','informe','historial','tareas','plan','chat'][i]===tab));
   renderDT(tab);
 }
 
@@ -3632,4 +3632,76 @@ async function eliminarClipJugadorDirecto(clipId, jugId) {
   state.clipsJugador = (state.clipsJugador||[]).filter(c => c.id !== clipId);
   renderDT('clips');
   showToast('Clip eliminado');
+}
+
+// ─── CHAT ANALISTA ───
+function renderChatAnalista() {
+  const id = state.currentJugador;
+  const j = state.jugadores.find(x => x.id === id);
+  if(!j) return;
+  const body = document.getElementById('djbody');
+  if(!body) return;
+
+  body.innerHTML = `
+    <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+      <div style="padding:10px 14px;border-bottom:0.5px solid var(--border);">
+        <div style="font-size:12px;font-weight:700;">Chat con ${j.nombre}</div>
+        <div style="font-size:10px;color:var(--text2);">Los mensajes son privados</div>
+      </div>
+      <div id="analista-chat-msgs" style="min-height:280px;max-height:380px;overflow-y:auto;padding:1rem;"></div>
+      <div style="padding:10px;border-top:0.5px solid var(--border);display:flex;gap:8px;">
+        <input type="text" id="analista-chat-input" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter')enviarMensajeAnalista('${id}')" style="flex:1;height:36px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 12px;font-size:12px;color:var(--text);outline:none;">
+        <button onclick="enviarMensajeAnalista('${id}')" style="width:36px;height:36px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#1D9E75,#0f6e56);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>`;
+
+  cargarMensajesAnalista(id);
+  if(window._chatInterval) clearInterval(window._chatInterval);
+  window._chatInterval = setInterval(() => cargarMensajesAnalista(id), 10000);
+}
+
+async function cargarMensajesAnalista(jugId) {
+  const { data } = await DB.from('mensajes_chat')
+    .select('*')
+    .eq('jugador_id', jugId)
+    .order('created_at', {ascending: true})
+    .limit(50);
+
+  const cont = document.getElementById('analista-chat-msgs');
+  if(!cont) return;
+
+  const msgs = data || [];
+  if(!msgs.length) {
+    cont.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text3);font-size:12px;">Sin mensajes todavía. Empieza la conversación.</div>';
+    return;
+  }
+
+  cont.innerHTML = msgs.map(m => {
+    const esAnalista = m.autor === 'analista';
+    const fecha = new Date(m.created_at).toLocaleString('es-ES', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    return `<div style="display:flex;flex-direction:column;align-items:${esAnalista?'flex-end':'flex-start'};margin-bottom:8px;">
+      <div style="max-width:80%;padding:8px 12px;border-radius:${esAnalista?'14px 4px 14px 14px':'4px 14px 14px 14px'};background:${esAnalista?'rgba(29,158,117,0.2)':'var(--bg2)'};border:0.5px solid ${esAnalista?'rgba(29,158,117,0.3)':'var(--border2)'};">
+        <div style="font-size:12px;line-height:1.6;">${m.texto}</div>
+      </div>
+      <div style="font-size:9px;color:var(--text3);margin-top:2px;padding:0 4px;">${esAnalista?'Tú':m.autor} · ${fecha}</div>
+    </div>`;
+  }).join('');
+  cont.scrollTop = cont.scrollHeight;
+}
+
+async function enviarMensajeAnalista(jugId) {
+  const input = document.getElementById('analista-chat-input');
+  if(!input) return;
+  const texto = input.value.trim();
+  if(!texto) return;
+  input.value = '';
+  const { error } = await DB.from('mensajes_chat').insert({
+    jugador_id: jugId,
+    autor: 'analista',
+    texto
+  });
+  if(error) { showToast('Error al enviar'); return; }
+  cargarMensajesAnalista(jugId);
 }
