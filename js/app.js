@@ -261,7 +261,7 @@ function openJug(id){
 }
 
 function switchDT(tab){
-  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','clips','informe','historial','tareas','plan','chat'][i]===tab));
+  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','clips','informe','historial','tareas','plan','calendario','chat'][i]===tab));
   renderDT(tab);
 }
 
@@ -3704,4 +3704,183 @@ async function enviarMensajeAnalista(jugId) {
   });
   if(error) { showToast('Error al enviar'); return; }
   cargarMensajesAnalista(jugId);
+}
+
+// ─── CALENDARIO SEMANAL (analista → jugador) ───
+
+function renderCalendarioSection() {
+  const id = state.currentJugador;
+  if(!id) return;
+  const body = document.getElementById('djbody');
+  if(!body) return;
+
+  // Calcular semana actual (lunes a domingo)
+  const hoy = new Date();
+  const dow = hoy.getDay() === 0 ? 6 : hoy.getDay() - 1; // 0=lunes
+  const lunes = new Date(hoy); lunes.setDate(hoy.getDate() - dow);
+  const dias = [];
+  for(let i = 0; i < 7; i++) {
+    const d = new Date(lunes); d.setDate(lunes.getDate() + i);
+    dias.push(d);
+  }
+
+  const NOMBRES = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const TIPOS = {
+    entreno: {color:'#3fb950', bg:'rgba(63,185,80,0.12)', label:'Entreno'},
+    partido: {color:'#58a6ff', bg:'rgba(88,166,255,0.12)', label:'Partido'},
+    descanso:{color:'#484f58', bg:'rgba(72,79,88,0.12)',   label:'Descanso'},
+    otros:   {color:'#d29922', bg:'rgba(210,153,34,0.12)', label:'Otros'},
+  };
+
+  const SI = 'width:100%;height:34px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;background:var(--bg);color:var(--text);outline:none;box-sizing:border-box;';
+  const TA = 'width:100%;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;background:var(--bg);color:var(--text);resize:none;font-family:inherit;outline:none;line-height:1.5;box-sizing:border-box;';
+
+  // Cargar eventos de la semana
+  const fechaLunes = lunes.toISOString().slice(0,10);
+  const fechaDomingo = dias[6].toISOString().slice(0,10);
+
+  DB.from('calendario_semana')
+    .select('*')
+    .eq('jugador_id', id)
+    .gte('fecha', fechaLunes)
+    .lte('fecha', fechaDomingo)
+    .then(({data}) => {
+      const eventos = data || [];
+      const porFecha = {};
+      eventos.forEach(e => { porFecha[e.fecha] = e; });
+
+      let html = `
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">
+          Semana del ${lunes.toLocaleDateString('es-ES',{day:'numeric',month:'short'})} al ${dias[6].toLocaleDateString('es-ES',{day:'numeric',month:'short'})}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:1rem;">`;
+
+      dias.forEach((d, i) => {
+        const fecha = d.toISOString().slice(0,10);
+        const ev = porFecha[fecha];
+        const tc = ev ? (TIPOS[ev.tipo]||TIPOS.entreno) : null;
+        const esHoy = fecha === hoy.toISOString().slice(0,10);
+        html += `<div onclick="abrirDiaCalendario('${fecha}','${id}')" style="cursor:pointer;border-radius:8px;padding:6px 4px;text-align:center;border:0.5px solid ${esHoy?'rgba(255,255,255,0.25)':ev?tc.color+'40':'var(--border)'};background:${ev?tc.bg:'var(--bg)'};transition:all .15s;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='${esHoy?'rgba(255,255,255,0.25)':ev?tc.color+'40':'var(--border)'}'">
+          <div style="font-size:9px;color:var(--text3);margin-bottom:2px;">${NOMBRES[i]}</div>
+          <div style="font-size:13px;font-weight:${esHoy?'800':'600'};color:${esHoy?'#fff':'var(--text)'};">${d.getDate()}</div>
+          ${ev ? `<div style="width:6px;height:6px;border-radius:50%;background:${tc.color};margin:3px auto 0;"></div>` : '<div style="height:9px;"></div>'}
+        </div>`;
+      });
+
+      html += '</div>';
+
+      // Detalle de cada día con evento
+      dias.forEach((d, i) => {
+        const fecha = d.toISOString().slice(0,10);
+        const ev = porFecha[fecha];
+        if(!ev) return;
+        const tc = TIPOS[ev.tipo]||TIPOS.entreno;
+        html += `<div style="background:var(--bg);border:0.5px solid ${tc.color}40;border-left:3px solid ${tc.color};border-radius:var(--radius-sm);padding:.875rem;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${ev.foco||ev.notas?'8px':'0'};">
+            <div>
+              <span style="font-size:9px;padding:2px 7px;border-radius:99px;background:${tc.bg};color:${tc.color};font-weight:700;">${tc.label}</span>
+              <span style="font-size:12px;font-weight:600;margin-left:8px;">${NOMBRES[i]} ${d.getDate()}</span>
+              ${ev.hora?`<span style="font-size:10px;color:var(--text2);margin-left:6px;">⏰ ${ev.hora}</span>`:''}
+              ${ev.rival?`<span style="font-size:11px;color:${tc.color};margin-left:6px;">vs ${ev.rival}</span>`:''}
+            </div>
+            <button onclick="eliminarEvento('${ev.id}','${id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:2px 6px;">×</button>
+          </div>
+          ${ev.foco?`<div style="font-size:11px;color:var(--text2);line-height:1.6;border-top:0.5px solid var(--border);padding-top:6px;"><span style="color:${tc.color};font-weight:700;">Foco: </span>${ev.foco}</div>`:''}
+          ${ev.notas?`<div style="font-size:11px;color:var(--text3);line-height:1.5;margin-top:4px;">${ev.notas}</div>`:''}
+        </div>`;
+      });
+
+      // Formulario añadir evento
+      html += `
+        <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-top:.5rem;" id="cal-form-wrapper">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">Añadir a la semana</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div>
+              <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Día</label>
+              <select id="cal-fecha" style="${SI}">
+                ${dias.map((d,i)=>`<option value="${d.toISOString().slice(0,10)}">${NOMBRES[i]} ${d.getDate()}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Tipo</label>
+              <select id="cal-tipo" style="${SI}" onchange="toggleCalRival()">
+                <option value="entreno">Entrenamiento</option>
+                <option value="partido">Partido</option>
+                <option value="descanso">Descanso</option>
+                <option value="otros">Otros</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div>
+              <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Hora</label>
+              <input type="time" id="cal-hora" style="${SI}">
+            </div>
+            <div id="cal-rival-wrap">
+              <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Rival</label>
+              <input type="text" id="cal-rival" placeholder="Nombre del rival" style="${SI}">
+            </div>
+          </div>
+          <div style="margin-bottom:8px;">
+            <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Foco / Objetivos del entrenamiento</label>
+            <textarea id="cal-foco" rows="2" placeholder="Trabajar la anticipación, mejorar la salida de balón..." style="${TA}"></textarea>
+          </div>
+          <div style="margin-bottom:10px;">
+            <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Notas adicionales</label>
+            <textarea id="cal-notas" rows="1" placeholder="Opcional..." style="${TA}"></textarea>
+          </div>
+          <button onclick="guardarEventoCalendario('${id}')" class="btn" style="width:100%;">Guardar en el calendario del jugador</button>
+        </div>`;
+
+      body.innerHTML = html;
+    });
+}
+
+function toggleCalRival() {
+  const tipo = document.getElementById('cal-tipo')?.value;
+  const wrap = document.getElementById('cal-rival-wrap');
+  if(wrap) wrap.style.display = tipo === 'partido' ? 'block' : 'none';
+}
+
+function abrirDiaCalendario(fecha, jugId) {
+  const sel = document.getElementById('cal-fecha');
+  if(sel) sel.value = fecha;
+  const form = document.getElementById('cal-form-wrapper');
+  if(form) form.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+async function guardarEventoCalendario(jugId) {
+  const fecha = document.getElementById('cal-fecha')?.value;
+  const tipo = document.getElementById('cal-tipo')?.value || 'entreno';
+  const hora = document.getElementById('cal-hora')?.value || '';
+  const rival = document.getElementById('cal-rival')?.value.trim() || '';
+  const foco = document.getElementById('cal-foco')?.value.trim() || '';
+  const notas = document.getElementById('cal-notas')?.value.trim() || '';
+
+  if(!fecha) { showToast('Selecciona un día'); return; }
+
+  // Si ya hay evento ese día, actualizarlo
+  const { data: existing } = await DB.from('calendario_semana')
+    .select('id').eq('jugador_id', jugId).eq('fecha', fecha).single();
+
+  let error;
+  if(existing) {
+    ({error} = await DB.from('calendario_semana')
+      .update({tipo, hora, rival, foco, notas})
+      .eq('id', existing.id));
+  } else {
+    ({error} = await DB.from('calendario_semana')
+      .insert({jugador_id: jugId, fecha, tipo, hora, rival, foco, notas}));
+  }
+
+  if(error) { showToast('Error: '+error.message); return; }
+  showToast('✓ Calendario actualizado');
+  renderCalendarioSection();
+}
+
+async function eliminarEvento(evId, jugId) {
+  if(!confirm('¿Eliminar este evento?')) return;
+  await DB.from('calendario_semana').delete().eq('id', evId);
+  showToast('Evento eliminado');
+  renderCalendarioSection();
 }
