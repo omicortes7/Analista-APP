@@ -1674,6 +1674,23 @@ function macroBox(val, lbl, color) {
   '</div>';
 }
 
+function macroBarraConCantidad(actual, objetivo, label, unit, color) {
+  var pct = Math.min(100, Math.round((actual / objetivo) * 100));
+  var col = pct >= 80 ? color : pct >= 50 ? '#d29922' : '#f85149';
+  var icono = pct >= 80 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
+  var faltan = Math.max(0, objetivo - actual);
+  return '<div style="margin-bottom:10px;">' +
+    '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">' +
+    '<span style="font-weight:600;">' + icono + ' ' + label + '</span>' +
+    '<span><b style="color:' + col + ';">' + actual + unit + '</b><span style="color:var(--text3);"> / ' + objetivo + unit + '</span></span>' +
+    '</div>' +
+    '<div style="height:8px;background:var(--border2);border-radius:99px;overflow:hidden;">' +
+    '<div style="width:' + pct + '%;height:8px;background:' + col + ';border-radius:99px;transition:width .4s;"></div>' +
+    '</div>' +
+    (faltan > 0 ? '<div style="font-size:9px;color:var(--text3);margin-top:2px;">Faltan ' + faltan + unit + ' (' + (100-pct) + '%)</div>' : '<div style="font-size:9px;color:' + color + ';margin-top:2px;">✓ Objetivo cumplido</div>') +
+  '</div>';
+}
+
 window.renderPlanComidas = function(tipo) {
   var cont = document.getElementById('plan-comidas');
   if (!cont || !_nutPerfil) return;
@@ -1896,31 +1913,13 @@ function calcularMacrosDia() {
 function renderMacrosBarra(actual, objetivo, id) {
   var cont = document.getElementById(id);
   if (!cont || !actual) return;
-
-  var items = [
-    { label: 'Calorías', actual: actual.kcal, obj: objetivo ? objetivo.kcal : 2600, unit: 'kcal', color_ok: '#3fb950', color_warn: '#d29922', color_bad: '#f85149' },
-    { label: 'Proteína', actual: actual.prot, obj: objetivo ? objetivo.prot : 110, unit: 'g', color_ok: '#a371f7', color_warn: '#d29922', color_bad: '#f85149' },
-    { label: 'Carbohidratos', actual: actual.carb, obj: objetivo ? objetivo.carb : 320, unit: 'g', color_ok: '#d29922', color_warn: '#d29922', color_bad: '#f85149' },
-    { label: 'Grasas', actual: actual.gras, obj: objetivo ? objetivo.gras : 80, unit: 'g', color_ok: '#58a6ff', color_warn: '#d29922', color_bad: '#f85149' },
-    { label: 'Hidratación', actual: actual.agua * 250, obj: 2000, unit: 'ml', color_ok: '#3fb950', color_warn: '#d29922', color_bad: '#f85149' },
-  ];
-
-  var html = '';
-  items.forEach(function(item) {
-    var pct = Math.min(100, Math.round((item.actual / item.obj) * 100));
-    var color = pct >= 80 ? item.color_ok : pct >= 50 ? item.color_warn : item.color_bad;
-    var icono = pct >= 80 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
-    html += '<div style="margin-bottom:10px;">';
-    html += '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">';
-    html += '<span style="font-weight:600;">' + icono + ' ' + item.label + '</span>';
-    html += '<span style="color:' + color + ';font-weight:700;">' + item.actual + ' / ' + item.obj + ' ' + item.unit + '</span>';
-    html += '</div>';
-    html += '<div style="height:8px;background:var(--border2);border-radius:99px;overflow:hidden;">';
-    html += '<div style="width:' + pct + '%;height:8px;background:' + color + ';border-radius:99px;transition:width .5s;"></div>';
-    html += '</div>';
-    html += '<div style="font-size:9px;color:var(--text3);margin-top:2px;text-align:right;">' + pct + '% del objetivo</div>';
-    html += '</div>';
-  });
+  var obj = objetivo || { kcal:2600, prot:110, carb:320, grasas:80 };
+  var html =
+    macroBarraConCantidad(actual.kcal, obj.kcal, 'Calorías', ' kcal', '#3fb950') +
+    macroBarraConCantidad(actual.prot, obj.prot, 'Proteína', 'g', '#a371f7') +
+    macroBarraConCantidad(actual.carb, obj.carb, 'Carbohidratos', 'g', '#d29922') +
+    macroBarraConCantidad(actual.gras, obj.grasas || 80, 'Grasas', 'g', '#58a6ff') +
+    macroBarraConCantidad(actual.agua * 250, 2000, 'Hidratación', 'ml', '#3fb950');
   cont.innerHTML = html;
 }
 
@@ -2373,6 +2372,8 @@ window.renderNut = function() {
   window._macrosActuales = null;
   if (_origRenderNutV3) _origRenderNutV3();
   setTimeout(window.initNutExtras, 200);
+  // Cargar historial siempre al abrir nutrición
+  setTimeout(window.loadNutHist, 300);
 };
 
 // Actualizar macros también al pulsar agua
@@ -2381,4 +2382,28 @@ window.setAgua = function(n) {
   if (_origSetAgua) _origSetAgua(n);
   actualizarMacrosTiempoReal();
 };
+</script>
+<script>
+// ── BOTÓN ATRÁS EN TODAS LAS SECCIONES ──
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    // Añadir botón atrás al final de cada sección
+    var secs = ['sec-clips','sec-informes','sec-plan','sec-cal','sec-psico','sec-nut','sec-chat'];
+    secs.forEach(function(secId) {
+      var sec = document.getElementById(secId);
+      if (!sec) return;
+      var btn = document.createElement('div');
+      btn.style.cssText = 'text-align:center;padding:1.5rem 0 .5rem;';
+      btn.innerHTML = '<button onclick="goSec(\'inicio\', document.getElementById(\'nb-inicio\'))" style="background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px 28px;font-size:13px;color:var(--text2);cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:8px;">← Volver al inicio</button>';
+      sec.appendChild(btn);
+    });
+
+    // Asegurarse que nb-inicio existe
+    var nbInicio = document.getElementById('nb-inicio');
+    if (!nbInicio) {
+      var nbs = document.querySelectorAll('.nb');
+      if (nbs.length) nbs[0].id = 'nb-inicio';
+    }
+  }, 500);
+});
 </script>
