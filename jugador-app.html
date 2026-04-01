@@ -97,33 +97,112 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- PSICOLOGÍA -->
     <div class="sec" id="sec-psico">
-      <div class="card">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">¿Cómo te sientes hoy?</div>
-        <div style="display:flex;gap:6px;margin-bottom:1rem;">
-          <button onclick="selMood(1,this)" style="flex:1;padding:10px 4px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);cursor:pointer;text-align:center;font-family:inherit;" class="mood-btn"><div style="font-size:22px;">😞</div><div style="font-size:9px;color:var(--text2);">Bajo</div></button>
-          <button onclick="selMood(2,this)" style="flex:1;padding:10px 4px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);cursor:pointer;text-align:center;font-family:inherit;" class="mood-btn"><div style="font-size:22px;">😐</div><div style="font-size:9px;color:var(--text2);">Regular</div></button>
-          <button onclick="selMood(3,this)" style="flex:1;padding:10px 4px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);cursor:pointer;text-align:center;font-family:inherit;" class="mood-btn"><div style="font-size:22px;">🙂</div><div style="font-size:9px;color:var(--text2);">Bien</div></button>
-          <button onclick="selMood(4,this)" style="flex:1;padding:10px 4px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);cursor:pointer;text-align:center;font-family:inherit;" class="mood-btn"><div style="font-size:22px;">😊</div><div style="font-size:9px;color:var(--text2);">Muy bien</div></button>
-          <button onclick="selMood(5,this)" style="flex:1;padding:10px 4px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);cursor:pointer;text-align:center;font-family:inherit;" class="mood-btn"><div style="font-size:22px;">🔥</div><div style="font-size:9px;color:var(--text2);">Top</div></button>
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:6px;margin-bottom:1rem;">
+        <button onclick="switchPsicoTab('diario',this)" id="ptab-diario" style="flex:1;padding:8px 4px;border-radius:8px;font-size:11px;font-weight:700;background:rgba(163,113,247,0.15);color:#a371f7;border:0.5px solid rgba(163,113,247,0.3);cursor:pointer;font-family:inherit;">📅 Diario</button>
+        <button onclick="switchPsicoTab('partido',this)" id="ptab-partido" style="flex:1;padding:8px 4px;border-radius:8px;font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">⚽ Partido</button>
+        <button onclick="switchPsicoTab('temporada',this)" id="ptab-temporada" style="flex:1;padding:8px 4px;border-radius:8px;font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">🏆 Temporada</button>
+      </div>
+
+      <!-- DIARIO -->
+      <div id="psico-tab-diario">
+        <div class="card">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">¿Cómo te sientes hoy?</div>
+          <div style="display:flex;gap:6px;margin-bottom:1rem;">
+            <button onclick="selMood(1,this)" style="flex:1;padding:10px 4px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);cursor:pointer;text-align:center;font-family:inherit;" class="mood-btn"><div style="font-size:22px;">😞</div><div style="font-size:9px;color:var(--text2);">Bajo</div></button>
+            <button onclick="selMood(2,this)" style="flex:1;padding:10px 4px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);cursor:pointer;text-align:center;font-family:inherit;" class="mood-btn"><div style="font-size:22px;">😐</div><div style="font-size:9px;color:var(--text2);">Regular</div></button>
+            <button onclick="selMood(3,this)" style="flex:1;padding:10px 4px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);cursor:pointer;text-align:center;font-family:inherit;" class="mood-btn"><div style="font-size:22px;">🙂</div><div style="font-size:9px;color:var(--text2);">Bien</div></button>
+            <button onclick="selMood(4,this)" style="flex:1;padding:10px 4px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);cursor:pointer;text-align:center;font-family:inherit;" class="mood-btn"><div style="font-size:22px;">😊</div><div style="font-size:9px;color:var(--text2);">Muy bien</div></button>
+            <button onclick="selMood(5,this)" style="flex:1;padding:10px 4px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);cursor:pointer;text-align:center;font-family:inherit;" class="mood-btn"><div style="font-size:22px;">🔥</div><div style="font-size:9px;color:var(--text2);">Top</div></button>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Energía</span><span id="energia-val">5</span></div>
+            <input type="range" min="1" max="10" value="5" id="energia-sl" oninput="document.getElementById('energia-val').textContent=this.value" style="width:100%;height:5px;border-radius:99px;appearance:none;background:var(--border2);outline:none;cursor:pointer;">
+          </div>
+          <div style="margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Estrés</span><span id="estres-val">5</span></div>
+            <input type="range" min="1" max="10" value="5" id="estres-sl" oninput="document.getElementById('estres-val').textContent=this.value" style="width:100%;height:5px;border-radius:99px;appearance:none;background:var(--border2);outline:none;cursor:pointer;">
+          </div>
         </div>
-        <div style="margin-bottom:1rem;">
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Energía</span><span id="energia-val">5</span></div>
-          <input type="range" min="1" max="10" value="5" id="energia-sl" oninput="document.getElementById('energia-val').textContent=this.value" style="width:100%;height:5px;border-radius:99px;appearance:none;background:var(--border2);outline:none;cursor:pointer;">
+        <div class="card">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">Reflexión del día</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué fue lo mejor hoy?</div>
+          <textarea id="psico-mejor" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué fue lo más difícil?</div>
+          <textarea id="psico-dificil" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué quieres mejorar mañana?</div>
+          <textarea id="psico-mejorar" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <button id="btn-save-psico" style="width:100%;height:40px;background:rgba(63,185,80,0.15);border:0.5px solid rgba(63,185,80,0.4);border-radius:var(--radius-sm);color:#3fb950;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Guardar reflexión</button>
         </div>
-        <div style="margin-bottom:1rem;">
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Estrés</span><span id="estres-val">5</span></div>
-          <input type="range" min="1" max="10" value="5" id="estres-sl" oninput="document.getElementById('estres-val').textContent=this.value" style="width:100%;height:5px;border-radius:99px;appearance:none;background:var(--border2);outline:none;cursor:pointer;">
+        <div class="card">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.5rem;">Historial</div>
+          <div id="psico-hist-diario"><div style="font-size:12px;color:var(--text3);">Sin registros todavía.</div></div>
         </div>
       </div>
-      <div class="card">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">Reflexión del día</div>
-        <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué fue lo mejor hoy?</div>
-        <textarea id="psico-mejor" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
-        <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué fue lo más difícil?</div>
-        <textarea id="psico-dificil" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
-        <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué quieres mejorar mañana?</div>
-        <textarea id="psico-mejorar" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
-        <button id="btn-save-psico" style="width:100%;height:40px;background:rgba(63,185,80,0.15);border:0.5px solid rgba(63,185,80,0.4);border-radius:var(--radius-sm);color:#3fb950;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Guardar reflexión</button>
+
+      <!-- POST-PARTIDO -->
+      <div id="psico-tab-partido" style="display:none;">
+        <div class="card">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#58a6ff;margin-bottom:.875rem;">Datos del partido</div>
+          <input type="text" id="pp-partido" placeholder="vs Rival (ej: vs Alzira J8)" style="width:100%;height:38px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;color:var(--text);outline:none;margin-bottom:8px;">
+          <input type="date" id="pp-fecha" style="width:100%;height:38px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;color:var(--text);outline:none;">
+        </div>
+        <div class="card">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#a371f7;margin-bottom:4px;">Valoración psicológica</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:.875rem;">Valora del 1 al 5 cada aspecto</div>
+          <div id="pp-stars-list"></div>
+        </div>
+        <div class="card">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">Reflexión</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿En qué momentos te sentiste más concentrado?</div>
+          <textarea id="pp-concentrado" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Hubo momentos donde te alteraste o perdiste el control?</div>
+          <textarea id="pp-altero" rows="2" placeholder="Qué pasó, cuándo, por qué..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Pensaste en los errores durante el partido?</div>
+          <textarea id="pp-errores" rows="2" placeholder="¿Cuándo? ¿Cuánto tiempo te afectó?" style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Utilizaste algún ancla para volver al presente?</div>
+          <textarea id="pp-anclas" rows="2" placeholder="Palabra clave, gesto, rutina..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Hiciste respiración consciente en algún momento?</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button onclick="setRespiracion('si',this)" id="resp-si" style="flex:1;height:36px;border-radius:var(--radius-sm);background:none;border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:12px;">✓ Sí</button>
+            <button onclick="setRespiracion('no',this)" id="resp-no" style="flex:1;height:36px;border-radius:var(--radius-sm);background:none;border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:12px;">✗ No</button>
+          </div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué harías diferente mentalmente?</div>
+          <textarea id="pp-mejorar-text" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <button id="btn-save-partido" style="width:100%;height:40px;background:rgba(163,113,247,0.15);border:0.5px solid rgba(163,113,247,0.4);border-radius:var(--radius-sm);color:#a371f7;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Guardar valoración</button>
+        </div>
+        <div class="card">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.5rem;">Historial de partidos</div>
+          <div id="pp-hist"><div style="font-size:12px;color:var(--text3);">Sin valoraciones todavía.</div></div>
+        </div>
+      </div>
+
+      <!-- TEMPORADA -->
+      <div id="psico-tab-temporada" style="display:none;">
+        <div class="card" style="border:0.5px solid rgba(163,113,247,0.3);background:rgba(163,113,247,0.04);">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#a371f7;margin-bottom:4px;">Expectativas de temporada</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:.875rem;">Rellena esto una vez. Es tu referencia del año.</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué quieres conseguir este año?</div>
+          <textarea id="temp-objetivo" rows="3" placeholder="Ser titular, mejorar mi posición..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Cuál es tu mayor fortaleza mental?</div>
+          <textarea id="temp-fortaleza" rows="2" placeholder="Soy competitivo, no me rindo..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué aspecto mental quieres mejorar más?</div>
+          <textarea id="temp-mejorar" rows="2" placeholder="Controlar la frustración..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué te motiva a entrenar y competir?</div>
+          <textarea id="temp-motivacion" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <button id="btn-save-temporada" style="width:100%;height:40px;background:rgba(163,113,247,0.15);border:0.5px solid rgba(163,113,247,0.4);border-radius:var(--radius-sm);color:#a371f7;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Guardar expectativas</button>
+        </div>
+        <div class="card">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">Check-in semanal</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Cómo fue la semana respecto a lo que esperabas?</div>
+          <textarea id="sem-balance" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué momento te dio más confianza?</div>
+          <textarea id="sem-confianza" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué reto mental te pones la próxima semana?</div>
+          <textarea id="sem-reto" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
+          <button id="btn-save-semanal" style="width:100%;height:40px;background:rgba(163,113,247,0.15);border:0.5px solid rgba(163,113,247,0.4);border-radius:var(--radius-sm);color:#a371f7;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Guardar check-in</button>
+        </div>
       </div>
     </div>
 
@@ -147,6 +226,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
   </div>
 
+    <!-- CHAT -->
+    <div class="sec" id="sec-chat">
+      <div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;" id="chat-box" style="height:calc(100vh - 180px);">
+        <div style="padding:12px 14px;border-bottom:0.5px solid var(--border);background:var(--bg2);">
+          <div style="font-size:12px;font-weight:700;">Chat con tu analista</div>
+          <div style="font-size:10px;color:var(--text2);">Los mensajes son privados entre tú y Omar</div>
+        </div>
+        <div id="chat-msgs" style="flex:1;overflow-y:auto;padding:1rem;min-height:300px;max-height:calc(100vh - 280px);"></div>
+        <div style="padding:10px;border-top:0.5px solid var(--border);display:flex;gap:8px;background:var(--bg2);">
+          <input type="text" id="chat-input" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter')enviarMensajeJugador()" style="flex:1;height:38px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;color:var(--text);outline:none;">
+          <button onclick="enviarMensajeJugador()" style="width:38px;height:38px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#1D9E75,#0f6e56);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
   <!-- BOTTOM NAV -->
   <nav class="bnav">
     <button class="nb active" onclick="goSec('inicio',this)">
@@ -169,6 +265,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       Nutrición
     </button>
+    <button class="nb" onclick="goSec('chat',this)" id="nb-chat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Chat
+    </button>
   </nav>
 </div>
 
@@ -187,6 +287,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       return;
     }
     DB = window.supabase.createClient(SURL, SKEY);
+    if (window._onDBReady) window._onDBReady(DB);
 
     document.getElementById('btn-login').addEventListener('click', doLogin);
     document.getElementById('btn-register').addEventListener('click', doRegister);
@@ -368,6 +469,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     document.getElementById('app-content').innerHTML = html;
     if(window._setAppData) window._setAppData(clips, informes, jug);
+    if(window.initChat) window.initChat(jug.id);
   }
 
   function kpi(num, label, color) {
@@ -552,5 +654,278 @@ window._setAppData = function(clips, informes, jug) {
   _informes = informes || [];
   _jugData = jug;
   renderNut();
+};
+</script>
+<script>
+// ── BIENESTAR COMPLETO ──
+var PP_ITEMS = [
+  {id:'ansiedad',   label:'Control de la ansiedad',     color:'#a371f7'},
+  {id:'nervios',    label:'Nervios',                     color:'#f85149'},
+  {id:'concentra',  label:'Concentración',               color:'#58a6ff'},
+  {id:'frustrac',   label:'Tolerancia a la frustración', color:'#d29922'},
+  {id:'enfado',     label:'Control del enfado',          color:'#f85149'},
+  {id:'miedo',      label:'Miedo al error',              color:'#d29922'},
+  {id:'personalidad',label:'Personalidad',               color:'#3fb950'},
+  {id:'confianza',  label:'Confianza en ti mismo',       color:'#a371f7'},
+  {id:'rendimiento',label:'Rendimiento bajo presión',    color:'#58a6ff'},
+  {id:'presente',   label:'Vuelta al presente',          color:'#58a6ff'},
+];
+var ppStarsVal = {};
+
+window.switchPsicoTab = function(tab, btn) {
+  ['diario','partido','temporada'].forEach(function(t) {
+    var el = document.getElementById('psico-tab-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+    var b = document.getElementById('ptab-' + t);
+    if (b) {
+      b.style.background = t === tab ? 'rgba(163,113,247,0.15)' : 'none';
+      b.style.color = t === tab ? '#a371f7' : 'var(--text3)';
+      b.style.borderColor = t === tab ? 'rgba(163,113,247,0.3)' : 'var(--border2)';
+    }
+  });
+  if (tab === 'partido') initPPStars();
+  if (tab === 'temporada') loadTemporada();
+};
+
+function initPPStars() {
+  ppStarsVal = {};
+  var cont = document.getElementById('pp-stars-list');
+  if (!cont) return;
+  var html = '';
+  PP_ITEMS.forEach(function(item) {
+    ppStarsVal[item.id] = 0;
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:.625rem 0;border-bottom:0.5px solid var(--border);">';
+    html += '<div style="font-size:12px;font-weight:600;flex:1;">' + item.label + '</div>';
+    html += '<div style="display:flex;gap:4px;" id="pps-' + item.id + '">';
+    for (var s = 1; s <= 5; s++) {
+      html += '<span onclick="setPPStar(\'' + item.id + '\',' + s + ',\'' + item.color + '\')" style="font-size:24px;cursor:pointer;color:var(--border2);transition:color .1s;" data-v="' + s + '">★</span>';
+    }
+    html += '</div></div>';
+  });
+  cont.innerHTML = html;
+  // Fecha por defecto
+  var fp = document.getElementById('pp-fecha');
+  if (fp && !fp.value) fp.value = new Date().toISOString().slice(0,10);
+}
+
+window.setPPStar = function(itemId, val, color) {
+  ppStarsVal[itemId] = val;
+  var cont = document.getElementById('pps-' + itemId);
+  if (!cont) return;
+  cont.querySelectorAll('span').forEach(function(s) {
+    s.style.color = parseInt(s.dataset.v) <= val ? color : 'var(--border2)';
+  });
+};
+
+// Guardar post-partido
+document.addEventListener('click', function(e) {
+  if (!e.target) return;
+
+  // Post-partido
+  if (e.target.id === 'btn-save-partido') {
+    var jugId = window._jugId;
+    if (!jugId || !window.DB_REF) return;
+    var partido = document.getElementById('pp-partido').value.trim();
+    if (!partido) { showToastGlobal('Escribe el nombre del partido'); return; }
+    window.DB_REF.from('psico_partido').insert({
+      jugador_id: jugId,
+      fecha: document.getElementById('pp-fecha').value || new Date().toISOString().slice(0,10),
+      partido: partido,
+      estrellas: JSON.stringify(ppStarsVal),
+      concentrado: document.getElementById('pp-concentrado').value.trim(),
+      altero: document.getElementById('pp-altero').value.trim(),
+      errores: document.getElementById('pp-errores').value.trim(),
+      mejorar: document.getElementById('pp-mejorar-text').value.trim()
+    }).then(function(res) {
+      if (res.error) { showToastGlobal('Error: ' + res.error.message); return; }
+      showToastGlobal('✓ Valoración guardada');
+      document.getElementById('pp-partido').value = '';
+      ['pp-concentrado','pp-altero','pp-errores','pp-anclas','pp-mejorar-text'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = '';
+      });
+      ppStarsVal = {};
+      initPPStars();
+      loadPPHist();
+    });
+  }
+
+  // Temporada
+  if (e.target.id === 'btn-save-temporada') {
+    var jugId = window._jugId;
+    if (!jugId || !window.DB_REF) return;
+    window.DB_REF.from('psico_temporada').upsert({
+      id: jugId + '_temp',
+      jugador_id: jugId,
+      objetivo: document.getElementById('temp-objetivo').value.trim(),
+      fortaleza: document.getElementById('temp-fortaleza').value.trim(),
+      mejorar: document.getElementById('temp-mejorar').value.trim(),
+      motivacion: document.getElementById('temp-motivacion').value.trim()
+    }, {onConflict:'id'}).then(function(res) {
+      if (res.error) { showToastGlobal('Error: ' + res.error.message); return; }
+      showToastGlobal('✓ Expectativas guardadas');
+    });
+  }
+
+  // Check-in semanal
+  if (e.target.id === 'btn-save-semanal') {
+    var jugId = window._jugId;
+    if (!jugId || !window.DB_REF) return;
+    window.DB_REF.from('psico_semanal').insert({
+      jugador_id: jugId,
+      fecha: new Date().toISOString().slice(0,10),
+      balance: document.getElementById('sem-balance').value.trim(),
+      confianza: document.getElementById('sem-confianza').value.trim(),
+      reto: document.getElementById('sem-reto').value.trim()
+    }).then(function(res) {
+      if (res.error) { showToastGlobal('Error'); return; }
+      showToastGlobal('✓ Check-in guardado');
+      ['sem-balance','sem-confianza','sem-reto'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = '';
+      });
+    });
+  }
+});
+
+function loadPPHist() {
+  var jugId = window._jugId;
+  if (!jugId || !window.DB_REF) return;
+  window.DB_REF.from('psico_partido').select('*').eq('jugador_id', jugId).order('fecha', {ascending:false}).limit(5).then(function(res) {
+    var cont = document.getElementById('pp-hist');
+    if (!cont) return;
+    var data = res.data || [];
+    if (!data.length) { cont.innerHTML = '<div style="font-size:12px;color:var(--text3);">Sin valoraciones todavía.</div>'; return; }
+    var html = '';
+    data.forEach(function(d) {
+      var stars = {};
+      try { stars = JSON.parse(d.estrellas || '{}'); } catch(e) {}
+      var vals = Object.values(stars).filter(function(v) { return v > 0; });
+      var media = vals.length ? (vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(1) : null;
+      var fecha = new Date(d.fecha + 'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+      html += '<div style="padding:.75rem 0;border-bottom:0.5px solid var(--border);">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
+      html += '<div><div style="font-size:13px;font-weight:700;">' + d.partido + '</div><div style="font-size:10px;color:var(--text3);">' + fecha + '</div></div>';
+      if (media) html += '<div style="width:36px;height:36px;border-radius:50%;background:rgba(163,113,247,0.15);color:#a371f7;border:1.5px solid rgba(163,113,247,0.4);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + media + '</div>';
+      html += '</div>';
+      // Barras por dimensión
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">';
+      PP_ITEMS.forEach(function(item) {
+        var v = stars[item.id] || 0;
+        if (!v) return;
+        var pct = Math.round((v/5)*100);
+        html += '<div><div style="font-size:9px;color:var(--text3);margin-bottom:2px;">' + item.label.split(' ')[0] + '</div>';
+        html += '<div style="height:4px;background:var(--border2);border-radius:99px;overflow:hidden;"><div style="width:' + pct + '%;height:4px;background:' + item.color + ';border-radius:99px;"></div></div></div>';
+      });
+      html += '</div></div>';
+    });
+    cont.innerHTML = html;
+  });
+}
+
+function loadTemporada() {
+  var jugId = window._jugId;
+  if (!jugId || !window.DB_REF) return;
+  window.DB_REF.from('psico_temporada').select('*').eq('jugador_id', jugId).order('created_at',{ascending:false}).limit(1).then(function(res) {
+    if (res.data && res.data.length) {
+      var d = res.data[0];
+      var f = function(id, val) { var el = document.getElementById(id); if (el && val) el.value = val; };
+      f('temp-objetivo', d.objetivo);
+      f('temp-fortaleza', d.fortaleza);
+      f('temp-mejorar', d.mejorar);
+      f('temp-motivacion', d.motivacion);
+    }
+  });
+}
+
+function showToastGlobal(msg) {
+  var t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg; t.style.opacity = '1';
+  setTimeout(function() { t.style.opacity = '0'; }, 2500);
+}
+
+// Exponer DB_REF cuando el script principal lo inicialice
+window._onDBReady = function(db) {
+  window.DB_REF = db;
+};
+</script>
+<script>
+window._respiracion = 'no';
+window.setRespiracion = function(val, btn) {
+  window._respiracion = val;
+  var si = document.getElementById('resp-si');
+  var no = document.getElementById('resp-no');
+  if (!si || !no) return;
+  if (val === 'si') {
+    si.style.background = 'rgba(63,185,80,0.15)'; si.style.color = '#3fb950'; si.style.borderColor = 'rgba(63,185,80,0.4)';
+    no.style.background = 'none'; no.style.color = 'var(--text3)'; no.style.borderColor = 'var(--border2)';
+  } else {
+    no.style.background = 'rgba(248,81,73,0.15)'; no.style.color = '#f85149'; no.style.borderColor = 'rgba(248,81,73,0.4)';
+    si.style.background = 'none'; si.style.color = 'var(--text3)'; si.style.borderColor = 'var(--border2)';
+  }
+};
+</script>
+<script>
+// ── CHAT JUGADOR ──
+window._chatJugId = null;
+
+window.initChat = function(jugId) {
+  window._chatJugId = jugId;
+  loadMensajes();
+  // Polling cada 15 segundos para mensajes nuevos
+  setInterval(loadMensajes, 15000);
+};
+
+function loadMensajes() {
+  var jugId = window._chatJugId;
+  if (!jugId || !window.DB_REF) return;
+  window.DB_REF.from('mensajes_chat')
+    .select('*')
+    .eq('jugador_id', jugId)
+    .order('created_at', {ascending: true})
+    .limit(50)
+    .then(function(res) {
+      renderMensajes(res.data || []);
+    });
+}
+
+function renderMensajes(msgs) {
+  var cont = document.getElementById('chat-msgs');
+  if (!cont) return;
+  if (!msgs.length) {
+    cont.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:var(--text3);"><div style="font-size:32px;margin-bottom:8px;">💬</div><div style="font-size:13px;">Sin mensajes todavía.<br>Tu analista puede enviarte mensajes aquí.</div></div>';
+    return;
+  }
+  var html = '';
+  msgs.forEach(function(m) {
+    var esAnalista = m.autor === 'analista';
+    var fecha = new Date(m.created_at).toLocaleString('es-ES', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    html += '<div style="display:flex;flex-direction:column;align-items:' + (esAnalista ? 'flex-start' : 'flex-end') + ';margin-bottom:10px;">';
+    html += '<div style="max-width:80%;padding:10px 14px;border-radius:' + (esAnalista ? '4px 14px 14px 14px' : '14px 4px 14px 14px') + ';background:' + (esAnalista ? 'var(--card)' : 'rgba(29,158,117,0.2)') + ';border:0.5px solid ' + (esAnalista ? 'var(--border)' : 'rgba(29,158,117,0.3)') + ';">';
+    if (esAnalista) html += '<div style="font-size:9px;font-weight:800;color:#1D9E75;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Analista</div>';
+    html += '<div style="font-size:13px;line-height:1.6;">' + m.texto + '</div>';
+    html += '</div>';
+    html += '<div style="font-size:9px;color:var(--text3);margin-top:3px;padding:0 4px;">' + fecha + '</div>';
+    html += '</div>';
+  });
+  cont.innerHTML = html;
+  cont.scrollTop = cont.scrollHeight;
+}
+
+window.enviarMensajeJugador = function() {
+  var jugId = window._chatJugId;
+  if (!jugId || !window.DB_REF) return;
+  var input = document.getElementById('chat-input');
+  if (!input) return;
+  var texto = input.value.trim();
+  if (!texto) return;
+  input.value = '';
+  window.DB_REF.from('mensajes_chat').insert({
+    jugador_id: jugId,
+    autor: 'jugador',
+    texto: texto
+  }).then(function(res) {
+    if (res.error) { showToastGlobal('Error al enviar'); return; }
+    loadMensajes();
+  });
 };
 </script>
