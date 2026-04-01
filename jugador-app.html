@@ -220,9 +220,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div id="plan-comidas"></div>
       </div>
       <div class="card">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">Lo que comí hoy</div>
-        <textarea id="nut-log" rows="4" placeholder="Desayuno: avena...&#10;Comida: arroz con pollo..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:8px;"></textarea>
-        <button id="btn-save-nut" style="width:100%;height:40px;background:rgba(210,153,34,0.15);border:0.5px solid rgba(210,153,34,0.4);border-radius:var(--radius-sm);color:#d29922;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Guardar</button>
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.5rem;">Lo que comí hoy</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:.75rem;">Escríbelo de forma natural — la IA lo analiza</div>
+        <textarea id="nut-log" rows="5" placeholder="Desayuno: avena con leche y plátano&#10;Media mañana: manzana y nueces&#10;Comida: arroz con pollo y ensalada&#10;Merienda: bocadillo de pavo&#10;Cena: pasta con atún" style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:8px;line-height:1.6;"></textarea>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <button id="btn-save-nut" style="flex:1;height:40px;background:rgba(210,153,34,0.15);border:0.5px solid rgba(210,153,34,0.4);border-radius:var(--radius-sm);color:#d29922;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Guardar</button>
+          <button onclick="analizarNutricion()" style="flex:1;height:40px;background:rgba(29,158,117,0.15);border:0.5px solid rgba(29,158,117,0.4);border-radius:var(--radius-sm);color:#1D9E75;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🤖 Analizar con IA</button>
+        </div>
+        <!-- Respuesta IA -->
+        <div id="ia-nut-response" style="display:none;background:var(--bg3);border:0.5px solid rgba(29,158,117,0.3);border-radius:var(--radius-sm);padding:.875rem;border-left:3px solid #1D9E75;">
+          <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#1D9E75;margin-bottom:.625rem;">Análisis nutricional</div>
+          <div id="ia-nut-text" style="font-size:13px;line-height:1.7;color:var(--text);"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1186,5 +1195,89 @@ window._renderCalInicio = function() {
 
       bloque.innerHTML = '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.625rem;">Esta semana</div>' + html;
     });
+};
+</script>
+<script>
+// ── ANÁLISIS NUTRICIONAL CON IA ──
+window.analizarNutricion = async function() {
+  var log = document.getElementById('nut-log');
+  if (!log) return;
+  var texto = log.value.trim();
+  if (!texto) { showToastGlobal('Escribe lo que comiste primero'); return; }
+
+  var resp = document.getElementById('ia-nut-response');
+  var respText = document.getElementById('ia-nut-text');
+  if (!resp || !respText) return;
+
+  // Mostrar loading
+  resp.style.display = 'block';
+  respText.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--text2);font-size:12px;"><div style="width:14px;height:14px;border:2px solid #1D9E75;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;"></div>Analizando tu alimentación...</div>';
+
+  // Añadir CSS de spinner si no existe
+  if (!document.getElementById('spin-style')) {
+    var s = document.createElement('style');
+    s.id = 'spin-style';
+    s.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(s);
+  }
+
+  // Construir contexto del jugador
+  var jugNombre = document.getElementById('app-nombre') ? document.getElementById('app-nombre').textContent : 'el jugador';
+  var jugPos = document.getElementById('app-pos') ? document.getElementById('app-pos').textContent : '';
+  var macrosKcal = document.getElementById('m-kcal') ? document.getElementById('m-kcal').textContent : '2600';
+  var macrosProt = document.getElementById('m-prot') ? document.getElementById('m-prot').textContent : '110g';
+  var macrosCarb = document.getElementById('m-carb') ? document.getElementById('m-carb').textContent : '320g';
+
+  // Detectar tipo de día según el calendario
+  var tipoDia = 'entrenamiento';
+  var diaBtn = document.querySelector('#sec-nut button[style*="background:rgba(88"]');
+  if (diaBtn && diaBtn.textContent.includes('Partido')) tipoDia = 'partido';
+  else if (diaBtn && diaBtn.textContent.includes('Descanso')) tipoDia = 'descanso';
+
+  var prompt = `Eres un asistente de nutrición deportiva especializado en fútbol base (categoría cadete, jugadores de 14-16 años). Tu tono es directo, motivador y adaptado a adolescentes deportistas. NO eres médico, das orientación general de rendimiento.
+
+PERFIL DEL JUGADOR:
+- Nombre: ${jugNombre}
+- Posición: ${jugPos}
+- Macros objetivo del día: ${macrosKcal} kcal | Proteína: ${macrosProt} | Carbohidratos: ${macrosCarb}
+- Tipo de día: ${tipoDia}
+
+LO QUE HA COMIDO HOY:
+${texto}
+
+INSTRUCCIONES:
+1. Estima los macros aproximados de lo que ha comido (no necesitas ser exacto, usa rangos)
+2. Usa un semáforo visual con emojis: 🟢 bien cubierto, 🟡 mejorable, 🔴 insuficiente — para: Calorías, Proteína, Carbohidratos, Hidratación
+3. Da 2-3 sugerencias concretas y prácticas adaptadas al tipo de día (${tipoDia})
+4. Si es día de partido, añade una nota específica sobre el timing de las comidas
+5. Termina con una frase corta de motivación
+
+Formato de respuesta:
+- Usa párrafos cortos
+- Emojis para el semáforo
+- Lenguaje sencillo, directo, como un entrenador que habla con su jugador
+- Máximo 200 palabras`;
+
+  try {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    var data = await response.json();
+    var iaText = data.content && data.content[0] ? data.content[0].text : 'No se pudo analizar. Inténtalo de nuevo.';
+
+    // Formatear el texto con saltos de línea
+    iaText = iaText.replace(/\n/g, '<br>');
+    respText.innerHTML = iaText;
+
+  } catch(e) {
+    respText.innerHTML = '<span style="color:var(--text2);font-size:12px;">No se pudo conectar con la IA. Comprueba tu conexión e inténtalo de nuevo.</span>';
+  }
 };
 </script>
