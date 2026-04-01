@@ -1357,14 +1357,7 @@ window.initNutOpts = function() {
   }
 };
 
-window.toggleNutBlock = function(bloque) {
-  var form = document.getElementById('nc-' + bloque + '-form');
-  var btn = document.getElementById('btn-nc-' + bloque);
-  if (!form) return;
-  var open = form.style.display === 'none';
-  form.style.display = open ? 'block' : 'none';
-  if (btn) btn.textContent = open ? '− Cerrar' : '+ Añadir';
-};
+
 
 window.toggleNutOpt = function(bloque, opt, btn) {
   var arr = nutSeleccionados[bloque];
@@ -2355,19 +2348,13 @@ window.calcularMacrosDia = function() {
 };
 
 // Inicializar extras cuando se abren los bloques
-var _origToggleBlock = window.toggleNutBlock;
-window.toggleNutBlock = function(bloque) {
-  if (_origToggleBlock) _origToggleBlock(bloque);
-  setTimeout(function() { window.initNutExtras(); }, 50);
-};
-
 // También inicializar al cargar nutrición
 var _origRenderNutV3 = window.renderNut;
 window.renderNut = function() {
   _alimentosLibres = {};
   window._macrosActuales = null;
   if (_origRenderNutV3) _origRenderNutV3();
-  setTimeout(window.initNutExtras, 200);
+  setTimeout(window.initNutOpts, 200);
   // Cargar historial siempre al abrir nutrición
   setTimeout(window.loadNutHist, 300);
 };
