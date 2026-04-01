@@ -2216,23 +2216,32 @@ function calcularMacrosAlimento(texto) {
 var _alimentosLibres = {};
 
 window.initNutExtras = function() {
-  // Añadir listener a todos los inputs extra de cada bloque
   ['desayuno','manana','comida','preentreno','merienda','cena'].forEach(function(bloque) {
     var input = document.getElementById('extra-' + bloque);
-    if (!input) return;
+    if (!input || input._nutListenerAdded) return;
+    input._nutListenerAdded = true;
+
+    var _enterPressed = false;
 
     // Enter para añadir
     input.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
-        procesarAlimentoLibre(bloque, input.value.trim());
+        _enterPressed = true;
+        var txt = input.value.trim();
+        if (txt) {
+          procesarAlimentoLibre(bloque, txt);
+          input.value = '';
+        }
+        setTimeout(function() { _enterPressed = false; }, 100);
       }
     });
 
-    // También al salir del campo
+    // Blur solo si no fue por Enter
     input.addEventListener('blur', function() {
-      if (input.value.trim()) {
+      if (!_enterPressed && input.value.trim()) {
         procesarAlimentoLibre(bloque, input.value.trim());
+        input.value = '';
       }
     });
   });
