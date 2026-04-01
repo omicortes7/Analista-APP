@@ -3900,11 +3900,16 @@ async function renderSeguimientoSection() {
   const hace14 = new Date(); hace14.setDate(hace14.getDate() - 14);
   const fechaMin = hace14.toISOString().slice(0,10);
 
-  const [nutRes, psicoRes, ppRes] = await Promise.all([
-    DB.from('nutricion_log').select('*').eq('jugador_id', id).gte('fecha', fechaMin).order('fecha', {ascending:false}),
-    DB.from('psico_diario').select('*').eq('jugador_id', id).gte('fecha', fechaMin).order('fecha', {ascending:false}),
-    DB.from('psico_partido').select('*').eq('jugador_id', id).order('fecha', {ascending:false}).limit(5),
-  ]);
+  let nutRes, psicoRes, ppRes;
+  try {
+    [nutRes, psicoRes, ppRes] = await Promise.all([
+      DB.from('nutricion_log').select('*').eq('jugador_id', id).gte('fecha', fechaMin).order('fecha', {ascending:false}),
+      DB.from('psico_diario').select('*').eq('jugador_id', id).gte('fecha', fechaMin).order('fecha', {ascending:false}),
+      DB.from('psico_partido').select('*').eq('jugador_id', id).order('fecha', {ascending:false}).limit(5),
+    ]);
+  } catch(e) {
+    nutRes = {data:[]}; psicoRes = {data:[]}; ppRes = {data:[]};
+  }
 
   const nutLogs = nutRes.data || [];
   const psicoDiario = psicoRes.data || [];
