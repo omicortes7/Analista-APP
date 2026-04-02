@@ -958,11 +958,11 @@ function buscarAlimento(bloque, q) {
   drop.style.display = 'block';
 
   drop.innerHTML = matches.map(function(a, i) {
-    return '<div onmousedown="event.preventDefault();seleccionarAlimento(''+bloque+'','+i+',event)" '+
-      'style="padding:11px 14px;cursor:pointer;font-size:13px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;" '+
-      'onmouseover="this.style.background='rgba(29,158,117,0.1)'" onmouseout="this.style.background='transparent'">' +
-      '<span>'+a[0]+'</span>' +
-      '<span style="font-size:10px;color:var(--text3);background:var(--bg3);padding:2px 7px;border-radius:99px;">'+a[4]+' kcal/100g</span>' +
+    return '<div onmousedown="event.preventDefault();seleccionarAlimento(\'' + bloque + '\',' + i + ',event)" ' +
+      'style="padding:11px 14px;cursor:pointer;font-size:13px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;" ' +
+      'onmouseover="this.style.background=\'rgba(29,158,117,0.1)\'" onmouseout="this.style.background=\'transparent\'">' +
+      '<span>' + a[0] + '</span>' +
+      '<span style="font-size:10px;color:var(--text3);background:var(--bg3);padding:2px 7px;border-radius:99px;">' + a[4] + ' kcal/100g</span>' +
     '</div>';
   }).join('');
 
@@ -1004,11 +1004,9 @@ function mostrarSelectorCantidad(bloque, alimento) {
     var g = c * std;
     var kcal = Math.round((alimento[4]*g)/100);
     var prot = Math.round((alimento[1]*g)/100);
-    html += '<button onclick="confirmarCantidad(''+bloque+'','+c+')" '+
-      'style="padding:8px 14px;border-radius:99px;background:var(--bg2);border:0.5px solid var(--border2);font-size:12px;cursor:pointer;font-family:inherit;color:var(--text);" '+
-      'onmouseover="this.style.background='rgba(29,158,117,0.15)';this.style.color='#1D9E75';this.style.borderColor='rgba(29,158,117,0.4)'" '+
-      'onmouseout="this.style.background='var(--bg2)';this.style.color='var(--text)';this.style.borderColor='var(--border2)'">' +
-      '<b>'+c+' '+ulbl+'</b> <span style="font-size:9px;color:var(--text3);">'+kcal+'kcal · '+prot+'g prot</span>' +
+    html += '<button onclick="confirmarCantidad(\'' + bloque + '\',' + c + ')" ' +
+      'style="padding:8px 14px;border-radius:99px;background:var(--bg2);border:0.5px solid var(--border2);font-size:12px;cursor:pointer;font-family:inherit;color:var(--text);">' +
+      '<b>' + c + ' ' + ulbl + '</b> <span style="font-size:9px;color:var(--text3);">' + kcal + 'kcal · ' + prot + 'g prot</span>' +
     '</button>';
   });
 
