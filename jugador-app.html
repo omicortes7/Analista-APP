@@ -707,6 +707,15 @@ var _nutPerfil = null, _vegPref = 'no', _diaActual = 'entreno';
 var aguaVasos = 0;
 var DB = window.DB_REF; // alias
 
+// renderInicio - dashboard principal
+function renderInicio() {
+  var cont = document.getElementById('inicio-content');
+  if (!cont) return;
+  // Cargar KPIs si existe la función
+  if (window._renderInicioFull) window._renderInicioFull();
+}
+window.renderInicio = renderInicio;
+
 function goSec(id, btn) {
   document.querySelectorAll('.sec').forEach(function(s){ s.classList.remove('active'); });
   document.querySelectorAll('.nb').forEach(function(b){ b.classList.remove('active'); });
@@ -717,7 +726,7 @@ function goSec(id, btn) {
   if (id === 'nut') renderNut();
   if (id === 'psico') renderPsico && renderPsico();
   if (id === 'chat') initChat && initChat(window._jugId);
-  if (id === 'cal') renderCalendarioJugador && renderCalendarioJugador();
+  if (id === 'cal') { window.renderCalJugador && window.renderCalJugador(); }
   if (id === 'inicio') renderInicio && renderInicio();
 }
 
@@ -1110,12 +1119,12 @@ function actualizarMacros() {
   }
   window._macrosActuales = total;
 
+  var mr = document.getElementById('macro-resultado');
+  var obj = _nutPerfil ? (_nutPerfil[_diaActual] || _nutPerfil.entreno) : null;
   if (total.kcal > 0 || total.prot > 0) {
-    var mr = document.getElementById('macro-resultado');
     if (mr) mr.style.display = 'block';
-    var obj = _nutPerfil ? (_nutPerfil[_diaActual] || _nutPerfil.entreno) : null;
-    renderBarrasMacros(total, obj);
   }
+  renderBarrasMacros(total, obj);
 }
 window.actualizarMacros = actualizarMacros;
 
@@ -1946,5 +1955,111 @@ window.addEventListener('load', function() {
 <style>
 .ac-wrap { position: relative; }
 </style>
-</body>
+
+
+<script>
+// ── SISTEMA DE NOTIFICACIONES (badges rojos) ──
+var _notifVistas = {};
+
+function cargarNotifVistas() {
+  var jugId = window._jugId;
+  if (!jugId) return;
+  try { _notifVistas = JSON.parse(localStorage.getItem('notif_vistas_' + jugId) || '{}'); } catch(e) {}
+}
+
+function guardarNotifVistas() {
+  var jugId = window._jugId;
+  if (!jugId) return;
+  localStorage.setItem('notif_vistas_' + jugId, JSON.stringify(_notifVistas));
+}
+
+function mostrarBadge(btnId) {
+  var btn = document.getElementById(btnId);
+  if (!btn || btn.querySelector('.notif-badge')) return;
+  var badge = document.createElement('div');
+  badge.className = 'notif-badge';
+  badge.style.cssText = 'position:absolute;top:5px;right:10px;width:8px;height:8px;background:#f85149;border-radius:50%;border:1.5px solid var(--bg);pointer-events:none;';
+  btn.style.position = 'relative';
+  btn.appendChild(badge);
+}
+
+function quitarBadge(tipo) {
+  var ids = {clips:'nb-clips',plan:'nb-plan',cal:'nb-cal',psico:'nb-psico',nut:'nb-nut',informes:'nb-informes'};
+  var btn = document.getElementById(ids[tipo]);
+  if (!btn) return;
+  var b = btn.querySelector('.notif-badge');
+  if (b) b.remove();
+  _notifVistas[tipo] = new Date().toISOString();
+  guardarNotifVistas();
+}
+
+window.checkNotificaciones = async function() {
+  var jugId = window._jugId;
+  if (!jugId || !window.DB_REF) return;
+  cargarNotifVistas();
+  var ultima = function(t){ return _notifVistas[t] || '2000-01-01'; };
+  try {
+    var [r1, r2, r3] = await Promise.all([
+      window.DB_REF.from('clips_jugador').select('created_at').eq('jugador_id',jugId).gt('created_at',ultima('clips')).limit(1),
+      window.DB_REF.from('planes_partido').select('created_at').eq('jugador_id',jugId).gt('created_at',ultima('plan')).limit(1),
+      window.DB_REF.from('calendario_semana').select('created_at').eq('jugador_id',jugId).gt('created_at',ultima('cal')).limit(1),
+    ]);
+    if (r1.data && r1.data.length) mostrarBadge('nb-clips');
+    if (r2.data && r2.data.length) mostrarBadge('nb-plan');
+    if (r3.data && r3.data.length) mostrarBadge('nb-cal');
+  } catch(e) {}
+};
+
+// Interceptar goSec para marcar como visto
+(function() {
+  var orig = window.goSec;
+  window.goSec = function(id, btn) {
+    if (orig) orig(id, btn);
+    quitarBadge(id === 'clips' ? 'clips' : id === 'plan' ? 'plan' : id === 'cal' ? 'cal' : id);
+    // Calendario: renderizar con nutrición
+    if (id === 'cal') {
+      window.renderCalJugador && window.renderCalJugador();
+      setTimeout(inyectarNutricionCalendario, 600);
+    }
+  };
+})();
+
+// Inyectar datos nutricionales en el calendario
+async function inyectarNutricionCalendario() {
+  var jugId = window._jugId;
+  if (!jugId || !window.DB_REF) return;
+  var hoy = new Date();
+  var dow = hoy.getDay() === 0 ? 6 : hoy.getDay()-1;
+  var lunes = new Date(hoy); lunes.setDate(hoy.getDate()-dow);
+  var domingo = new Date(lunes); domingo.setDate(lunes.getDate()+6);
+  var res = await window.DB_REF.from('nutricion_log').select('fecha,texto')
+    .eq('jugador_id',jugId)
+    .gte('fecha',lunes.toISOString().slice(0,10))
+    .lte('fecha',domingo.toISOString().slice(0,10));
+  if (!res.data) return;
+  res.data.forEach(function(log) {
+    var mL = (log.texto||'').split('
+').find(function(l){return l.startsWith('MACROS:');});
+    if (!mL) return;
+    var km = mL.match(/(\d+)kcal/);
+    var pm = mL.match(/Prot:\s*(\d+)/);
+    if (!km) return;
+    var el = document.querySelector('[data-fecha="'+log.fecha+'"]');
+    if (!el || el.querySelector('.nut-cal-badge')) return;
+    var d = document.createElement('div');
+    d.className = 'nut-cal-badge';
+    d.style.cssText = 'font-size:8px;color:#d29922;background:rgba(210,153,34,0.15);border-radius:3px;padding:1px 4px;margin-top:2px;text-align:center;line-height:1.4;';
+    d.textContent = '🥗' + km[1] + (pm?'·'+pm[1]+'g':'');
+    el.appendChild(d);
+  });
+}
+
+// Lanzar notificaciones al cargar
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    if (window._jugId) window.checkNotificaciones();
+  }, 2000);
+});
+</script>
+
 </html>
