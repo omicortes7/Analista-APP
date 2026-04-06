@@ -2168,6 +2168,19 @@ window.setModoNut = function(modo, btn) {
     fBtn.style.borderWidth = modo==='funcional' ? '1.5px' : '0.5px';
     fBtn.querySelector('div').style.color = modo==='funcional' ? '#3fb950' : 'var(--text2)';
   }
+  // FIX: Guardar modo en perfil y re-renderizar macros inmediatamente
+  if (_nutPerfil) {
+    _nutPerfil.modo = modo;
+    if (window._jugId) localStorage.setItem('nut_perfil_v3_' + window._jugId, JSON.stringify(_nutPerfil));
+    var diaActivo = _diaActual || 'entreno';
+    if (modo === 'funcional') {
+      renderMacrosObjetivoFuncional(diaActivo);
+      if (typeof renderMenuFuncional === 'function') renderMenuFuncional(diaActivo);
+    } else {
+      if (typeof renderMacrosObjetivo === 'function') renderMacrosObjetivo(diaActivo);
+      if (typeof _origRenderMenuDia === 'function') _origRenderMenuDia(diaActivo);
+    }
+  }
 };
 
 // Sobreescribir calcularPerfil para guardar el modo
@@ -2349,10 +2362,12 @@ window.toggleModoNutPlan = function() {
 var _origRenderNutFinal2 = window.renderNut;
 window.renderNut = function() {
   if (_origRenderNutFinal2) _origRenderNutFinal2();
-  // Restaurar modo del perfil guardado y actualizar botón
+  // Restaurar modo del perfil guardado, actualizar botón y RE-RENDERIZAR macros con el modo correcto
   setTimeout(function() {
     var modo = (_nutPerfil && _nutPerfil.modo) || 'estandar';
     _modoNut = modo;
+
+    // Actualizar botón toggle del plan
     var btn = document.getElementById('btn-modo-plan');
     if (btn) {
       btn.textContent = modo === 'funcional' ? '🦁 Funcional' : '⚽ Estándar';
@@ -2363,7 +2378,21 @@ window.renderNut = function() {
     var eBtn = document.getElementById('modo-estandar');
     var fBtn = document.getElementById('modo-funcional');
     if (eBtn && fBtn && typeof setModoNut === 'function') setModoNut(modo, null);
-  }, 200);
+
+    // FIX: Re-renderizar macros y menú con el modo correcto
+    // La llamada inicial de renderNut usaba el modo antes de restaurarlo
+    if (_nutPerfil) {
+      var diaActivo = _diaActual || 'entreno';
+      if (modo === 'funcional') {
+        renderMacrosObjetivoFuncional(diaActivo);
+        if (typeof renderMenuFuncional === 'function') renderMenuFuncional(diaActivo);
+      } else {
+        if (typeof renderMacrosObjetivo === 'function') renderMacrosObjetivo(diaActivo);
+        // renderMenuDia original (sin override)
+        if (typeof _origRenderMenuDia === 'function') _origRenderMenuDia(diaActivo);
+      }
+    }
+  }, 250);
 };
 </script>
 
