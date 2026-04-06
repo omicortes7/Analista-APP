@@ -767,11 +767,12 @@ function goSec(id, btn) {
   if (sec) sec.classList.add('active');
   if (btn) btn.classList.add('active');
   window.scrollTo(0,0);
-  if (id === 'nut') renderNut();
-  if (id === 'psico') renderPsico && renderPsico();
-  if (id === 'chat') initChat && initChat(window._jugId);
-  if (id === 'cal') { window.renderCalJugador && window.renderCalJugador(); }
+  if (id === 'nut')    renderNut();
+  if (id === 'psico')  renderPsico && renderPsico();
+  if (id === 'chat')   initChat && initChat(window._jugId);
+  if (id === 'cal')    window.renderCalJugador && window.renderCalJugador();
   if (id === 'inicio') renderInicio && renderInicio();
+  if (id === 'clips')  { if (typeof renderClipsSec === 'function') renderClipsSec(window._clipsFiltroActivo || 'mejorar'); }
 }
 
 function showToastGlobal(msg) {
@@ -2119,9 +2120,317 @@ window.addEventListener('load', function() {
 </script>
 
 
+<!-- ============================================================
+     FIXES: selMood visual + renderPsico + filtrarClips
+     ============================================================ -->
+<script>
+
+// ── FIX 1: selMood con feedback visual ──
+window.selMood = function(val) {
+  window._currentMoodVal = val;
+  document.querySelectorAll('.mood-btn').forEach(function(b, i) {
+    var sel = (i + 1) === val;
+    b.style.background   = sel ? 'rgba(163,113,247,0.15)' : 'var(--bg3)';
+    b.style.borderColor  = sel ? 'rgba(163,113,247,0.5)'  : 'var(--border2)';
+    b.style.borderWidth  = sel ? '1.5px' : '0.5px';
+    b.querySelector('div:last-child').style.color = sel ? '#a371f7' : 'var(--text2)';
+  });
+};
+
+// ── FIX 2: renderPsico — carga historial diario al abrir sección ──
+window.renderPsico = function() {
+  loadPsicoDiarioHist();
+};
+
+function loadPsicoDiarioHist() {
+  var jugId = window._jugId;
+  var db    = window.DB_REF;
+  if (!jugId || !db) return;
+  db.from('psico_diario')
+    .select('*')
+    .eq('jugador_id', jugId)
+    .order('fecha', { ascending: false })
+    .limit(10)
+    .then(function(res) {
+      var cont = document.getElementById('psico-hist-diario');
+      if (!cont) return;
+      var data = res.data || [];
+      if (!data.length) {
+        cont.innerHTML = '<div style="font-size:12px;color:var(--text3);">Sin registros todavía.</div>';
+        return;
+      }
+      var EMOJIS = ['','😞','😐','🙂','😊','🔥'];
+      var html = '';
+      data.forEach(function(d) {
+        var fecha = new Date(d.fecha + 'T12:00:00').toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' });
+        var moodEmoji = EMOJIS[d.mood] || '–';
+        html += '<div style="padding:.75rem 0;border-bottom:0.5px solid var(--border);">';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
+        html += '<div style="font-size:12px;font-weight:700;">' + fecha + '</div>';
+        html += '<div style="display:flex;gap:8px;align-items:center;">';
+        html += '<span style="font-size:18px;">' + moodEmoji + '</span>';
+        html += '<span style="font-size:10px;background:rgba(88,166,255,0.12);color:#58a6ff;padding:2px 7px;border-radius:99px;">⚡ ' + (d.energia || '–') + '</span>';
+        html += '<span style="font-size:10px;background:rgba(248,81,73,0.1);color:#f85149;padding:2px 7px;border-radius:99px;">😤 ' + (d.estres || '–') + '</span>';
+        html += '</div></div>';
+        if (d.mejor)         html += '<div style="font-size:11px;color:var(--text2);margin-bottom:3px;">✅ ' + d.mejor + '</div>';
+        if (d.dificil)       html += '<div style="font-size:11px;color:var(--text2);margin-bottom:3px;">⚠️ ' + d.dificil + '</div>';
+        if (d.mejorar_manana) html += '<div style="font-size:11px;color:var(--text2);">🎯 ' + d.mejorar_manana + '</div>';
+        html += '</div>';
+      });
+      cont.innerHTML = html;
+    });
+}
+
+// Recargar historial diario tras guardar
+(function() {
+  var _origClick = document.onclick;
+  document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'btn-save-psico') {
+      setTimeout(loadPsicoDiarioHist, 800);
+    }
+  });
+})();
+
+// ── FIX 3: filtrarClips + render completo de la sección clips ──
+var _clipsFiltroActivo = 'mejorar';
+
+window.filtrarClips = function(tipo, btn) {
+  _clipsFiltroActivo = tipo;
+  // Actualizar botones
+  var CFGS = {
+    mejorar:    { bg: 'rgba(248,81,73,0.15)',   c: '#f85149', bc: 'rgba(248,81,73,0.3)' },
+    positivo:   { bg: 'rgba(63,185,80,0.15)',   c: '#3fb950', bc: 'rgba(63,185,80,0.3)' },
+    referencia: { bg: 'rgba(210,153,34,0.15)',  c: '#d29922', bc: 'rgba(210,153,34,0.3)' }
+  };
+  document.querySelectorAll('#sec-clips button[onclick^="filtrarClips"]').forEach(function(b) {
+    var t = b.getAttribute('onclick').match(/'([^']+)'/);
+    var k = t ? t[1] : '';
+    var cfg = CFGS[k] || CFGS.mejorar;
+    var activo = k === tipo;
+    b.style.background  = activo ? cfg.bg   : 'none';
+    b.style.color       = activo ? cfg.c    : 'var(--text3)';
+    b.style.borderColor = activo ? cfg.bc   : 'var(--border2)';
+  });
+  renderClipsSec(tipo);
+};
+
+function renderClipsSec(tipo) {
+  var cont = document.getElementById('clips-content');
+  if (!cont) return;
+  var todos = window._clips || [];
+  var filtrados = todos.filter(function(c) { return c.tipo === tipo; });
+  if (!filtrados.length) {
+    var LABELS = { mejorar:'△ A mejorar', positivo:'✓ Puntos fuertes', referencia:'★ Referencias élite' };
+    cont.innerHTML = '<div style="padding:2rem;text-align:center;"><div style="font-size:32px;margin-bottom:8px;">📹</div><div style="font-size:13px;color:var(--text2);">Sin clips de ' + (LABELS[tipo]||tipo) + ' todavía.</div><div style="font-size:11px;color:var(--text3);margin-top:4px;">Tu analista los añadirá aquí.</div></div>';
+    return;
+  }
+  var TIPOS = {
+    mejorar:    { bg:'rgba(248,81,73,0.1)',  c:'#f85149', l:'△ A mejorar' },
+    positivo:   { bg:'rgba(63,185,80,0.1)', c:'#3fb950', l:'✓ Punto fuerte' },
+    referencia: { bg:'rgba(210,153,34,0.1)',c:'#d29922', l:'★ Referencia élite' }
+  };
+  var html = '';
+  filtrados.forEach(function(clip) {
+    var t = TIPOS[clip.tipo] || TIPOS.referencia;
+    html += '<div class="card" style="margin-bottom:10px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+    html += '<span style="font-size:10px;padding:2px 9px;border-radius:99px;background:' + t.bg + ';color:' + t.c + ';font-weight:700;border:0.5px solid ' + t.c + '40;">' + t.l + '</span>';
+    if (clip.titulo) html += '<span style="font-size:13px;font-weight:700;flex:1;">' + clip.titulo + '</span>';
+    html += '</div>';
+    if (clip.descripcion) html += '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">' + clip.descripcion + '</div>';
+    if (clip.url) {
+      var m = clip.url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || clip.url.match(/id=([a-zA-Z0-9_-]+)/);
+      if (m) {
+        html += '<div style="width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;margin-bottom:6px;"><iframe src="https://drive.google.com/file/d/' + m[1] + '/preview" width="100%" height="100%" style="border:none;" allowfullscreen></iframe></div>';
+      } else {
+        html += '<video controls playsinline style="width:100%;border-radius:8px;max-height:220px;margin-bottom:6px;" src="' + clip.url + '"></video>';
+      }
+    }
+    if (clip.created_at) {
+      var fecha = new Date(clip.created_at).toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+      html += '<div style="font-size:10px;color:var(--text3);">Añadido ' + fecha + '</div>';
+    }
+    html += '</div>';
+  });
+  cont.innerHTML = html;
+}
+
+// Inicializar clips cuando se cargan los datos
+(function() {
+  var _origSetAppData = window._setAppData;
+  window._setAppData = function(clips, informes, jug) {
+    window._clips    = clips    || [];
+    window._informes = informes || [];
+    window._jugData  = jug;
+    if (_origSetAppData) _origSetAppData(clips, informes, jug);
+    // Render inicial de clips con filtro activo
+    renderClipsSec(_clipsFiltroActivo);
+  };
+  // Si _clips ya existe (carga tardía), renderizar
+  if (window._clips && window._clips.length) {
+    renderClipsSec(_clipsFiltroActivo);
+  }
+})();
+
+</script>
+
 <!-- Selector modo nutricional - insertar en perfil -->
 <script>
-// Inyectar selector de modo en el perfil al cargar
+// ============================================================
+// MÓDULO MODO NUTRICIONAL — versión limpia sin overrides en cadena
+// ============================================================
+
+// ── FUNCIÓN CENTRAL: devuelve siempre el modo correcto ──
+function getModoNut() {
+  // Prioridad: 1) _nutPerfil.modo guardado  2) _modoNut en memoria  3) 'estandar'
+  if (_nutPerfil && _nutPerfil.modo) return _nutPerfil.modo;
+  return _modoNut || 'estandar';
+}
+
+// ── FUNCIÓN CENTRAL: renderiza macros según modo ──
+function renderMacrosPorModo(tipo) {
+  var modo = getModoNut();
+  if (modo === 'funcional') {
+    renderMacrosObjetivoFuncional(tipo);
+  } else {
+    renderMacrosObjetivoEstandar(tipo);
+  }
+}
+
+// ── FUNCIÓN CENTRAL: renderiza menú según modo ──
+function renderMenuPorModo(tipo) {
+  var modo = getModoNut();
+  if (modo === 'funcional') {
+    renderMenuFuncional(tipo);
+  } else {
+    renderMenuEstandar(tipo);
+  }
+}
+
+// ── FUNCIÓN CENTRAL: guarda modo y refresca todo ──
+function aplicarModo(modo) {
+  _modoNut = modo;
+  if (_nutPerfil) {
+    _nutPerfil.modo = modo;
+    if (window._jugId) localStorage.setItem('nut_perfil_v3_' + window._jugId, JSON.stringify(_nutPerfil));
+  }
+  // Actualizar botones del onboarding
+  var eBtn = document.getElementById('modo-estandar');
+  var fBtn = document.getElementById('modo-funcional');
+  if (eBtn) {
+    eBtn.style.background  = modo==='estandar' ? 'rgba(210,153,34,0.15)' : 'none';
+    eBtn.style.borderColor = modo==='estandar' ? 'rgba(210,153,34,0.5)'  : 'var(--border2)';
+    eBtn.style.borderWidth = modo==='estandar' ? '1.5px' : '0.5px';
+    eBtn.querySelector('div').style.color = modo==='estandar' ? '#d29922' : 'var(--text2)';
+  }
+  if (fBtn) {
+    fBtn.style.background  = modo==='funcional' ? 'rgba(63,185,80,0.1)' : 'none';
+    fBtn.style.borderColor = modo==='funcional' ? 'rgba(63,185,80,0.4)' : 'var(--border2)';
+    fBtn.style.borderWidth = modo==='funcional' ? '1.5px' : '0.5px';
+    fBtn.querySelector('div').style.color = modo==='funcional' ? '#3fb950' : 'var(--text2)';
+  }
+  // Actualizar botón toggle del plan
+  var btn = document.getElementById('btn-modo-plan');
+  if (btn) {
+    btn.textContent   = modo==='funcional' ? '🦁 Funcional' : '⚽ Estándar';
+    btn.style.color   = modo==='funcional' ? '#3fb950' : 'var(--text2)';
+    btn.style.borderColor = modo==='funcional' ? 'rgba(63,185,80,0.4)' : 'var(--border2)';
+  }
+  // Rerenderizar macros y menú si hay plan visible
+  if (_nutPerfil) {
+    var dia = _diaActual || 'entreno';
+    renderMacrosPorModo(dia);
+    renderMenuPorModo(dia);
+  }
+}
+
+// ── EXPONER funciones que usa el HTML ──
+window.setModoNut = function(modo) { aplicarModo(modo); };
+window.toggleModoNutPlan = function() {
+  var nuevo = getModoNut() === 'funcional' ? 'estandar' : 'funcional';
+  aplicarModo(nuevo);
+  showToastGlobal(nuevo==='funcional' ? '🦁 Modo Funcional activado' : '⚽ Modo Estándar activado');
+};
+
+// ── SOBREESCRIBIR setDia para usar renderMacrosPorModo ──
+var _origSetDia2 = window.setDia;
+window.setDia = function(tipo, btn) {
+  _diaActual = tipo;
+  var cfgs = {
+    entreno:  {c:'#3fb950',bg:'rgba(63,185,80,0.15)', bc:'rgba(63,185,80,0.3)'},
+    partido:  {c:'#58a6ff',bg:'rgba(88,166,255,0.15)',bc:'rgba(88,166,255,0.3)'},
+    descanso: {c:'#484f58',bg:'rgba(72,79,88,0.15)',  bc:'var(--border2)'}
+  };
+  ['entreno','partido','descanso'].forEach(function(t) {
+    var b = document.getElementById('dt-'+t);
+    if (!b) return;
+    b.style.background  = t===tipo ? cfgs[t].bg : 'none';
+    b.style.color       = t===tipo ? cfgs[t].c  : 'var(--text3)';
+    b.style.borderColor = t===tipo ? cfgs[t].bc : 'var(--border2)';
+  });
+  renderMacrosPorModo(tipo);
+  renderMenuPorModo(tipo);
+};
+
+// ── SOBREESCRIBIR renderNut para restaurar modo al abrir ──
+var _origRenderNutModo = window.renderNut;
+window.renderNut = function() {
+  if (_origRenderNutModo) _origRenderNutModo();
+  // Tras cargar el perfil, restaurar modo y rerenderizar
+  setTimeout(function() {
+    var modo = (_nutPerfil && _nutPerfil.modo) ? _nutPerfil.modo : (_modoNut || 'estandar');
+    // Aplicar sin guardar de nuevo (ya está guardado)
+    _modoNut = modo;
+    var eBtn = document.getElementById('modo-estandar');
+    var fBtn = document.getElementById('modo-funcional');
+    if (eBtn) {
+      eBtn.style.background  = modo==='estandar' ? 'rgba(210,153,34,0.15)' : 'none';
+      eBtn.style.borderColor = modo==='estandar' ? 'rgba(210,153,34,0.5)'  : 'var(--border2)';
+      eBtn.style.borderWidth = modo==='estandar' ? '1.5px' : '0.5px';
+      eBtn.querySelector('div').style.color = modo==='estandar' ? '#d29922' : 'var(--text2)';
+    }
+    if (fBtn) {
+      fBtn.style.background  = modo==='funcional' ? 'rgba(63,185,80,0.1)' : 'none';
+      fBtn.style.borderColor = modo==='funcional' ? 'rgba(63,185,80,0.4)' : 'var(--border2)';
+      fBtn.style.borderWidth = modo==='funcional' ? '1.5px' : '0.5px';
+      fBtn.querySelector('div').style.color = modo==='funcional' ? '#3fb950' : 'var(--text2)';
+    }
+    var btn = document.getElementById('btn-modo-plan');
+    if (btn) {
+      btn.textContent   = modo==='funcional' ? '🦁 Funcional' : '⚽ Estándar';
+      btn.style.color   = modo==='funcional' ? '#3fb950' : 'var(--text2)';
+      btn.style.borderColor = modo==='funcional' ? 'rgba(63,185,80,0.4)' : 'var(--border2)';
+    }
+    // CRÍTICO: rerenderizar macros y menú con el modo correcto
+    if (_nutPerfil) {
+      var dia = _diaActual || 'entreno';
+      renderMacrosPorModo(dia);
+      renderMenuPorModo(dia);
+    }
+  }, 300);
+};
+
+// ── SOBREESCRIBIR calcularPerfil para guardar modo ──
+var _origCalcPerfilModo = window.calcularPerfil;
+window.calcularPerfil = function() {
+  if (_origCalcPerfilModo) _origCalcPerfilModo();
+  // Guardar modo en el perfil recién calculado
+  if (_nutPerfil) {
+    _nutPerfil.modo = _modoNut || 'estandar';
+    if (window._jugId) localStorage.setItem('nut_perfil_v3_' + window._jugId, JSON.stringify(_nutPerfil));
+  }
+  // Rerenderizar con el modo correcto (calcularPerfil llama setDia internamente,
+  // pero en ese momento _nutPerfil.modo puede no estar aún — llamamos de nuevo aquí)
+  setTimeout(function() {
+    if (_nutPerfil) {
+      var dia = _diaActual || 'entreno';
+      renderMacrosPorModo(dia);
+      renderMenuPorModo(dia);
+    }
+  }, 50);
+};
+
+// ── INYECTAR selector de modo en el onboarding ──
 window.addEventListener('load', function() {
   setTimeout(function() {
     var perfilCard = document.getElementById('nut-perfil-card');
@@ -2149,117 +2458,23 @@ window.addEventListener('load', function() {
   }, 500);
 });
 
-// ── MODO NUTRICIONAL ──
-var _modoNut = 'estandar'; // 'estandar' o 'funcional'
+// ── VARIABLE DE ESTADO (única fuente de verdad) ──
+var _modoNut = 'estandar';
 
-window.setModoNut = function(modo, btn) {
-  _modoNut = modo;
-  var eBtn = document.getElementById('modo-estandar');
-  var fBtn = document.getElementById('modo-funcional');
-  if (eBtn) {
-    eBtn.style.background = modo==='estandar' ? 'rgba(210,153,34,0.15)' : 'none';
-    eBtn.style.borderColor = modo==='estandar' ? 'rgba(210,153,34,0.5)' : 'var(--border2)';
-    eBtn.style.borderWidth = modo==='estandar' ? '1.5px' : '0.5px';
-    eBtn.querySelector('div').style.color = modo==='estandar' ? '#d29922' : 'var(--text2)';
-  }
-  if (fBtn) {
-    fBtn.style.background = modo==='funcional' ? 'rgba(63,185,80,0.1)' : 'none';
-    fBtn.style.borderColor = modo==='funcional' ? 'rgba(63,185,80,0.4)' : 'var(--border2)';
-    fBtn.style.borderWidth = modo==='funcional' ? '1.5px' : '0.5px';
-    fBtn.querySelector('div').style.color = modo==='funcional' ? '#3fb950' : 'var(--text2)';
-  }
-  // FIX: Guardar modo en perfil y re-renderizar macros inmediatamente
-  if (_nutPerfil) {
-    _nutPerfil.modo = modo;
-    if (window._jugId) localStorage.setItem('nut_perfil_v3_' + window._jugId, JSON.stringify(_nutPerfil));
-    var diaActivo = _diaActual || 'entreno';
-    if (modo === 'funcional') {
-      renderMacrosObjetivoFuncional(diaActivo);
-      if (typeof renderMenuFuncional === 'function') renderMenuFuncional(diaActivo);
-    } else {
-      if (typeof renderMacrosObjetivo === 'function') renderMacrosObjetivo(diaActivo);
-      if (typeof _origRenderMenuDia === 'function') _origRenderMenuDia(diaActivo);
-    }
-  }
-};
+// ── MACROS MODO ESTÁNDAR (wrapper de renderMacrosObjetivo existente) ──
+function renderMacrosObjetivoEstandar(tipo) {
+  if (typeof renderMacrosObjetivo === 'function') renderMacrosObjetivo(tipo);
+}
 
-// Sobreescribir calcularPerfil para guardar el modo
-var _origCalcPerfil = window.calcularPerfil;
-window.calcularPerfil = function() {
-  if (_origCalcPerfil) _origCalcPerfil();
-  if (_nutPerfil) {
-    _nutPerfil.modo = _modoNut;
-    if (window._jugId) localStorage.setItem('nut_perfil_v3_' + window._jugId, JSON.stringify(_nutPerfil));
-  }
-  // Mostrar badge del modo en plan-card
-  var modoLabel = document.getElementById('modo-label-plan');
-  if (!modoLabel) {
-    var planCard = document.getElementById('nut-plan-card');
-    if (planCard) {
-      var d = document.createElement('div');
-      d.id = 'modo-label-plan';
-      d.style.cssText = 'text-align:center;margin-bottom:.5rem;';
-      planCard.insertBefore(d, planCard.firstChild);
-    }
-    modoLabel = document.getElementById('modo-label-plan');
-  }
-  if (modoLabel) {
-    if (_modoNut === 'funcional') {
-      modoLabel.innerHTML = '<span style="font-size:10px;padding:3px 12px;border-radius:99px;background:rgba(63,185,80,0.12);color:#3fb950;border:0.5px solid rgba(63,185,80,0.3);">🦁 Modo Funcional — Paleo</span>';
-    } else {
-      modoLabel.innerHTML = '<span style="font-size:10px;padding:3px 12px;border-radius:99px;background:rgba(210,153,34,0.12);color:#d29922;border:0.5px solid rgba(210,153,34,0.3);">⚽ Modo Estándar — UEFA</span>';
-    }
-  }
-};
-
-// Sobreescribir renderMenuDia para modo funcional
-var _origRenderMenuDia = window.renderMenuDia;
-window.renderMenuDia = function(tipo) {
-  var modo = (_nutPerfil && _nutPerfil.modo) || _modoNut || 'estandar';
-  if (modo === 'funcional') {
-    renderMenuFuncional(tipo);
-  } else {
-    if (_origRenderMenuDia) _origRenderMenuDia(tipo);
-  }
-};
-
-// Macros para modo funcional (diferentes: más grasas, menos carbos)
-var _origSetDia = window.setDia;
-window.setDia = function(tipo, btn) {
-  _diaActual = tipo;
-  // Actualizar botones
-  var cfgs = {
-    entreno:  {c:'#3fb950',bg:'rgba(63,185,80,0.15)',bc:'rgba(63,185,80,0.3)'},
-    partido:  {c:'#58a6ff',bg:'rgba(88,166,255,0.15)',bc:'rgba(88,166,255,0.3)'},
-    descanso: {c:'#484f58',bg:'rgba(72,79,88,0.15)',bc:'var(--border2)'}
-  };
-  ['entreno','partido','descanso'].forEach(function(t) {
-    var b = document.getElementById('dt-'+t);
-    if (!b) return;
-    var cf = cfgs[t];
-    b.style.background   = t===tipo ? cf.bg : 'none';
-    b.style.color        = t===tipo ? cf.c  : 'var(--text3)';
-    b.style.borderColor  = t===tipo ? cf.bc : 'var(--border2)';
-  });
-
-  var modo = (_nutPerfil && _nutPerfil.modo) || _modoNut || 'estandar';
-  if (modo === 'funcional' && _nutPerfil) {
-    renderMacrosObjetivoFuncional(tipo);
-  } else {
-    if (typeof renderMacrosObjetivo === 'function') renderMacrosObjetivo(tipo);
-  }
-  if (typeof window.renderMenuDia === 'function') window.renderMenuDia(tipo);
-};
-
+// ── MACROS MODO FUNCIONAL ──
 function renderMacrosObjetivoFuncional(tipo) {
   var cont = document.getElementById('macros-barras');
   if (!cont || !_nutPerfil) return;
-  // Modo funcional: menos carbos, más grasas
   var peso = _nutPerfil.peso || 65;
   var macros = {
-    entreno:  { kcal: Math.round(_nutPerfil.entreno.kcal * 0.9),  prot: _nutPerfil.entreno.prot,  carb: Math.round(peso*3.5), grasas: Math.round(peso*1.2) },
-    partido:  { kcal: Math.round(_nutPerfil.partido.kcal * 0.9),  prot: _nutPerfil.partido.prot,  carb: Math.round(peso*5),   grasas: Math.round(peso*1.2) },
-    descanso: { kcal: Math.round(_nutPerfil.descanso.kcal * 0.85),prot: _nutPerfil.descanso.prot, carb: Math.round(peso*2),   grasas: Math.round(peso*1.0) },
+    entreno:  { kcal: Math.round(_nutPerfil.entreno.kcal  * 0.90), prot: _nutPerfil.entreno.prot,  carb: Math.round(peso*3.5), grasas: Math.round(peso*1.2) },
+    partido:  { kcal: Math.round(_nutPerfil.partido.kcal  * 0.90), prot: _nutPerfil.partido.prot,  carb: Math.round(peso*5.0), grasas: Math.round(peso*1.2) },
+    descanso: { kcal: Math.round(_nutPerfil.descanso.kcal * 0.85), prot: _nutPerfil.descanso.prot, carb: Math.round(peso*2.0), grasas: Math.round(peso*1.0) }
   };
   var m = macros[tipo] || macros.entreno;
   var c = tipo==='partido'?'#58a6ff':tipo==='descanso'?'#484f58':'#3fb950';
@@ -2268,17 +2483,22 @@ function renderMacrosObjetivoFuncional(tipo) {
       macroBox(m.kcal,'kcal',c) + macroBox(m.prot+'g','Proteína','#a371f7') +
       macroBox(m.carb+'g','Carbos','#d29922') + macroBox(m.grasas+'g','Grasas','#58a6ff') +
     '</div>' +
-    '<div style="font-size:9px;color:var(--text3);text-align:right;">Dieta Paleo-Funcional · Carbos de calidad</div>';
+    '<div style="font-size:9px;color:var(--text3);text-align:right;">🦁 Dieta Paleo-Funcional · Carbos de calidad</div>';
 }
 
+// ── MENÚ MODO ESTÁNDAR (wrapper de renderMenuDia original) ──
+function renderMenuEstandar(tipo) {
+  // renderMenuDia es la función original definida antes de este script
+  // La buscamos por nombre para evitar recursión
+  if (typeof _origRenderMenuDia2 === 'function') _origRenderMenuDia2(tipo);
+}
+var _origRenderMenuDia2 = window.renderMenuDia; // capturar ANTES de sobreescribir
+
+// ── MENÚ MODO FUNCIONAL ──
 function renderMenuFuncional(tipo) {
   var cont = document.getElementById('plan-comidas');
   if (!cont || !_nutPerfil) return;
-
-  // Basado en dieta paleo de Marcos Llorente:
-  // ✅ Carne, pescado, huevos, fruta, verduras, tubérculos, frutos secos
-  // ❌ Sin cereales, sin lácteos, sin legumbres, sin harinas, sin procesados
-  var MENUS_FUNCIONAL = {
+  var MENUS = {
     entreno: {
       titulo: '🦁 Día entreno — Modo Funcional',
       sub: 'Proteína + grasas buenas + carbos de boniato y fruta',
@@ -2288,18 +2508,18 @@ function renderMenuFuncional(tipo) {
         { h:'Comida', ico:'🍗', items:['Pollo o carne a la plancha (180g)','Boniato o patata al horno (200g)','Aguacate o aceite de oliva virgen','Verduras al vapor o ensalada sin cereal'], nota:'Boniato en vez de arroz o pasta' },
         { h:'Pre-entreno (1h antes)', ico:'⚡', items:['Plátano + puñado de dátiles','Agua con pizca de sal marina'] },
         { h:'Post-entreno (30min)', ico:'💪', items:['Huevos + fruta (recuperación rápida)','O sardinas/atún en aceite de oliva'], nota:'Sin batidos procesados' },
-        { h:'Cena', ico:'🌙', items:['Salmón o pescado azul (180g)','Verduras al vapor (brócoli, espinacas, zanahoria)','Aceite de oliva virgen extra','Evitar carbos por la noche'] },
+        { h:'Cena', ico:'🌙', items:['Salmón o pescado azul (180g)','Verduras al vapor (brócoli, espinacas, zanahoria)','Aceite de oliva virgen extra','Evitar carbos por la noche'] }
       ]
     },
     partido: {
       titulo: '⚽ Día partido — Modo Funcional',
       sub: 'Protocolo paleo para partido: tubérculos + proteína',
       comidas: [
-        { h:'3-4h antes', ico:'🌅', items:['Pollo o pavo a la plancha (150g)','Boniato grande (250g) — fuente de carbos limpia','Sin lácteos ni harinas','Agua con sal marina'], nota:'⚠ El boniato sustituye a la pasta' },
+        { h:'3-4h antes', ico:'🌅', items:['Pollo o pavo a la plancha (150g)','Boniato grande (250g) — carbos limpios','Sin lácteos ni harinas','Agua con sal marina'], nota:'⚠ El boniato sustituye a la pasta' },
         { h:'1h antes', ico:'⚡', items:['Plátano + 3-4 dátiles','Agua o coco water'] },
         { h:'Durante', ico:'💧', items:['Agua con pizca de sal marina','Plátano o dátiles en el descanso','Sin geles ni isotónicos procesados'] },
-        { h:'Post-partido (30min)', ico:'🔄', items:['Huevos + plátano (recuperación)','Agua abundante con electrolitos naturales'] , nota:'Proteína real antes que batidos' },
-        { h:'Cena', ico:'🌙', items:['Salmón o carne roja de calidad (200g)','Verduras variadas','Aguacate','Boniato si fue partido intenso'] },
+        { h:'Post-partido (30min)', ico:'🔄', items:['Huevos + plátano (recuperación)','Agua abundante con electrolitos naturales'], nota:'Proteína real antes que batidos' },
+        { h:'Cena', ico:'🌙', items:['Salmón o carne roja de calidad (200g)','Verduras variadas','Aguacate','Boniato si fue partido intenso'] }
       ]
     },
     descanso: {
@@ -2308,21 +2528,16 @@ function renderMenuFuncional(tipo) {
       comidas: [
         { h:'Desayuno', ico:'🌅', items:['Huevos con aguacate','Frutos rojos (antiinflamatorio)','Café solo o té verde'] },
         { h:'Comida', ico:'🥗', items:['Salmón o sardinas (antiinflamatorio)','Ensalada grande con aceite de oliva','Nueces o almendras (omega-3)'] },
-        { h:'Cena ligera', ico:'🌙', items:['Pollo o huevos','Verduras al vapor','Sin carbos — el cuerpo no los necesita hoy'] },
+        { h:'Cena ligera', ico:'🌙', items:['Pollo o huevos','Verduras al vapor','Sin carbos — el cuerpo no los necesita hoy'] }
       ]
     }
   };
-
-  var plan = MENUS_FUNCIONAL[tipo] || MENUS_FUNCIONAL.entreno;
+  var plan = MENUS[tipo] || MENUS.entreno;
   var html = '<div style="font-size:10px;font-weight:800;color:var(--text2);margin-bottom:4px;">'+plan.titulo+'</div>';
   html += '<div style="font-size:10px;color:var(--text3);margin-bottom:.875rem;font-style:italic;">'+plan.sub+'</div>';
-
-  // Banner de qué está prohibido
   html += '<div style="background:rgba(248,81,73,0.08);border:0.5px solid rgba(248,81,73,0.2);border-radius:8px;padding:.625rem;margin-bottom:.875rem;">' +
     '<div style="font-size:10px;font-weight:700;color:#f85149;margin-bottom:4px;">❌ Evitar en modo funcional</div>' +
-    '<div style="font-size:10px;color:var(--text2);">Pasta · Arroz · Pan · Cereales · Lácteos · Legumbres · Azúcares · Procesados</div>' +
-  '</div>';
-
+    '<div style="font-size:10px;color:var(--text2);">Pasta · Arroz · Pan · Cereales · Lácteos · Legumbres · Azúcares · Procesados</div></div>';
   plan.comidas.forEach(function(com) {
     html += '<div style="padding:.75rem 0;border-bottom:0.5px solid var(--border);">';
     html += '<div style="display:flex;gap:8px;margin-bottom:5px;"><span style="font-size:16px;">'+com.ico+'</span><b style="font-size:11px;color:var(--text2);">'+com.h+'</b></div>';
@@ -2330,70 +2545,9 @@ function renderMenuFuncional(tipo) {
     if (com.nota) html += '<div style="font-size:10px;color:#3fb950;margin-top:4px;padding:3px 8px;background:rgba(63,185,80,0.08);border-radius:5px;">✓ '+com.nota+'</div>';
     html += '</div>';
   });
-
-  // Referencia
-  html += '<div style="margin-top:.875rem;padding:.75rem;background:var(--bg3);border-radius:8px;">' +
-    '<div style="font-size:9px;color:var(--text3);">Inspirado en la dieta paleo de Marcos Llorente (Atlético de Madrid). Carbohidratos de calidad: boniato, patata, fruta, dátiles. Sin harinas, sin lácteos, sin procesados.</div>' +
-  '</div>';
-
+  html += '<div style="margin-top:.875rem;padding:.75rem;background:var(--bg3);border-radius:8px;"><div style="font-size:9px;color:var(--text3);">Inspirado en la dieta paleo de Marcos Llorente (Atlético de Madrid). Carbohidratos de calidad: boniato, patata, fruta, dátiles. Sin harinas, sin lácteos, sin procesados.</div></div>';
   cont.innerHTML = html;
 }
 
-// Toggle modo desde nut-plan-card
-window.toggleModoNutPlan = function() {
-  var nuevo = ((_nutPerfil && _nutPerfil.modo) || _modoNut) === 'funcional' ? 'estandar' : 'funcional';
-  _modoNut = nuevo;
-  if (_nutPerfil) {
-    _nutPerfil.modo = nuevo;
-    if (window._jugId) localStorage.setItem('nut_perfil_v3_' + window._jugId, JSON.stringify(_nutPerfil));
-  }
-  var btn = document.getElementById('btn-modo-plan');
-  if (btn) {
-    btn.textContent = nuevo === 'funcional' ? '🦁 Funcional' : '⚽ Estándar';
-    btn.style.color = nuevo === 'funcional' ? '#3fb950' : 'var(--text2)';
-    btn.style.borderColor = nuevo === 'funcional' ? 'rgba(63,185,80,0.4)' : 'var(--border2)';
-  }
-  // Re-renderizar menú y macros
-  if (typeof window.setDia === 'function') window.setDia(_diaActual || 'entreno', null);
-  showToastGlobal(nuevo === 'funcional' ? '🦁 Modo Funcional activado' : '⚽ Modo Estándar activado');
-};
-
-// Cargar modo guardado al abrir nutrición
-var _origRenderNutFinal2 = window.renderNut;
-window.renderNut = function() {
-  if (_origRenderNutFinal2) _origRenderNutFinal2();
-  // Restaurar modo del perfil guardado, actualizar botón y RE-RENDERIZAR macros con el modo correcto
-  setTimeout(function() {
-    var modo = (_nutPerfil && _nutPerfil.modo) || 'estandar';
-    _modoNut = modo;
-
-    // Actualizar botón toggle del plan
-    var btn = document.getElementById('btn-modo-plan');
-    if (btn) {
-      btn.textContent = modo === 'funcional' ? '🦁 Funcional' : '⚽ Estándar';
-      btn.style.color = modo === 'funcional' ? '#3fb950' : 'var(--text2)';
-      btn.style.borderColor = modo === 'funcional' ? 'rgba(63,185,80,0.4)' : 'var(--border2)';
-    }
-    // Actualizar selectores del perfil si están visibles
-    var eBtn = document.getElementById('modo-estandar');
-    var fBtn = document.getElementById('modo-funcional');
-    if (eBtn && fBtn && typeof setModoNut === 'function') setModoNut(modo, null);
-
-    // FIX: Re-renderizar macros y menú con el modo correcto
-    // La llamada inicial de renderNut usaba el modo antes de restaurarlo
-    if (_nutPerfil) {
-      var diaActivo = _diaActual || 'entreno';
-      if (modo === 'funcional') {
-        renderMacrosObjetivoFuncional(diaActivo);
-        if (typeof renderMenuFuncional === 'function') renderMenuFuncional(diaActivo);
-      } else {
-        if (typeof renderMacrosObjetivo === 'function') renderMacrosObjetivo(diaActivo);
-        // renderMenuDia original (sin override)
-        if (typeof _origRenderMenuDia === 'function') _origRenderMenuDia(diaActivo);
-      }
-    }
-  }, 250);
-};
 </script>
-
 </html>
