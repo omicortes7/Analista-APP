@@ -1010,7 +1010,7 @@ function mostrarSelectorCantidad(bloque, alimento) {
   html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">';
 
   cantidades.forEach(function(c) {
-    var g = c * std;
+    var g = (tipo === 'peso') ? c : c * std;
     var kcal = Math.round((alimento[4]*g)/100);
     var prot = Math.round((alimento[1]*g)/100);
     html += '<button onclick="confirmarCantidad(\'' + bloque + '\',' + c + ')" ' +
@@ -1036,7 +1036,9 @@ window.mostrarSelectorCantidad = mostrarSelectorCantidad;
 function confirmarCantidad(bloque, cantidad) {
   var a = _foodSeleccionado[bloque];
   if (!a) return;
-  var g = cantidad * a[6];
+  // Para tipo 'peso': la cantidad YA son gramos directamente
+  // Para otros tipos (unidades, vasos, lonchas...): g = cantidad * std
+  var g = (a[5] === 'peso') ? cantidad : cantidad * a[6];
   addItem(bloque, a, g, cantidad + ' ' + a[7]);
 }
 window.confirmarCantidad = confirmarCantidad;
@@ -1047,7 +1049,7 @@ function confirmarCantidadCustom(bloque) {
   var inp = document.getElementById('ac-custom-' + bloque);
   var val = parseFloat(inp ? inp.value : 0);
   if (!val || val <= 0) { showToastGlobal('Introduce una cantidad'); return; }
-  var g = val * a[6];
+  var g = (a[5] === 'peso') ? val : val * a[6];
   addItem(bloque, a, g, val + ' ' + a[7]);
 }
 window.confirmarCantidadCustom = confirmarCantidadCustom;
