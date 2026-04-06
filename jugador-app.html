@@ -242,6 +242,38 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <button onclick="setVeg('si',this)" id="veg-si" style="flex:1;height:34px;border-radius:var(--radius-sm);background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;font-size:12px;">Vegetariano</button>
           <button onclick="setVeg('vegano',this)" id="veg-vegano" style="flex:1;height:34px;border-radius:var(--radius-sm);background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;font-size:12px;">Vegano</button>
         </div></div>
+        <!-- Selector de modo -->
+        <div style="margin-bottom:10px;">
+          <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:6px;">Modo nutricional</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button onclick="setModoNut('estandar',this)" id="modo-estandar"
+              style="padding:10px 8px;border-radius:var(--radius-sm);background:rgba(210,153,34,0.15);border:1.5px solid rgba(210,153,34,0.5);cursor:pointer;font-family:inherit;text-align:left;">
+              <div style="font-size:12px;font-weight:700;color:#d29922;">⚽ Estándar</div>
+              <div style="font-size:10px;color:var(--text2);margin-top:2px;">UEFA · Carbos altos · Pasta, arroz, pan</div>
+            </button>
+            <button onclick="setModoNut('funcional',this)" id="modo-funcional"
+              style="padding:10px 8px;border-radius:var(--radius-sm);background:none;border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;text-align:left;">
+              <div style="font-size:12px;font-weight:700;color:var(--text2);">🦁 Funcional</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px;">Paleo · Sin harinas · Comida real</div>
+            </button>
+          </div>
+        </div>
+        <!-- Selector modo nutricional -->
+        <div style="margin-bottom:10px;">
+          <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:6px;">Modo nutricional</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button onclick="setModoNut('estandar',this)" id="modo-estandar"
+              style="padding:10px 8px;border-radius:var(--radius-sm);background:rgba(210,153,34,0.15);border:1.5px solid rgba(210,153,34,0.5);cursor:pointer;font-family:inherit;text-align:left;">
+              <div style="font-size:12px;font-weight:700;color:#d29922;">⚽ Estándar</div>
+              <div style="font-size:10px;color:var(--text2);margin-top:2px;">UEFA · Pasta, arroz, pan</div>
+            </button>
+            <button onclick="setModoNut('funcional',this)" id="modo-funcional"
+              style="padding:10px 8px;border-radius:var(--radius-sm);background:none;border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;text-align:left;">
+              <div style="font-size:12px;font-weight:700;color:var(--text2);">🦁 Funcional</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px;">Paleo · Sin harinas · Comida real</div>
+            </button>
+          </div>
+        </div>
         <button onclick="calcularPerfil()" style="width:100%;height:42px;background:linear-gradient(135deg,#d29922,#a07010);border:none;border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Calcular mi plan personalizado</button>
       </div>
 
@@ -813,9 +845,10 @@ function renderNut() {
     }
   }
 
-  // Inicializar bloques de comida
+  // Inicializar bloques de comida y vasos
   setTimeout(function() {
     initNutBloques();
+    initVasos();
   }, 80);
 
   // Cargar historial
@@ -2062,6 +2095,230 @@ window.addEventListener('load', function() {
     if (window._jugId) window.checkNotificaciones();
   }, 2000);
 });
+</script>
+
+
+<!-- Selector modo nutricional - insertar en perfil -->
+<script>
+// Inyectar selector de modo en el perfil al cargar
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    var perfilCard = document.getElementById('nut-perfil-card');
+    if (!perfilCard) return;
+    var calcBtn = perfilCard.querySelector('button[onclick="calcularPerfil()"]');
+    if (!calcBtn || document.getElementById('modo-estandar')) return;
+    
+    var selectorDiv = document.createElement('div');
+    selectorDiv.style.cssText = 'margin-bottom:10px;';
+    selectorDiv.innerHTML = 
+      '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:6px;">Modo nutricional</label>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+        '<button onclick="setModoNut(\'estandar\',this)" id="modo-estandar" ' +
+          'style="padding:10px 8px;border-radius:var(--radius-sm);background:rgba(210,153,34,0.15);border:1.5px solid rgba(210,153,34,0.5);cursor:pointer;font-family:inherit;text-align:left;">' +
+          '<div style="font-size:12px;font-weight:700;color:#d29922;">⚽ Estándar</div>' +
+          '<div style="font-size:10px;color:var(--text2);margin-top:2px;">UEFA · Pasta, arroz, pan</div>' +
+        '</button>' +
+        '<button onclick="setModoNut(\'funcional\',this)" id="modo-funcional" ' +
+          'style="padding:10px 8px;border-radius:var(--radius-sm);background:none;border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;text-align:left;">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text2);">🦁 Funcional</div>' +
+          '<div style="font-size:10px;color:var(--text3);margin-top:2px;">Paleo · Sin harinas · Comida real</div>' +
+        '</button>' +
+      '</div>';
+    calcBtn.parentNode.insertBefore(selectorDiv, calcBtn);
+  }, 500);
+});
+
+// ── MODO NUTRICIONAL ──
+var _modoNut = 'estandar'; // 'estandar' o 'funcional'
+
+window.setModoNut = function(modo, btn) {
+  _modoNut = modo;
+  var eBtn = document.getElementById('modo-estandar');
+  var fBtn = document.getElementById('modo-funcional');
+  if (eBtn) {
+    eBtn.style.background = modo==='estandar' ? 'rgba(210,153,34,0.15)' : 'none';
+    eBtn.style.borderColor = modo==='estandar' ? 'rgba(210,153,34,0.5)' : 'var(--border2)';
+    eBtn.style.borderWidth = modo==='estandar' ? '1.5px' : '0.5px';
+    eBtn.querySelector('div').style.color = modo==='estandar' ? '#d29922' : 'var(--text2)';
+  }
+  if (fBtn) {
+    fBtn.style.background = modo==='funcional' ? 'rgba(63,185,80,0.1)' : 'none';
+    fBtn.style.borderColor = modo==='funcional' ? 'rgba(63,185,80,0.4)' : 'var(--border2)';
+    fBtn.style.borderWidth = modo==='funcional' ? '1.5px' : '0.5px';
+    fBtn.querySelector('div').style.color = modo==='funcional' ? '#3fb950' : 'var(--text2)';
+  }
+};
+
+// Sobreescribir calcularPerfil para guardar el modo
+var _origCalcPerfil = window.calcularPerfil;
+window.calcularPerfil = function() {
+  if (_origCalcPerfil) _origCalcPerfil();
+  if (_nutPerfil) {
+    _nutPerfil.modo = _modoNut;
+    if (window._jugId) localStorage.setItem('nut_perfil_v3_' + window._jugId, JSON.stringify(_nutPerfil));
+  }
+  // Mostrar badge del modo en plan-card
+  var modoLabel = document.getElementById('modo-label-plan');
+  if (!modoLabel) {
+    var planCard = document.getElementById('nut-plan-card');
+    if (planCard) {
+      var d = document.createElement('div');
+      d.id = 'modo-label-plan';
+      d.style.cssText = 'text-align:center;margin-bottom:.5rem;';
+      planCard.insertBefore(d, planCard.firstChild);
+    }
+    modoLabel = document.getElementById('modo-label-plan');
+  }
+  if (modoLabel) {
+    if (_modoNut === 'funcional') {
+      modoLabel.innerHTML = '<span style="font-size:10px;padding:3px 12px;border-radius:99px;background:rgba(63,185,80,0.12);color:#3fb950;border:0.5px solid rgba(63,185,80,0.3);">🦁 Modo Funcional — Paleo</span>';
+    } else {
+      modoLabel.innerHTML = '<span style="font-size:10px;padding:3px 12px;border-radius:99px;background:rgba(210,153,34,0.12);color:#d29922;border:0.5px solid rgba(210,153,34,0.3);">⚽ Modo Estándar — UEFA</span>';
+    }
+  }
+};
+
+// Sobreescribir renderMenuDia para modo funcional
+var _origRenderMenuDia = window.renderMenuDia;
+window.renderMenuDia = function(tipo) {
+  var modo = (_nutPerfil && _nutPerfil.modo) || _modoNut || 'estandar';
+  if (modo === 'funcional') {
+    renderMenuFuncional(tipo);
+  } else {
+    if (_origRenderMenuDia) _origRenderMenuDia(tipo);
+  }
+};
+
+// Macros para modo funcional (diferentes: más grasas, menos carbos)
+var _origSetDia = window.setDia;
+window.setDia = function(tipo, btn) {
+  _diaActual = tipo;
+  // Actualizar botones
+  var cfgs = {
+    entreno:  {c:'#3fb950',bg:'rgba(63,185,80,0.15)',bc:'rgba(63,185,80,0.3)'},
+    partido:  {c:'#58a6ff',bg:'rgba(88,166,255,0.15)',bc:'rgba(88,166,255,0.3)'},
+    descanso: {c:'#484f58',bg:'rgba(72,79,88,0.15)',bc:'var(--border2)'}
+  };
+  ['entreno','partido','descanso'].forEach(function(t) {
+    var b = document.getElementById('dt-'+t);
+    if (!b) return;
+    var cf = cfgs[t];
+    b.style.background   = t===tipo ? cf.bg : 'none';
+    b.style.color        = t===tipo ? cf.c  : 'var(--text3)';
+    b.style.borderColor  = t===tipo ? cf.bc : 'var(--border2)';
+  });
+
+  var modo = (_nutPerfil && _nutPerfil.modo) || _modoNut || 'estandar';
+  if (modo === 'funcional' && _nutPerfil) {
+    renderMacrosObjetivoFuncional(tipo);
+  } else {
+    if (typeof renderMacrosObjetivo === 'function') renderMacrosObjetivo(tipo);
+  }
+  if (typeof window.renderMenuDia === 'function') window.renderMenuDia(tipo);
+};
+
+function renderMacrosObjetivoFuncional(tipo) {
+  var cont = document.getElementById('macros-barras');
+  if (!cont || !_nutPerfil) return;
+  // Modo funcional: menos carbos, más grasas
+  var peso = _nutPerfil.peso || 65;
+  var macros = {
+    entreno:  { kcal: Math.round(_nutPerfil.entreno.kcal * 0.9),  prot: _nutPerfil.entreno.prot,  carb: Math.round(peso*3.5), grasas: Math.round(peso*1.2) },
+    partido:  { kcal: Math.round(_nutPerfil.partido.kcal * 0.9),  prot: _nutPerfil.partido.prot,  carb: Math.round(peso*5),   grasas: Math.round(peso*1.2) },
+    descanso: { kcal: Math.round(_nutPerfil.descanso.kcal * 0.85),prot: _nutPerfil.descanso.prot, carb: Math.round(peso*2),   grasas: Math.round(peso*1.0) },
+  };
+  var m = macros[tipo] || macros.entreno;
+  var c = tipo==='partido'?'#58a6ff':tipo==='descanso'?'#484f58':'#3fb950';
+  cont.innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:.5rem;">' +
+      macroBox(m.kcal,'kcal',c) + macroBox(m.prot+'g','Proteína','#a371f7') +
+      macroBox(m.carb+'g','Carbos','#d29922') + macroBox(m.grasas+'g','Grasas','#58a6ff') +
+    '</div>' +
+    '<div style="font-size:9px;color:var(--text3);text-align:right;">Dieta Paleo-Funcional · Carbos de calidad</div>';
+}
+
+function renderMenuFuncional(tipo) {
+  var cont = document.getElementById('plan-comidas');
+  if (!cont || !_nutPerfil) return;
+
+  // Basado en dieta paleo de Marcos Llorente:
+  // ✅ Carne, pescado, huevos, fruta, verduras, tubérculos, frutos secos
+  // ❌ Sin cereales, sin lácteos, sin legumbres, sin harinas, sin procesados
+  var MENUS_FUNCIONAL = {
+    entreno: {
+      titulo: '🦁 Día entreno — Modo Funcional',
+      sub: 'Proteína + grasas buenas + carbos de boniato y fruta',
+      comidas: [
+        { h:'Desayuno', ico:'🌅', items:['Huevos revueltos o a la plancha (3 huevos)','Aguacate con sal marina','Fruta de temporada (frutos rojos, manzana)','Café solo o infusión — sin azúcar'], nota:'Sin cereales ni lácteos' },
+        { h:'Media mañana', ico:'🍎', items:['Puñado de nueces o almendras (30g)','Fruta: plátano o manzana'] },
+        { h:'Comida', ico:'🍗', items:['Pollo o carne a la plancha (180g)','Boniato o patata al horno (200g)','Aguacate o aceite de oliva virgen','Verduras al vapor o ensalada sin cereal'], nota:'Boniato en vez de arroz o pasta' },
+        { h:'Pre-entreno (1h antes)', ico:'⚡', items:['Plátano + puñado de dátiles','Agua con pizca de sal marina'] },
+        { h:'Post-entreno (30min)', ico:'💪', items:['Huevos + fruta (recuperación rápida)','O sardinas/atún en aceite de oliva'], nota:'Sin batidos procesados' },
+        { h:'Cena', ico:'🌙', items:['Salmón o pescado azul (180g)','Verduras al vapor (brócoli, espinacas, zanahoria)','Aceite de oliva virgen extra','Evitar carbos por la noche'] },
+      ]
+    },
+    partido: {
+      titulo: '⚽ Día partido — Modo Funcional',
+      sub: 'Protocolo paleo para partido: tubérculos + proteína',
+      comidas: [
+        { h:'3-4h antes', ico:'🌅', items:['Pollo o pavo a la plancha (150g)','Boniato grande (250g) — fuente de carbos limpia','Sin lácteos ni harinas','Agua con sal marina'], nota:'⚠ El boniato sustituye a la pasta' },
+        { h:'1h antes', ico:'⚡', items:['Plátano + 3-4 dátiles','Agua o coco water'] },
+        { h:'Durante', ico:'💧', items:['Agua con pizca de sal marina','Plátano o dátiles en el descanso','Sin geles ni isotónicos procesados'] },
+        { h:'Post-partido (30min)', ico:'🔄', items:['Huevos + plátano (recuperación)','Agua abundante con electrolitos naturales'] , nota:'Proteína real antes que batidos' },
+        { h:'Cena', ico:'🌙', items:['Salmón o carne roja de calidad (200g)','Verduras variadas','Aguacate','Boniato si fue partido intenso'] },
+      ]
+    },
+    descanso: {
+      titulo: '😴 Día descanso — Modo Funcional',
+      sub: 'Recuperación antiinflamatoria: menos carbos, más omega-3',
+      comidas: [
+        { h:'Desayuno', ico:'🌅', items:['Huevos con aguacate','Frutos rojos (antiinflamatorio)','Café solo o té verde'] },
+        { h:'Comida', ico:'🥗', items:['Salmón o sardinas (antiinflamatorio)','Ensalada grande con aceite de oliva','Nueces o almendras (omega-3)'] },
+        { h:'Cena ligera', ico:'🌙', items:['Pollo o huevos','Verduras al vapor','Sin carbos — el cuerpo no los necesita hoy'] },
+      ]
+    }
+  };
+
+  var plan = MENUS_FUNCIONAL[tipo] || MENUS_FUNCIONAL.entreno;
+  var html = '<div style="font-size:10px;font-weight:800;color:var(--text2);margin-bottom:4px;">'+plan.titulo+'</div>';
+  html += '<div style="font-size:10px;color:var(--text3);margin-bottom:.875rem;font-style:italic;">'+plan.sub+'</div>';
+
+  // Banner de qué está prohibido
+  html += '<div style="background:rgba(248,81,73,0.08);border:0.5px solid rgba(248,81,73,0.2);border-radius:8px;padding:.625rem;margin-bottom:.875rem;">' +
+    '<div style="font-size:10px;font-weight:700;color:#f85149;margin-bottom:4px;">❌ Evitar en modo funcional</div>' +
+    '<div style="font-size:10px;color:var(--text2);">Pasta · Arroz · Pan · Cereales · Lácteos · Legumbres · Azúcares · Procesados</div>' +
+  '</div>';
+
+  plan.comidas.forEach(function(com) {
+    html += '<div style="padding:.75rem 0;border-bottom:0.5px solid var(--border);">';
+    html += '<div style="display:flex;gap:8px;margin-bottom:5px;"><span style="font-size:16px;">'+com.ico+'</span><b style="font-size:11px;color:var(--text2);">'+com.h+'</b></div>';
+    html += '<ul style="margin:0;padding-left:16px;">'+com.items.map(function(i){return '<li style="font-size:12px;line-height:1.7;">'+i+'</li>';}).join('')+'</ul>';
+    if (com.nota) html += '<div style="font-size:10px;color:#3fb950;margin-top:4px;padding:3px 8px;background:rgba(63,185,80,0.08);border-radius:5px;">✓ '+com.nota+'</div>';
+    html += '</div>';
+  });
+
+  // Referencia
+  html += '<div style="margin-top:.875rem;padding:.75rem;background:var(--bg3);border-radius:8px;">' +
+    '<div style="font-size:9px;color:var(--text3);">Inspirado en la dieta paleo de Marcos Llorente (Atlético de Madrid). Carbohidratos de calidad: boniato, patata, fruta, dátiles. Sin harinas, sin lácteos, sin procesados.</div>' +
+  '</div>';
+
+  cont.innerHTML = html;
+}
+
+// Cargar modo guardado al abrir nutrición
+var _origRenderNutFinal2 = window.renderNut;
+window.renderNut = function() {
+  if (_origRenderNutFinal2) _origRenderNutFinal2();
+  // Restaurar modo del perfil guardado
+  setTimeout(function() {
+    if (_nutPerfil && _nutPerfil.modo) {
+      _modoNut = _nutPerfil.modo;
+      var eBtn = document.getElementById('modo-estandar');
+      var fBtn = document.getElementById('modo-funcional');
+      if (eBtn && fBtn) setModoNut(_nutPerfil.modo, null);
+    }
+  }, 200);
+};
 </script>
 
 </html>
