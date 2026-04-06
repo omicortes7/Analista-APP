@@ -282,7 +282,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <!-- Macros del día -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;">
           <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#d29922;">Tus macros del día</div>
-          <button onclick="editarPerfil()" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:10px;color:var(--text2);cursor:pointer;font-family:inherit;">✏ Editar perfil</button>
+          <div style="display:flex;gap:6px;align-items:center;">
+          <button onclick="editarPerfil()" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:10px;color:var(--text2);cursor:pointer;font-family:inherit;">✏ Perfil</button>
+          <button onclick="toggleModoNutPlan()" id="btn-modo-plan" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:10px;cursor:pointer;font-family:inherit;color:var(--text2);">⚽ Estándar</button>
+        </div>
         </div>
 
         <!-- Selector tipo de día -->
@@ -1392,20 +1395,29 @@ document.addEventListener('click', function(e){
     '\nOBJETIVO: '+(obj?obj.kcal+'kcal | '+obj.prot+'g prot | '+obj.carb+'g carb':'Sin perfil') +
     '\nTIPO_DIA: '+(_diaActual||'entreno');
 
-  window.DB_REF.from('nutricion_log').delete().eq('jugador_id',jugId).eq('fecha',fechaHoy).then(function(){
-    window.DB_REF.from('nutricion_log').insert({jugador_id:jugId,fecha:fechaHoy,texto:txt}).then(function(res){
-      if(res.error){ showToastGlobal('Error: '+res.error.message); return; }
-      showToastGlobal('✓ Guardado');
-      // Guardar en calendario
-      var nota='Nutricion: '+macros.kcal+'kcal · Prot '+macros.prot+'g · Carb '+macros.carb+'g';
+  // Buscar si ya existe registro hoy
+  window.DB_REF.from('nutricion_log').select('id').eq('jugador_id',jugId).eq('fecha',fechaHoy).then(function(existing){
+    var prom;
+    if (existing.data && existing.data.length > 0) {
+      // Update existente
+      prom = window.DB_REF.from('nutricion_log').update({texto:txt}).eq('id', existing.data[0].id);
+    } else {
+      // Insert nuevo
+      prom = window.DB_REF.from('nutricion_log').insert({jugador_id:jugId, fecha:fechaHoy, texto:txt});
+    }
+    prom.then(function(res){
+      if (res.error) { showToastGlobal('Error guardando: ' + res.error.message); console.error(res.error); return; }
+      showToastGlobal('✓ Día guardado');
+      // Guardar resumen en calendario_semana
+      var notaCal = '🥗 ' + macros.kcal + 'kcal | Prot ' + macros.prot + 'g | Carb ' + macros.carb + 'g | Gras ' + macros.gras + 'g';
       window.DB_REF.from('calendario_semana').select('id').eq('jugador_id',jugId).eq('fecha',fechaHoy).then(function(cal){
-        if(cal.data&&cal.data.length){
-          window.DB_REF.from('calendario_semana').update({notas:nota}).eq('id',cal.data[0].id).then(function(){});
+        if (cal.data && cal.data.length > 0) {
+          window.DB_REF.from('calendario_semana').update({notas: notaCal, tipo: _diaActual||'entreno'}).eq('id', cal.data[0].id).then(function(){});
         } else {
-          window.DB_REF.from('calendario_semana').insert({jugador_id:jugId,fecha:fechaHoy,tipo:_diaActual||'entreno',notas:nota}).then(function(){});
+          window.DB_REF.from('calendario_semana').insert({jugador_id:jugId, fecha:fechaHoy, tipo:_diaActual||'entreno', hora:'', foco:'Nutrición', notas:notaCal}).then(function(){});
         }
       });
-      setTimeout(loadNutHist, 300);
+      setTimeout(loadNutHist, 400);
     });
   });
 });
@@ -1838,7 +1850,7 @@ window.renderCalJugador = function() {
         var ev = porFecha[fecha];
         var tc = ev ? (TIPOS_CAL[ev.tipo] || TIPOS_CAL.entreno) : null;
         var esHoy = fecha === hoy.toISOString().slice(0,10);
-        html += '<div style="border-radius:10px;padding:8px 4px;text-align:center;border:0.5px solid ' + (esHoy ? 'rgba(255,255,255,0.3)' : ev ? tc.color+'50' : 'var(--border)') + ';background:' + (ev ? tc.bg : esHoy ? 'rgba(255,255,255,0.04)' : 'var(--card)') + ';">';
+        html += '<div data-fecha="' + fecha + '" style="border-radius:10px;padding:8px 4px;text-align:center;border:0.5px solid ' + (esHoy ? 'rgba(255,255,255,0.3)' : ev ? tc.color+'50' : 'var(--border)') + ';background:' + (ev ? tc.bg : esHoy ? 'rgba(255,255,255,0.04)' : 'var(--card)') + ';">';
         html += '<div style="font-size:9px;color:var(--text3);margin-bottom:2px;">' + ['L','M','X','J','V','S','D'][i] + '</div>';
         html += '<div style="font-size:14px;font-weight:' + (esHoy ? '800' : '600') + ';color:' + (esHoy ? '#fff' : 'var(--text)') + ';">' + d.getDate() + '</div>';
         html += ev ? '<div style="font-size:14px;margin-top:2px;">' + tc.ico + '</div>' : '<div style="height:18px;"></div>';
@@ -1852,7 +1864,7 @@ window.renderCalJugador = function() {
         var ev = porFecha[fecha];
         var esHoy = fecha === hoy.toISOString().slice(0,10);
 
-        html += '<div style="background:var(--card);border:0.5px solid ' + (esHoy ? 'rgba(255,255,255,0.15)' : ev ? (TIPOS_CAL[ev.tipo]||TIPOS_CAL.entreno).color+'30' : 'var(--border)') + ';border-radius:var(--radius);padding:.875rem;margin-bottom:8px;">';
+        html += '<div data-fecha="' + fecha + '" style="background:var(--card);border:0.5px solid ' + (esHoy ? 'rgba(255,255,255,0.15)' : ev ? (TIPOS_CAL[ev.tipo]||TIPOS_CAL.entreno).color+'30' : 'var(--border)') + ';border-radius:var(--radius);padding:.875rem;margin-bottom:8px;">';
 
         // Cabecera del día
         html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:' + (ev && (ev.foco || ev.notas) ? '10px' : '0') + ';">';
@@ -2305,18 +2317,43 @@ function renderMenuFuncional(tipo) {
   cont.innerHTML = html;
 }
 
+// Toggle modo desde nut-plan-card
+window.toggleModoNutPlan = function() {
+  var nuevo = ((_nutPerfil && _nutPerfil.modo) || _modoNut) === 'funcional' ? 'estandar' : 'funcional';
+  _modoNut = nuevo;
+  if (_nutPerfil) {
+    _nutPerfil.modo = nuevo;
+    if (window._jugId) localStorage.setItem('nut_perfil_v3_' + window._jugId, JSON.stringify(_nutPerfil));
+  }
+  var btn = document.getElementById('btn-modo-plan');
+  if (btn) {
+    btn.textContent = nuevo === 'funcional' ? '🦁 Funcional' : '⚽ Estándar';
+    btn.style.color = nuevo === 'funcional' ? '#3fb950' : 'var(--text2)';
+    btn.style.borderColor = nuevo === 'funcional' ? 'rgba(63,185,80,0.4)' : 'var(--border2)';
+  }
+  // Re-renderizar menú y macros
+  if (typeof window.setDia === 'function') window.setDia(_diaActual || 'entreno', null);
+  showToastGlobal(nuevo === 'funcional' ? '🦁 Modo Funcional activado' : '⚽ Modo Estándar activado');
+};
+
 // Cargar modo guardado al abrir nutrición
 var _origRenderNutFinal2 = window.renderNut;
 window.renderNut = function() {
   if (_origRenderNutFinal2) _origRenderNutFinal2();
-  // Restaurar modo del perfil guardado
+  // Restaurar modo del perfil guardado y actualizar botón
   setTimeout(function() {
-    if (_nutPerfil && _nutPerfil.modo) {
-      _modoNut = _nutPerfil.modo;
-      var eBtn = document.getElementById('modo-estandar');
-      var fBtn = document.getElementById('modo-funcional');
-      if (eBtn && fBtn) setModoNut(_nutPerfil.modo, null);
+    var modo = (_nutPerfil && _nutPerfil.modo) || 'estandar';
+    _modoNut = modo;
+    var btn = document.getElementById('btn-modo-plan');
+    if (btn) {
+      btn.textContent = modo === 'funcional' ? '🦁 Funcional' : '⚽ Estándar';
+      btn.style.color = modo === 'funcional' ? '#3fb950' : 'var(--text2)';
+      btn.style.borderColor = modo === 'funcional' ? 'rgba(63,185,80,0.4)' : 'var(--border2)';
     }
+    // Actualizar selectores del perfil si están visibles
+    var eBtn = document.getElementById('modo-estandar');
+    var fBtn = document.getElementById('modo-funcional');
+    if (eBtn && fBtn && typeof setModoNut === 'function') setModoNut(modo, null);
   }, 200);
 };
 </script>
