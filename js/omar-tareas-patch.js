@@ -547,13 +547,18 @@ const TAREAS_NUEVAS = [
 ];
 
 // ─── INTEGRAR TAREAS NUEVAS EN getAllTareas ───
-const _origGetAllTareas = window.getAllTareas || getAllTareas;
-function getAllTareas() {
-  const base = _origGetAllTareas ? _origGetAllTareas() : [];
-  const nuevas = TAREAS_NUEVAS.map(t => ({...t}));
-  return [...base, ...nuevas];
-}
-window.getAllTareas = getAllTareas;
+(function() {
+  function patchGetAllTareas() {
+    var _orig = window.getAllTareas;
+    if(!_orig) return setTimeout(patchGetAllTareas, 200);
+    window.getAllTareas = function() {
+      var base = _orig();
+      var nuevas = TAREAS_NUEVAS.map(function(t) { return Object.assign({}, t); });
+      return base.concat(nuevas);
+    };
+  }
+  setTimeout(patchGetAllTareas, 300);
+})();
 
 // ─── FIX IMPORTAR TAREA ───
 // El bug: confirmarImportTarea añade a TAREAS[] pero renderTareas usa getAllTareas()
@@ -723,11 +728,14 @@ window.openTareaUnificada = function(id, src) {
   }
 
   // Aplicar cuando se carga la página de tareas
-  const _origRenderTareas = window.renderTareas;
-  window.renderTareas = function() {
-    if(_origRenderTareas) _origRenderTareas();
-    setTimeout(addCrearBtn, 100);
-  };
+  setTimeout(function() {
+    var _origRenderTareas = window.renderTareas;
+    window.renderTareas = function() {
+      if(_origRenderTareas) _origRenderTareas();
+      setTimeout(addCrearBtn, 100);
+    };
+    addCrearBtn();
+  }, 500);
 })();
 
 console.log('✅ Patch tareas Omar cargado: 40 tareas nuevas, crear tarea, fix importar, asignar a jugador');
