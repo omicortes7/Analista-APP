@@ -996,3 +996,102 @@ window.eliminarTareaAsignada = async function(notaId, jugId) {
   showToast('Tarea eliminada');
   renderDT('tareas');
 };
+
+// ─── FIX 1: Exponer DB en window para que el patch pueda usarlo ───
+(function() {
+  var _origInit = window.init;
+  function patchInit() {
+    _origInit = window.init;
+    if(!_origInit) return setTimeout(patchInit, 200);
+    window.init = async function() {
+      await _origInit();
+      // DB ya está inicializado en app.js, exponerlo via supabase
+      if(!window._patchDB && window.supabase) {
+        window._patchDB = window.supabase.createClient(
+          'https://ghxwdauwrzupjmrujcns.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U'
+        );
+      }
+    };
+  }
+  // Crear _patchDB directamente al cargar (no necesitamos esperar init)
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      if(window.supabase && !window._patchDB) {
+        window._patchDB = window.supabase.createClient(
+          'https://ghxwdauwrzupjmrujcns.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U'
+        );
+      }
+    }, 1000);
+  });
+})();
+
+// ─── FIX 2: Reescribir asignarTareaJugador con DB correcto ───
+window.asignarTareaJugador = async function(tareaId, src, jugId) {
+  var t = getAllTareas().find(function(x){ return String(x.id)===String(tareaId); });
+  if(!t) { showToast('Tarea no encontrada'); return; }
+  var db = window._patchDB || window.DB_REF;
+  if(!db) { showToast('Cargando conexión, espera...'); setTimeout(function(){ asignarTareaJugador(tareaId,src,jugId); }, 1200); return; }
+  var texto = 'TAREA ASIGNADA: ' + (t.t||t.titulo||'Tarea') +
+    '\n\nPosición: ' + (t.pos||'—') + ' | ' + (t.j||'') + ' jugadores | ' + (t.d||'') +
+    '\n\nDesarrollo: ' + (t.des||t.desarrollo||'—') +
+    '\n\nPreguntas: ' + (t.preg||[]).map(function(p){ return typeof p==='object'?p.p:p; }).join(' · ');
+  var res = await db.from('notas_video').insert({jugador_id:jugId, fecha:new Date().toISOString().slice(0,10), texto:texto}).select();
+  if(res.error) { showToast('Error: '+res.error.message); return; }
+  if(!state.notasVideo) state.notasVideo = [];
+  state.notasVideo.unshift(res.data[0]);
+  var j = state.jugadores.find(function(x){return x.id===jugId;});
+  showToast('✓ Tarea asignada a ' + (j ? j.nombre.split(' ')[0] : 'jugador'));
+  renderDT('tareas');
+};
+
+// ─── FIX 3: Reescribir asignarTareaPersonalizada con DB correcto ───
+window.asignarTareaPersonalizada = async function(jugId) {
+  var texto = document.getElementById('tarea-custom-texto')?.value.trim();
+  if(!texto) { showToast('Escribe la tarea primero'); return; }
+  var db = window._patchDB || window.DB_REF;
+  if(!db) { showToast('Sin conexión'); return; }
+  var textoFinal = 'TAREA ASIGNADA: Tarea personalizada\n\n' + texto;
+  var res = await db.from('notas_video').insert({jugador_id:jugId, fecha:new Date().toISOString().slice(0,10), texto:textoFinal}).select();
+  if(res.error) { showToast('Error: '+res.error.message); return; }
+  if(!state.notasVideo) state.notasVideo = [];
+  state.notasVideo.unshift(res.data[0]);
+  showToast('✓ Tarea personalizada asignada');
+  renderDT('tareas');
+};
+
+// ─── FIX 4: Reescribir eliminarTareaAsignada con DB correcto ───
+window.eliminarTareaAsignada = async function(notaId, jugId) {
+  if(!confirm('¿Eliminar esta tarea asignada?')) return;
+  var db = window._patchDB || window.DB_REF;
+  if(!db) { showToast('Sin conexión'); return; }
+  await db.from('notas_video').delete().eq('id', notaId);
+  state.notasVideo = (state.notasVideo||[]).filter(function(n){ return n.id !== notaId; });
+  showToast('Tarea eliminada');
+  renderDT('tareas');
+};
+
+// ─── FIX 5: Modal de tarea centrado al abrir desde modal de jugador ───
+var _origVerTareaJugador = window.verTareaJugador;
+window.verTareaJugador = function(id, src) {
+  if(typeof openTareaUnificada === 'function') {
+    openTareaUnificada(id, src);
+    // Asegurar que el modal mdt se muestra correctamente sobre el modal del jugador
+    setTimeout(function() {
+      var mdt = document.getElementById('mdt');
+      if(mdt) {
+        mdt.style.zIndex = '2000';
+        mdt.style.alignItems = 'center';
+        mdt.style.justifyContent = 'center';
+        // Asegurar que el contenido no desborda a la izquierda
+        var inner = mdt.querySelector('.modal-inner') || mdt.firstElementChild;
+        if(inner) {
+          inner.style.maxWidth = '560px';
+          inner.style.width = '100%';
+          inner.style.margin = '0 auto';
+        }
+      }
+    }, 50);
+  }
+};
