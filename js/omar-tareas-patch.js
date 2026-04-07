@@ -739,3 +739,260 @@ window.openTareaUnificada = function(id, src) {
 })();
 
 console.log('✅ Patch tareas Omar cargado: 40 tareas nuevas, crear tarea, fix importar, asignar a jugador');
+
+// ─── MEJORAR TAB TAREAS DEL MODAL DEL JUGADOR ───
+(function() {
+  function patchRenderDT() {
+    var _origRenderDT = window.renderDT;
+    if(!_origRenderDT) return setTimeout(patchRenderDT, 300);
+
+    window.renderDT = function(tab) {
+      if(tab !== 'tareas') { _origRenderDT(tab); return; }
+
+      var id = state.currentJugador;
+      var j = state.jugadores.find(function(x){ return x.id === id; });
+      var body = document.getElementById('djbody');
+      if(!j || !body) return;
+
+      var objs = getObjJugador(id);
+      var allT = getAllTareas();
+
+      // Tareas relacionadas por microconceptos
+      var microsObjetivo = objs.map(function(o){ return o.texto; });
+      var tareasRel = allT.filter(function(t) {
+        var mics = (t.mics||[]).map(function(m){ return m.toLowerCase(); });
+        return microsObjetivo.some(function(obj) {
+          return mics.some(function(m) {
+            return m.includes(obj.toLowerCase().slice(0,12)) || obj.toLowerCase().slice(0,12).includes(m.slice(0,12));
+          });
+        });
+      });
+
+      // Tareas ya asignadas (notas_video con prefijo TAREA ASIGNADA)
+      var tareasAsignadas = (state.notasVideo||[]).filter(function(n){
+        return n.jugador_id === id && n.texto && n.texto.indexOf('TAREA ASIGNADA:') === 0;
+      });
+
+      var CARD = 'background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:.75rem;';
+
+      var html = '';
+
+      // ── HEADER con info ──
+      html += '<div style="background:linear-gradient(135deg,rgba(29,158,117,.08),rgba(55,138,221,.05));border:0.5px solid rgba(29,158,117,.2);border-radius:var(--radius);padding:.875rem;margin-bottom:1rem;">';
+      html += '<div style="font-size:13px;font-weight:600;margin-bottom:2px;">Tareas de ' + j.nombre + '</div>';
+      html += '<div style="font-size:11px;color:var(--text2);">' + j.posicion + ' · ' + objs.length + ' objetivo' + (objs.length!==1?'s':'') + ' activos</div>';
+      html += '</div>';
+
+      // ── TABS INTERNOS ──
+      html += '<div style="display:flex;gap:6px;margin-bottom:1rem;" id="tareas-subtabs">';
+      html += '<button onclick="switchTareasTab(\'relacionadas\')" id="stab-rel" style="flex:1;height:32px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;background:rgba(29,158,117,0.15);color:#1D9E75;border:0.5px solid rgba(29,158,117,0.3);cursor:pointer;font-family:inherit;">🎯 Relacionadas</button>';
+      html += '<button onclick="switchTareasTab(\'buscar\')" id="stab-bus" style="flex:1;height:32px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">📚 Biblioteca</button>';
+      html += '<button onclick="switchTareasTab(\'asignadas\')" id="stab-asi" style="flex:1;height:32px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">✓ Asignadas</button>';
+      html += '</div>';
+
+      // ── PANEL RELACIONADAS ──
+      html += '<div id="panel-relacionadas">';
+      if(!tareasRel.length) {
+        html += '<div style="text-align:center;padding:2rem;color:var(--text3);"><div style="font-size:24px;margin-bottom:8px;">📋</div><div style="font-size:13px;margin-bottom:5px;">Sin tareas relacionadas</div><div style="font-size:11px;">Añade objetivos basados en microconceptos para ver sugerencias</div></div>';
+      } else {
+        html += '<div style="font-size:10px;color:var(--text3);margin-bottom:.75rem;">' + tareasRel.length + ' tarea' + (tareasRel.length!==1?'s':'') + ' sugeridas por los objetivos activos</div>';
+        tareasRel.forEach(function(t) {
+          var catColor = t.color||'#888'; var catBg = t.bg||'var(--bg2)';
+          var fase = FASES.find(function(f){ return f.id===t.fase; });
+          html += '<div style="' + CARD + 'border-left:3px solid ' + catColor + ';">';
+          html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">';
+          html += '<div style="font-size:13px;font-weight:600;flex:1;line-height:1.4;">' + (t.t||t.titulo||'') + '</div>';
+          if(t.catLabel) html += '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:' + catBg + ';color:' + catColor + ';white-space:nowrap;flex-shrink:0;">' + t.catLabel + '</span>';
+          html += '</div>';
+          html += '<div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:8px;">' + (t.desc||'') + '</div>';
+          html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">';
+          if(t.pos) html += '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:var(--bg2);color:var(--text2);">' + t.pos + '</span>';
+          if(fase) html += '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:' + (catBg||'var(--bg2)') + ';color:' + catColor + ';">' + fase.label + '</span>';
+          html += '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:var(--bg2);color:var(--text3);">' + (t.j||'') + ' jug · ' + (t.d||'') + '</span>';
+          html += '</div>';
+          // Microconceptos
+          if((t.mics||[]).length) {
+            html += '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px;">';
+            t.mics.forEach(function(m) { html += '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:#EEEDFE;color:#3C3489;">' + m + '</span>'; });
+            html += '</div>';
+          }
+          html += '<div style="display:flex;gap:6px;">';
+          html += '<button onclick="verTareaJugador(\'' + t.id + '\',\'' + (t._src||'base') + '\')" style="flex:1;height:30px;background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Ver tarea</button>';
+          html += '<button onclick="asignarTareaJugador(\'' + t.id + '\',\'' + (t._src||'base') + '\',\'' + id + '\')" style="flex:2;height:30px;background:rgba(29,158,117,0.12);border:0.5px solid rgba(29,158,117,0.35);border-radius:var(--radius-sm);color:#1D9E75;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">📤 Asignar a ' + j.nombre.split(' ')[0] + '</button>';
+          html += '</div>';
+          html += '</div>';
+        });
+      }
+      html += '</div>';
+
+      // ── PANEL BIBLIOTECA (buscar) ──
+      html += '<div id="panel-buscar" style="display:none;">';
+      html += '<div style="margin-bottom:.875rem;">';
+      html += '<input id="tarea-buscar-q" oninput="filtrarTareasJugador(\'' + id + '\')" placeholder="Buscar tarea por nombre..." style="width:100%;height:36px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 12px;font-size:12px;background:var(--bg);color:var(--text);outline:none;box-sizing:border-box;margin-bottom:6px;">';
+      html += '<div style="display:flex;gap:6px;">';
+      ['Central','Lateral','Pivote','Interior','Extremo','Delantero'].forEach(function(pos) {
+        var active = pos === j.posicion;
+        html += '<button onclick="filtrarTareasJugadorPos(\'' + pos + '\',\'' + id + '\',this)" style="padding:3px 8px;border-radius:99px;font-size:10px;font-weight:700;background:' + (active?'rgba(124,111,240,.15)':'none') + ';color:' + (active?'#7C6FF0':'var(--text3)') + ';border:0.5px solid ' + (active?'rgba(124,111,240,.4)':'var(--border2)') + ';cursor:pointer;font-family:inherit;">' + pos + '</button>';
+      });
+      html += '</div></div>';
+      html += '<div id="biblioteca-lista"></div>';
+      html += '</div>';
+
+      // ── PANEL ASIGNADAS ──
+      html += '<div id="panel-asignadas" style="display:none;">';
+      if(!tareasAsignadas.length) {
+        html += '<div style="text-align:center;padding:2rem;color:var(--text3);"><div style="font-size:24px;margin-bottom:8px;">📋</div><div style="font-size:13px;">Sin tareas asignadas todavía</div><div style="font-size:11px;margin-top:4px;">Usa la pestaña Relacionadas o Biblioteca para asignar</div></div>';
+      } else {
+        html += '<div style="font-size:10px;color:var(--text3);margin-bottom:.75rem;">' + tareasAsignadas.length + ' tarea' + (tareasAsignadas.length!==1?'s':'') + ' asignadas</div>';
+        tareasAsignadas.forEach(function(n) {
+          var lines = n.texto.split('\n').filter(Boolean);
+          var titulo = (lines[0]||'').replace('TAREA ASIGNADA: ','');
+          var meta = lines[1]||'';
+          var fecha = new Date(n.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+          html += '<div style="' + CARD + 'border-left:3px solid #7C6FF0;">';
+          html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">';
+          html += '<div style="font-size:13px;font-weight:600;flex:1;">' + titulo + '</div>';
+          html += '<button onclick="eliminarTareaAsignada(\'' + n.id + '\',\'' + id + '\')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;flex-shrink:0;">×</button>';
+          html += '</div>';
+          if(meta) html += '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">' + meta + '</div>';
+          html += '<div style="font-size:10px;color:var(--text3);">Asignada el ' + fecha + '</div>';
+          html += '</div>';
+        });
+      }
+      // Botón crear tarea personalizada para este jugador
+      html += '<div style="' + CARD + 'border:0.5px dashed var(--border2);">';
+      html += '<div style="font-size:12px;font-weight:600;margin-bottom:6px;">✏️ Crear tarea personalizada</div>';
+      html += '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Escribe una tarea a medida para ' + j.nombre.split(' ')[0] + ' esta semana</div>';
+      html += '<textarea id="tarea-custom-texto" rows="3" placeholder="Ej: Trabajar la anticipación en los pases interiores. Ejercicio de 4v2 focalizando en leer el pase antes de que salga..." style="width:100%;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;background:var(--bg);color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:8px;box-sizing:border-box;"></textarea>';
+      html += '<button onclick="asignarTareaPersonalizada(\'' + id + '\')" style="width:100%;height:36px;background:rgba(124,111,240,0.12);border:0.5px solid rgba(124,111,240,0.35);border-radius:var(--radius-sm);color:#7C6FF0;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Asignar tarea personalizada</button>';
+      html += '</div>';
+      html += '</div>';
+
+      body.innerHTML = html;
+
+      // Cargar biblioteca con posición del jugador por defecto
+      window._tareasJugadorPos = j.posicion;
+      window._tareasJugadorId  = id;
+      renderBibliotecaTareas(id, j.posicion, '');
+    };
+  }
+  setTimeout(patchRenderDT, 400);
+})();
+
+// ── Cambiar subtab ──
+window.switchTareasTab = function(tab) {
+  ['relacionadas','buscar','asignadas'].forEach(function(t) {
+    var panel = document.getElementById('panel-' + t);
+    var btn   = document.getElementById('stab-' + t.slice(0,3));
+    if(!panel || !btn) return;
+    var active = t === tab;
+    panel.style.display = active ? 'block' : 'none';
+    btn.style.background   = active ? 'rgba(29,158,117,0.15)' : 'none';
+    btn.style.color        = active ? '#1D9E75' : 'var(--text3)';
+    btn.style.borderColor  = active ? 'rgba(29,158,117,0.3)' : 'var(--border2)';
+  });
+  if(tab === 'buscar') renderBibliotecaTareas(window._tareasJugadorId, window._tareasJugadorPos, '');
+};
+
+// ── Renderizar biblioteca ──
+window.renderBibliotecaTareas = function(jugId, posFilter, q) {
+  var cont = document.getElementById('biblioteca-lista');
+  if(!cont) return;
+  var allT = getAllTareas();
+  var lista = allT.filter(function(t) {
+    var matchPos = !posFilter || t.pos === posFilter;
+    var matchQ   = !q || (t.t||'').toLowerCase().includes(q.toLowerCase()) || (t.desc||'').toLowerCase().includes(q.toLowerCase());
+    return matchPos && matchQ && t.t;
+  });
+
+  if(!lista.length) { cont.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text3);font-size:12px;">Sin tareas con ese filtro.</div>'; return; }
+
+  var j = state.jugadores.find(function(x){ return x.id === jugId; });
+  var nombre = j ? j.nombre.split(' ')[0] : 'jugador';
+
+  cont.innerHTML = lista.map(function(t) {
+    var catColor = t.color||'#888'; var catBg = t.bg||'var(--bg2)';
+    var micCount = (t.mics||[]).length;
+    return '<div style="background:var(--bg);border:0.5px solid var(--border);border-left:3px solid ' + catColor + ';border-radius:var(--radius);padding:.875rem;margin-bottom:8px;">' +
+      '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;">' +
+        '<div style="font-size:12px;font-weight:600;flex:1;line-height:1.4;">' + (t.t||t.titulo||'') + '</div>' +
+        (t.catLabel ? '<span style="font-size:9px;padding:2px 6px;border-radius:99px;background:' + catBg + ';color:' + catColor + ';white-space:nowrap;flex-shrink:0;">' + t.catLabel + '</span>' : '') +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:7px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + (t.desc||'') + '</div>' +
+      (micCount ? '<div style="font-size:10px;color:var(--text3);margin-bottom:7px;">' + micCount + ' microconcepto' + (micCount!==1?'s':'') + '</div>' : '') +
+      '<div style="display:flex;gap:6px;">' +
+        '<button onclick="verTareaJugador(\'' + t.id + '\',\'' + (t._src||'base') + '\')" style="flex:1;height:28px;background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-size:10px;cursor:pointer;font-family:inherit;">Ver</button>' +
+        '<button onclick="asignarTareaJugador(\'' + t.id + '\',\'' + (t._src||'base') + '\',\'' + jugId + '\')" style="flex:2;height:28px;background:rgba(29,158,117,0.12);border:0.5px solid rgba(29,158,117,0.35);border-radius:var(--radius-sm);color:#1D9E75;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">📤 Asignar a ' + nombre + '</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+};
+
+window.filtrarTareasJugador = function(jugId) {
+  var q = document.getElementById('tarea-buscar-q')?.value || '';
+  renderBibliotecaTareas(jugId, window._tareasJugadorPos, q);
+};
+
+window.filtrarTareasJugadorPos = function(pos, jugId, btn) {
+  window._tareasJugadorPos = pos;
+  document.querySelectorAll('#panel-buscar button[onclick^="filtrarTareasJugadorPos"]').forEach(function(b) {
+    b.style.background  = 'none';
+    b.style.color       = 'var(--text3)';
+    b.style.borderColor = 'var(--border2)';
+  });
+  if(btn) {
+    btn.style.background  = 'rgba(124,111,240,.15)';
+    btn.style.color       = '#7C6FF0';
+    btn.style.borderColor = 'rgba(124,111,240,.4)';
+  }
+  var q = document.getElementById('tarea-buscar-q')?.value || '';
+  renderBibliotecaTareas(jugId, pos, q);
+};
+
+// ── Ver tarea (abre modal existente) ──
+window.verTareaJugador = function(id, src) {
+  if(typeof openTareaUnificada === 'function') openTareaUnificada(id, src);
+};
+
+// ── Asignar tarea de biblioteca ──
+window.asignarTareaJugador = async function(tareaId, src, jugId) {
+  var t = getAllTareas().find(function(x){ return String(x.id)===String(tareaId); });
+  if(!t) { showToast('Tarea no encontrada'); return; }
+  var texto = 'TAREA ASIGNADA: ' + (t.t||t.titulo||'Tarea') +
+    '\n\nPosición: ' + (t.pos||'—') + ' | ' + (t.j||'') + ' jugadores | ' + (t.d||'') +
+    '\n\nDesarrollo: ' + (t.des||t.desarrollo||'—') +
+    '\n\nPreguntas: ' + (t.preg||[]).map(function(p){ return typeof p==='object'?p.p:p; }).join(' · ');
+  var db = window.DB_REF || window.DB;
+  if(!db) { showToast('Error de conexión'); return; }
+  var res = await db.from('notas_video').insert({jugador_id:jugId, fecha:new Date().toISOString().slice(0,10), texto:texto}).select();
+  if(res.error) { showToast('Error: '+res.error.message); return; }
+  if(!state.notasVideo) state.notasVideo = [];
+  state.notasVideo.unshift(res.data[0]);
+  showToast('✓ Tarea asignada a ' + (state.jugadores.find(function(j){return j.id===jugId;})||{}).nombre?.split(' ')[0]);
+  renderDT('tareas');
+};
+
+// ── Asignar tarea personalizada ──
+window.asignarTareaPersonalizada = async function(jugId) {
+  var texto = document.getElementById('tarea-custom-texto')?.value.trim();
+  if(!texto) { showToast('Escribe la tarea primero'); return; }
+  var db = window.DB_REF || window.DB;
+  if(!db) { showToast('Error de conexión'); return; }
+  var textoFinal = 'TAREA ASIGNADA: Tarea personalizada\n\n' + texto;
+  var res = await db.from('notas_video').insert({jugador_id:jugId, fecha:new Date().toISOString().slice(0,10), texto:textoFinal}).select();
+  if(res.error) { showToast('Error: '+res.error.message); return; }
+  if(!state.notasVideo) state.notasVideo = [];
+  state.notasVideo.unshift(res.data[0]);
+  showToast('✓ Tarea personalizada asignada');
+  renderDT('tareas');
+};
+
+// ── Eliminar tarea asignada ──
+window.eliminarTareaAsignada = async function(notaId, jugId) {
+  if(!confirm('¿Eliminar esta tarea asignada?')) return;
+  var db = window.DB_REF || window.DB;
+  await db.from('notas_video').delete().eq('id', notaId);
+  state.notasVideo = (state.notasVideo||[]).filter(function(n){ return n.id !== notaId; });
+  showToast('Tarea eliminada');
+  renderDT('tareas');
+};
