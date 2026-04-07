@@ -1095,3 +1095,305 @@ window.verTareaJugador = function(id, src) {
     }, 50);
   }
 };
+
+// ─── PANEL LATERAL DE JUGADORES EN CALENDARIO DEL ANALISTA ───
+(function() {
+  function patchCalendario() {
+    var _origRenderCal = window.renderCalendario;
+    if(!_origRenderCal) return setTimeout(patchCalendario, 400);
+
+    window.renderCalendario = function() {
+      _origRenderCal();
+      setTimeout(injectJugadoresPanel, 100);
+    };
+
+    // Inyectar también al cargar la página de calendario
+    var _origRenderPage = window.renderPage;
+    if(_origRenderPage) {
+      window.renderPage = function(page) {
+        _origRenderPage(page);
+        if(page === 'calendario') setTimeout(injectJugadoresPanel, 300);
+      };
+    }
+  }
+  setTimeout(patchCalendario, 600);
+
+  function injectJugadoresPanel() {
+    // Buscar el contenedor del calendario
+    var calPage = document.getElementById('page-calendario');
+    if(!calPage) return;
+    if(calPage.querySelector('#panel-jugadores-cal')) return; // ya existe
+
+    // Cambiar layout del calendario para dejar espacio al panel
+    var calInner = calPage.querySelector('.page-content') || calPage.firstElementChild;
+    if(!calInner) return;
+
+    // Crear panel lateral
+    var panel = document.createElement('div');
+    panel.id = 'panel-jugadores-cal';
+    panel.style.cssText = [
+      'position:fixed',
+      'right:0',
+      'top:60px',
+      'width:280px',
+      'height:calc(100vh - 60px)',
+      'background:var(--bg2,#161b22)',
+      'border-left:0.5px solid var(--border,#30363d)',
+      'overflow-y:auto',
+      'z-index:100',
+      'transform:translateX(100%)',
+      'transition:transform .25s ease',
+      'padding:1rem',
+    ].join(';');
+
+    panel.innerHTML = buildJugadoresPanel();
+    document.body.appendChild(panel);
+
+    // Botón toggle
+    var toggleBtn = document.createElement('button');
+    toggleBtn.id = 'btn-toggle-jug-cal';
+    toggleBtn.onclick = function() { toggleJugadoresPanel(); };
+    toggleBtn.style.cssText = 'position:fixed;right:16px;bottom:80px;z-index:200;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#1D9E75,#378ADD);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);';
+    toggleBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+    calPage.appendChild(toggleBtn);
+  }
+
+  window.toggleJugadoresPanel = function() {
+    var panel = document.getElementById('panel-jugadores-cal');
+    var btn   = document.getElementById('btn-toggle-jug-cal');
+    if(!panel) return;
+    var isOpen = panel.style.transform === 'translateX(0px)' || panel.style.transform === 'translateX(0%)' || panel.style.transform === '';
+    if(isOpen) {
+      panel.style.transform = 'translateX(100%)';
+    } else {
+      panel.style.transform = 'translateX(0)';
+      // Refrescar contenido
+      panel.innerHTML = buildJugadoresPanel();
+    }
+  };
+
+  function buildJugadoresPanel() {
+    var jugs = (window.state && window.state.jugadores) || [];
+    var TIPOS = {
+      Central:'🛡', Lateral:'⚡', Pivote:'◎', Interior:'↗', Extremo:'▶', Delantero:'⚽'
+    };
+    var AV = window.AV_COLORS || {};
+
+    var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">' +
+      '<div style="font-size:13px;font-weight:700;">Jugadores</div>' +
+      '<button onclick="toggleJugadoresPanel()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;">×</button>' +
+    '</div>';
+
+    html += '<div style="font-size:10px;color:var(--text3);margin-bottom:.875rem;">Pulsa un jugador para asignarle objetivos, tareas o notas del día</div>';
+
+    if(!jugs.length) {
+      html += '<div style="font-size:12px;color:var(--text3);text-align:center;padding:1rem;">Sin jugadores todavía</div>';
+      return html;
+    }
+
+    jugs.forEach(function(j) {
+      var pc = AV[j.posicion] || {bg:'#1a2040',color:'#8090d0'};
+      var ico = TIPOS[j.posicion] || '⚽';
+      html += '<div onclick="abrirJugadorDia(\'' + j.id + '\')" style="display:flex;align-items:center;gap:10px;padding:.75rem;border-radius:10px;background:var(--bg,#0d1117);border:0.5px solid var(--border,#30363d);margin-bottom:6px;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--border2)\'" onmouseout="this.style.borderColor=\'var(--border)\'">';
+      html += '<div style="width:36px;height:36px;border-radius:50%;background:' + pc.bg + ';color:' + pc.color + ';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">' + ico + '</div>';
+      html += '<div style="flex:1;min-width:0;">';
+      html += '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + j.nombre + '</div>';
+      html += '<div style="font-size:10px;color:var(--text3);">' + j.posicion + (j.equipo?' · '+j.equipo:'') + '</div>';
+      html += '</div>';
+      html += '<div style="font-size:16px;color:var(--text3);">→</div>';
+      html += '</div>';
+    });
+
+    return html;
+  }
+
+  // Modal para asignar cosas al jugador desde el calendario
+  window.abrirJugadorDia = function(jugId) {
+    var j = (window.state.jugadores||[]).find(function(x){ return x.id === jugId; });
+    if(!j) return;
+
+    var existingModal = document.getElementById('modal-jug-dia');
+    if(existingModal) existingModal.remove();
+
+    var hoy = new Date().toISOString().slice(0,10);
+    var SI = 'width:100%;height:36px;border:0.5px solid var(--border2,#21262d);border-radius:8px;padding:0 10px;font-size:12px;background:var(--bg,#0d1117);color:var(--text,#e6edf3);outline:none;margin-bottom:8px;box-sizing:border-box;';
+    var TA = 'width:100%;border:0.5px solid var(--border2,#21262d);border-radius:8px;padding:8px;font-size:12px;background:var(--bg,#0d1117);color:var(--text,#e6edf3);resize:none;font-family:inherit;outline:none;margin-bottom:8px;box-sizing:border-box;';
+
+    var modal = document.createElement('div');
+    modal.id = 'modal-jug-dia';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    modal.innerHTML = '<div style="background:var(--bg2,#161b22);border:0.5px solid var(--border,#30363d);border-radius:12px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:1.5rem;">' +
+
+      // Header
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;">' +
+        '<div style="width:40px;height:40px;border-radius:50%;background:' + (window.AV_COLORS[j.posicion]||{bg:'#1a2040'}).bg + ';color:' + (window.AV_COLORS[j.posicion]||{color:'#8090d0'}).color + ';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">' + j.nombre.split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase() + '</div>' +
+        '<div><div style="font-size:15px;font-weight:700;">' + j.nombre + '</div><div style="font-size:11px;color:var(--text3);">' + j.posicion + '</div></div>' +
+        '<button onclick="document.getElementById(\'modal-jug-dia\').remove()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text3);font-size:20px;">×</button>' +
+      '</div>' +
+
+      // Fecha
+      '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Fecha</label>' +
+      '<input type="date" id="jd-fecha" value="' + hoy + '" style="' + SI + '">' +
+
+      // Tabs
+      '<div style="display:flex;gap:6px;margin-bottom:1rem;">' +
+        '<button onclick="switchJugDiaTab(\'objetivo\')" id="jdt-objetivo" style="flex:1;height:30px;border-radius:8px;font-size:10px;font-weight:700;background:rgba(29,158,117,0.15);color:#1D9E75;border:0.5px solid rgba(29,158,117,0.3);cursor:pointer;font-family:inherit;">🎯 Objetivo</button>' +
+        '<button onclick="switchJugDiaTab(\'tarea\')" id="jdt-tarea" style="flex:1;height:30px;border-radius:8px;font-size:10px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">📋 Tarea</button>' +
+        '<button onclick="switchJugDiaTab(\'nota\')" id="jdt-nota" style="flex:1;height:30px;border-radius:8px;font-size:10px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">📝 Nota</button>' +
+      '</div>' +
+
+      // Panel objetivo
+      '<div id="jdp-objetivo">' +
+        '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Foco del día para ' + j.nombre.split(' ')[0] + ' — aparecerá destacado en su semana</div>' +
+        '<textarea id="jd-objetivo-txt" rows="3" placeholder="Ej: Hoy trabaja la anticipación en los duelos 1v1. Cuando el rival reciba de espaldas, salta antes..." style="' + TA + '"></textarea>' +
+        '<select id="jd-tipo" style="' + SI + '">' +
+          '<option value="entreno">💪 Entrenamiento</option>' +
+          '<option value="partido">⚽ Partido</option>' +
+          '<option value="descanso">😴 Descanso</option>' +
+        '</select>' +
+        '<button onclick="guardarObjetivoDia(\'' + jugId + '\')" style="width:100%;height:40px;background:linear-gradient(135deg,#1D9E75,#0f6e56);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;">Guardar en su semana</button>' +
+      '</div>' +
+
+      // Panel tarea
+      '<div id="jdp-tarea" style="display:none;">' +
+        '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Asigna una tarea de la biblioteca o escribe una personalizada</div>' +
+        '<input id="jd-tarea-q" oninput="buscarTareasDia(\'' + jugId + '\')" placeholder="Buscar tarea..." style="' + SI + '">' +
+        '<div id="jd-tarea-lista" style="max-height:200px;overflow-y:auto;margin-bottom:8px;"></div>' +
+        '<div style="font-size:10px;color:var(--text3);margin-bottom:5px;">O escribe una tarea personalizada:</div>' +
+        '<textarea id="jd-tarea-custom" rows="2" placeholder="Describe la tarea..." style="' + TA + '"></textarea>' +
+        '<button onclick="guardarTareaDia(\'' + jugId + '\')" style="width:100%;height:40px;background:rgba(124,111,240,0.15);border:0.5px solid rgba(124,111,240,0.4);border-radius:8px;color:#7C6FF0;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;">Asignar tarea</button>' +
+      '</div>' +
+
+      // Panel nota
+      '<div id="jdp-nota" style="display:none;">' +
+        '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Nota de sesión o comentario para ' + j.nombre.split(' ')[0] + '</div>' +
+        '<textarea id="jd-nota-txt" rows="4" placeholder="Notas del entrenamiento, observaciones del partido, feedback..." style="' + TA + '"></textarea>' +
+        '<button onclick="guardarNotaDia(\'' + jugId + '\')" style="width:100%;height:40px;background:rgba(55,138,221,0.15);border:0.5px solid rgba(55,138,221,0.4);border-radius:8px;color:#378ADD;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;">Guardar nota</button>' +
+      '</div>' +
+
+    '</div>';
+
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+
+    // Cargar tareas inicialmente
+    setTimeout(function(){ buscarTareasDia(jugId); }, 100);
+  };
+
+  window.switchJugDiaTab = function(tab) {
+    ['objetivo','tarea','nota'].forEach(function(t) {
+      var panel = document.getElementById('jdp-' + t);
+      var btn   = document.getElementById('jdt-' + t);
+      if(!panel || !btn) return;
+      var active = t === tab;
+      panel.style.display = active ? 'block' : 'none';
+      btn.style.background  = active ? 'rgba(29,158,117,0.15)' : 'none';
+      btn.style.color       = active ? '#1D9E75' : 'var(--text3)';
+      btn.style.borderColor = active ? 'rgba(29,158,117,0.3)' : 'var(--border2,#21262d)';
+    });
+  };
+
+  window.buscarTareasDia = function(jugId) {
+    var q    = (document.getElementById('jd-tarea-q')||{}).value || '';
+    var cont = document.getElementById('jd-tarea-lista');
+    if(!cont) return;
+    var j    = (window.state.jugadores||[]).find(function(x){ return x.id===jugId; });
+    var pos  = j ? j.posicion : '';
+    var allT = window.getAllTareas ? window.getAllTareas() : [];
+    var lista = allT.filter(function(t){
+      return t.t && (t.pos===pos || !pos || q) &&
+        (!q || (t.t||'').toLowerCase().includes(q.toLowerCase()));
+    }).slice(0, 8);
+
+    if(!lista.length) { cont.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:.5rem;">Sin resultados</div>'; return; }
+
+    cont.innerHTML = lista.map(function(t) {
+      var src = t._src || 'base';
+      var tid = String(t.id);
+      return '<div style="display:flex;align-items:center;gap:8px;padding:.5rem;border-radius:6px;background:var(--bg,#0d1117);border:0.5px solid var(--border,#30363d);margin-bottom:4px;cursor:pointer;" onclick="seleccionarTareaDia(' + JSON.stringify(tid) + ',' + JSON.stringify(src) + ')">' +
+        '<div style="flex:1;font-size:12px;font-weight:500;">' + (t.t||'') + '</div>' +
+        '<div style="font-size:10px;color:var(--text3);">' + (t.pos||'') + '</div>' +
+      '</div>';
+    }).join('');
+
+  window._tareaSelDia = null;
+  window.seleccionarTareaDia = function(id, src) {
+    var t = window.getAllTareas ? window.getAllTareas().find(function(x){ return String(x.id)===String(id); }) : null;
+    if(!t) return;
+    window._tareaSelDia = t;
+    var q = document.getElementById('jd-tarea-q');
+    if(q) q.value = t.t;
+    var lista = document.getElementById('jd-tarea-lista');
+    if(lista) lista.innerHTML = '<div style="background:rgba(29,158,117,0.1);border:0.5px solid rgba(29,158,117,0.3);border-radius:6px;padding:.625rem;font-size:12px;font-weight:600;color:#1D9E75;">✓ ' + t.t + '</div>';
+  };
+
+  window.guardarObjetivoDia = async function(jugId) {
+    var fecha = document.getElementById('jd-fecha')?.value || new Date().toISOString().slice(0,10);
+    var foco  = document.getElementById('jd-objetivo-txt')?.value.trim();
+    var tipo  = document.getElementById('jd-tipo')?.value || 'entreno';
+    if(!foco) { showToast('Escribe el objetivo primero'); return; }
+    var db = window._patchDB || window.DB_REF;
+    if(!db) { showToast('Sin conexión'); return; }
+
+    // Buscar si ya hay evento ese día
+    var res = await db.from('calendario_semana').select('id').eq('jugador_id',jugId).eq('fecha',fecha).maybeSingle();
+    var err;
+    if(res.data) {
+      ({error:err} = await db.from('calendario_semana').update({foco:foco,tipo:tipo}).eq('id',res.data.id));
+    } else {
+      ({error:err} = await db.from('calendario_semana').insert({jugador_id:jugId,fecha:fecha,tipo:tipo,foco:foco,hora:'',notas:''}));
+    }
+    if(err) { showToast('Error: '+err.message); return; }
+
+    var j = (window.state.jugadores||[]).find(function(x){return x.id===jugId;});
+    showToast('✓ Objetivo del día guardado para ' + (j?j.nombre.split(' ')[0]:'jugador'));
+    document.getElementById('modal-jug-dia')?.remove();
+    if(typeof renderCalendario === 'function') renderCalendario();
+  };
+
+  window.guardarTareaDia = async function(jugId) {
+    var fecha  = document.getElementById('jd-fecha')?.value || new Date().toISOString().slice(0,10);
+    var custom = document.getElementById('jd-tarea-custom')?.value.trim();
+    var db = window._patchDB || window.DB_REF;
+    if(!db) { showToast('Sin conexión'); return; }
+
+    var texto;
+    if(window._tareaSelDia) {
+      var t = window._tareaSelDia;
+      texto = 'TAREA ASIGNADA: ' + (t.t||'Tarea') +
+        '\n\nPosición: ' + (t.pos||'—') + ' | ' + (t.j||'') + ' jugadores | ' + (t.d||'') +
+        '\n\nDesarrollo: ' + (t.des||t.desarrollo||'—') +
+        '\n\nPreguntas: ' + (t.preg||[]).map(function(p){ return typeof p==='object'?p.p:p; }).join(' · ');
+      window._tareaSelDia = null;
+    } else if(custom) {
+      texto = 'TAREA ASIGNADA: Tarea personalizada\n\n' + custom;
+    } else {
+      showToast('Selecciona o escribe una tarea'); return;
+    }
+
+    var res = await db.from('notas_video').insert({jugador_id:jugId,fecha:fecha,texto:texto}).select();
+    if(res.error) { showToast('Error: '+res.error.message); return; }
+    if(window.state && window.state.notasVideo) window.state.notasVideo.unshift(res.data[0]);
+
+    var j = (window.state.jugadores||[]).find(function(x){return x.id===jugId;});
+    showToast('✓ Tarea asignada a ' + (j?j.nombre.split(' ')[0]:'jugador'));
+    document.getElementById('modal-jug-dia')?.remove();
+  };
+
+  window.guardarNotaDia = async function(jugId) {
+    var fecha = document.getElementById('jd-fecha')?.value || new Date().toISOString().slice(0,10);
+    var nota  = document.getElementById('jd-nota-txt')?.value.trim();
+    if(!nota) { showToast('Escribe la nota primero'); return; }
+    var db = window._patchDB || window.DB_REF;
+    if(!db) { showToast('Sin conexión'); return; }
+    var res = await db.from('notas_video').insert({jugador_id:jugId,fecha:fecha,texto:nota}).select();
+    if(res.error) { showToast('Error: '+res.error.message); return; }
+    if(window.state && window.state.notasVideo) window.state.notasVideo.unshift(res.data[0]);
+    var j = (window.state.jugadores||[]).find(function(x){return x.id===jugId;});
+    showToast('✓ Nota guardada para ' + (j?j.nombre.split(' ')[0]:'jugador'));
+    document.getElementById('modal-jug-dia')?.remove();
+  };
+
+};
+
+})();
