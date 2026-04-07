@@ -501,6 +501,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       return;
     }
     DB = window.supabase.createClient(SURL, SKEY);
+    window.DB_REF = DB; // FIX: asignar globalmente para todos los scripts
     if (window._onDBReady) window._onDBReady(DB);
 
     document.getElementById('btn-login').addEventListener('click', doLogin);
