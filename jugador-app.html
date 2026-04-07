@@ -449,6 +449,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
 
+  <!-- TAREAS DEL JUGADOR -->
+  <div class="sec" id="sec-tareas">
+    <div id="tareas-jugador-content">
+      <div style="text-align:center;padding:3rem;color:var(--text3);"><div style="font-size:32px;margin-bottom:10px;">📋</div><div style="font-size:13px;">Cargando tareas...</div></div>
+    </div>
+  </div>
+
   <!-- BOTTOM NAV -->
   <nav class="bnav">
     <button class="nb active" onclick="goSec('inicio',this)">
@@ -478,6 +485,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="nb" onclick="goSec('nut',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       Nutrición
+    </button>
+    <button class="nb" onclick="goSec('tareas',this)" id="nb-tareas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+      Tareas
     </button>
     <button class="nb" onclick="goSec('chat',this)" id="nb-chat">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -773,6 +784,7 @@ function goSec(id, btn) {
   if (id === 'chat')   initChat && initChat(window._jugId);
   if (id === 'cal')    window.renderCalJugador && window.renderCalJugador();
   if (id === 'inicio') renderInicio && renderInicio();
+  if (id === 'tareas') window.renderTareasJugador && window.renderTareasJugador();
   if (id === 'clips')  { if (typeof renderClipsSec === 'function') renderClipsSec(window._clipsFiltroActivo || 'mejorar'); }
 }
 
@@ -1990,7 +2002,7 @@ window._renderCalInicio = function() {
 window.addEventListener('load', function() {
   setTimeout(function() {
     // Añadir botón atrás al final de cada sección
-    var secs = ['sec-clips','sec-informes','sec-plan','sec-cal','sec-psico','sec-nut','sec-chat'];
+    var secs = ['sec-clips','sec-informes','sec-plan','sec-cal','sec-psico','sec-nut','sec-chat','sec-tareas'];
     secs.forEach(function(secId) {
       var sec = document.getElementById(secId);
       if (!sec) return;
@@ -2550,5 +2562,175 @@ function renderMenuFuncional(tipo) {
   cont.innerHTML = html;
 }
 
+</script>
+
+<script>
+// ─── SECCIÓN TAREAS DEL JUGADOR ───
+window.renderTareasJugador = function() {
+  var jugId = window._jugId;
+  var db    = window.DB_REF;
+  var cont  = document.getElementById('tareas-jugador-content');
+  if(!jugId || !db || !cont) return;
+
+  cont.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text3);">Cargando...</div>';
+
+  // Cargar tareas asignadas (notas_video con prefijo TAREA ASIGNADA)
+  db.from('notas_video')
+    .select('*')
+    .eq('jugador_id', jugId)
+    .order('fecha', {ascending: false})
+    .then(function(res) {
+      var todas = (res.data||[]).filter(function(n){
+        return n.texto && n.texto.indexOf('TAREA ASIGNADA:') === 0;
+      });
+
+      if(!todas.length) {
+        cont.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:var(--text3);">' +
+          '<div style="font-size:40px;margin-bottom:12px;">📋</div>' +
+          '<div style="font-size:14px;font-weight:600;margin-bottom:6px;">Sin tareas todavía</div>' +
+          '<div style="font-size:12px;line-height:1.6;">Tu analista te asignará tareas aquí.<br>Aparecerán organizadas por fecha.</div>' +
+        '</div>';
+        return;
+      }
+
+      // Agrupar por fecha
+      var porFecha = {};
+      todas.forEach(function(n) {
+        if(!porFecha[n.fecha]) porFecha[n.fecha] = [];
+        porFecha[n.fecha].push(n);
+      });
+
+      var fechas = Object.keys(porFecha).sort(function(a,b){ return b.localeCompare(a); });
+      var hoy = new Date().toISOString().slice(0,10);
+
+      var html = '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:1rem;">' +
+        todas.length + ' tarea' + (todas.length!==1?'s':'') + ' asignadas</div>';
+
+      fechas.forEach(function(fecha) {
+        var tareas = porFecha[fecha];
+        var esHoy  = fecha === hoy;
+        var d = new Date(fecha + 'T12:00:00');
+        var fechaLabel = esHoy ? '📅 Hoy' : d.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+
+        html += '<div style="margin-bottom:1.5rem;">';
+        html += '<div style="font-size:11px;font-weight:800;color:' + (esHoy?'#3fb950':'var(--text2)') + ';margin-bottom:.625rem;display:flex;align-items:center;gap:6px;">';
+        if(esHoy) html += '<div style="width:6px;height:6px;border-radius:50%;background:#3fb950;"></div>';
+        html += fechaLabel.charAt(0).toUpperCase() + fechaLabel.slice(1) + '</div>';
+
+        tareas.forEach(function(n) {
+          var lines  = n.texto.split('\n').filter(Boolean);
+          var titulo = (lines[0]||'').replace('TAREA ASIGNADA: ','');
+          var esPersonalizada = titulo === 'Tarea personalizada';
+
+          // Parsear secciones
+          var meta='', desarrollo='', preguntas=[];
+          var secActual='';
+          lines.slice(1).forEach(function(l) {
+            if(l.startsWith('Posición:') || l.startsWith('Posicion:')) { meta=l; return; }
+            if(l.startsWith('Desarrollo:')) { secActual='des'; desarrollo=l.replace('Desarrollo:','').trim(); return; }
+            if(l.startsWith('Preguntas:')) {
+              secActual='preg';
+              preguntas = l.replace('Preguntas:','').trim().split(' · ').filter(Boolean);
+              return;
+            }
+            if(secActual==='des' && !l.startsWith('Preguntas:')) desarrollo += ' ' + l.trim();
+            if(esPersonalizada && secActual==='' && l.trim()) desarrollo += (desarrollo?' ':'') + l.trim();
+          });
+
+          var color = esPersonalizada ? '#7C6FF0' : '#1D9E75';
+          var bg    = esPersonalizada ? 'rgba(124,111,240,0.08)' : 'rgba(29,158,117,0.06)';
+
+          html += '<div style="background:var(--card);border:0.5px solid var(--border);border-left:3px solid ' + color + ';border-radius:var(--radius);padding:1rem;margin-bottom:.75rem;">';
+
+          // Título
+          html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;">';
+          html += '<div style="font-size:14px;font-weight:700;flex:1;line-height:1.3;">' + titulo + '</div>';
+          if(esPersonalizada) html += '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:rgba(124,111,240,0.12);color:#7C6FF0;font-weight:700;flex-shrink:0;">Personalizada</span>';
+          html += '</div>';
+
+          // Meta (posición, jugadores, duración)
+          if(meta) html += '<div style="font-size:10px;color:var(--text3);margin-bottom:8px;">' + meta + '</div>';
+
+          // Desarrollo
+          if(desarrollo) {
+            html += '<div style="background:' + bg + ';border-radius:8px;padding:.75rem;margin-bottom:8px;">';
+            html += '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:' + color + ';margin-bottom:5px;">Desarrollo</div>';
+            html += '<div style="font-size:12px;line-height:1.7;color:var(--text2);">' + desarrollo + '</div>';
+            html += '</div>';
+          }
+
+          // Preguntas
+          if(preguntas.length) {
+            html += '<div style="margin-top:4px;">';
+            html += '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px;">Reflexiona después</div>';
+            preguntas.forEach(function(p, i) {
+              html += '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border);">';
+              html += '<div style="font-size:10px;font-weight:700;color:' + color + ';min-width:16px;">' + (i+1) + '</div>';
+              html += '<div style="font-size:12px;color:var(--text2);line-height:1.5;">' + p + '</div>';
+              html += '</div>';
+            });
+            html += '</div>';
+          }
+
+          html += '</div>'; // end tarea card
+        });
+        html += '</div>'; // end fecha grupo
+      });
+
+      cont.innerHTML = html;
+    });
+};
+
+// ─── TAREAS EN SEMANA: inyectar bajo el foco del día ───
+// Sobreescribir renderCalJugador para añadir tareas del día
+var _origRenderCalJugador2 = window.renderCalJugador;
+window.renderCalJugador = function() {
+  if(_origRenderCalJugador2) _origRenderCalJugador2();
+  // Después de que renderice el calendario, añadir tareas por día
+  setTimeout(function() {
+    var jugId = window._jugId;
+    var db    = window.DB_REF;
+    if(!jugId || !db) return;
+
+    db.from('notas_video')
+      .select('*')
+      .eq('jugador_id', jugId)
+      .order('fecha', {ascending: false})
+      .limit(30)
+      .then(function(res) {
+        var tareasPorFecha = {};
+        (res.data||[]).filter(function(n){ return n.texto && n.texto.indexOf('TAREA ASIGNADA:') === 0; })
+          .forEach(function(n) {
+            if(!tareasPorFecha[n.fecha]) tareasPorFecha[n.fecha] = [];
+            tareasPorFecha[n.fecha].push(n);
+          });
+
+        // Inyectar en cada día que tenga tareas
+        Object.keys(tareasPorFecha).forEach(function(fecha) {
+          var tareas = tareasPorFecha[fecha];
+          // Buscar el div del día en el calendario
+          var dayDivs = document.querySelectorAll('[data-fecha="' + fecha + '"]');
+          dayDivs.forEach(function(div) {
+            // Solo el div de detalle (el que tiene más contenido)
+            if(div.children.length > 1 && !div.querySelector('.tareas-dia-injectadas')) {
+              var inj = document.createElement('div');
+              inj.className = 'tareas-dia-injectadas';
+              inj.style.cssText = 'margin-top:8px;';
+              var html = '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#7C6FF0;margin-bottom:5px;">📋 ' + tareas.length + ' tarea' + (tareas.length!==1?'s':'') + ' asignada' + (tareas.length!==1?'s':'') + '</div>';
+              tareas.forEach(function(n) {
+                var titulo = n.texto.split('\n')[0].replace('TAREA ASIGNADA: ','');
+                html += '<div style="background:rgba(124,111,240,0.08);border-radius:6px;padding:6px 8px;margin-bottom:4px;border-left:2px solid #7C6FF0;">';
+                html += '<div style="font-size:11px;font-weight:600;color:var(--text);">' + titulo + '</div>';
+                html += '</div>';
+              });
+              html += '<div style="text-align:right;margin-top:3px;"><a onclick="goSec(\'tareas\',document.getElementById(\'nb-tareas\'))" style="font-size:10px;color:#7C6FF0;cursor:pointer;text-decoration:none;">Ver todas →</a></div>';
+              inj.innerHTML = html;
+              div.appendChild(inj);
+            }
+          });
+        });
+      });
+  }, 400);
+};
 </script>
 </html>
