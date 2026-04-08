@@ -2250,8 +2250,7 @@ async function inyectarNutricionCalendario() {
     .lte('fecha',domingo.toISOString().slice(0,10));
   if (!res.data) return;
   res.data.forEach(function(log) {
-    var mL = (log.texto||'').split('
-').find(function(l){return l.startsWith('MACROS:');});
+    var mL = (log.texto||'').split('\n').find(function(l){return l.startsWith('MACROS:');});
     if (!mL) return;
     var km = mL.match(/(\d+)kcal/);
     var pm = mL.match(/Prot:\s*(\d+)/);
@@ -2925,7 +2924,7 @@ window.verInformeDetalle = function(el) {
   var h='<div style="background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding:1.25rem;">';
   h+='<div style="width:40px;height:4px;background:var(--border2);border-radius:99px;margin:0 auto 1.25rem;"></div>';
   h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><div><div style="font-size:16px;font-weight:800;">'+(inf.partido||'Partido')+'</div><div style="font-size:11px;color:var(--text2);">'+fecha+(inf.rival?' vs '+inf.rival:'')+(inf.resultado?' '+inf.resultado:'')+'</div></div>';
-  h+='<button onclick="document.getElementById('modal-informe-detalle').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;">x</button></div>';
+  h+='<button onclick="document.getElementById(\'modal-informe-detalle\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;">x</button></div>';
   if(nota) { h+='<div style="display:flex;align-items:center;gap:12px;background:'+nc+'10;border-radius:12px;padding:1rem;margin-bottom:1rem;"><div style="width:56px;height:56px;border-radius:50%;background:'+nc+'20;color:'+nc+';border:2px solid '+nc+'50;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:20px;font-weight:800;line-height:1;">'+nota.toFixed(1)+'</span><span style="font-size:9px;">/10</span></div><div><div style="font-size:13px;font-weight:700;color:'+nc+';">'+(nota>=8?'Sobresaliente':nota>=6?'Bueno':nota>=5?'Correcto':nota>=3?'En progreso':'A mejorar')+'</div></div></div>'; }
   FASES.forEach(function(f) {
     var avg=avgF(f.key); if(!avg&&!f.texto) return;
