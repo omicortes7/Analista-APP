@@ -2924,7 +2924,10 @@ window.verInformeDetalle = function(el) {
   var h='<div style="background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding:1.25rem;">';
   h+='<div style="width:40px;height:4px;background:var(--border2);border-radius:99px;margin:0 auto 1.25rem;"></div>';
   h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><div><div style="font-size:16px;font-weight:800;">'+(inf.partido||'Partido')+'</div><div style="font-size:11px;color:var(--text2);">'+fecha+(inf.rival?' vs '+inf.rival:'')+(inf.resultado?' '+inf.resultado:'')+'</div></div>';
-  h+='<button onclick="document.getElementById(\'modal-informe-detalle\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;">x</button></div>';
+  h+='<div style="display:flex;gap:8px;">';
+  h+='<button onclick="window.descargarInformePDF(window._informesCache.find(function(x){return String(x.id)===\''+String(inf.id)+'\'}))" style="background:rgba(88,166,255,0.15);border:0.5px solid rgba(88,166,255,0.4);cursor:pointer;color:#58a6ff;font-size:11px;font-weight:700;height:32px;padding:0 12px;border-radius:99px;font-family:inherit;">↓ PDF</button>';
+  h+='<button onclick="document.getElementById(\'modal-informe-detalle\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;">x</button>';
+  h+='</div></div>';
   if(nota) { h+='<div style="display:flex;align-items:center;gap:12px;background:'+nc+'10;border-radius:12px;padding:1rem;margin-bottom:1rem;"><div style="width:56px;height:56px;border-radius:50%;background:'+nc+'20;color:'+nc+';border:2px solid '+nc+'50;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:20px;font-weight:800;line-height:1;">'+nota.toFixed(1)+'</span><span style="font-size:9px;">/10</span></div><div><div style="font-size:13px;font-weight:700;color:'+nc+';">'+(nota>=8?'Sobresaliente':nota>=6?'Bueno':nota>=5?'Correcto':nota>=3?'En progreso':'A mejorar')+'</div></div></div>'; }
   FASES.forEach(function(f) {
     var avg=avgF(f.key); if(!avg&&!f.texto) return;
@@ -2944,6 +2947,120 @@ window.verInformeDetalle = function(el) {
   modal.innerHTML=h;
   document.body.appendChild(modal);
   modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
+};
+
+// ─── DESCARGAR INFORME PDF ───
+window.descargarInformePDF = function(inf) {
+  var nota = parseFloat(inf.nota_decimal)||0;
+  var nc = nota>=5?'#3fb950':nota>=3?'#d29922':'#f85149';
+  var fecha = new Date((inf.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  fecha = fecha.charAt(0).toUpperCase()+fecha.slice(1);
+
+  var starsData = {};
+  try { starsData = inf.estrellas_json ? JSON.parse(inf.estrellas_json) : {}; } catch(e) {}
+  function avgF(k) { var v=(starsData[k]||[]).filter(function(x){return x>0;}); return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0; }
+  function starsStr(avg) { var s=''; for(var i=1;i<=5;i++) s+=(i<=Math.round(avg)?'★':'☆'); return s; }
+
+  var FASES=[
+    {key:'MCB',label:'Con Balón',color:nc,avg:avgF('MCB'),texto:inf.mcb},
+    {key:'MSB',label:'Sin Balón',color:'#58a6ff',avg:avgF('MSB'),texto:inf.msb},
+    {key:'TDA',label:'Transición Ofensiva',color:'#d29922',avg:avgF('TDA'),texto:inf.tda},
+    {key:'TAD',label:'Transición Defensiva',color:'#f85149',avg:avgF('TAD'),texto:inf.tad}
+  ];
+
+  var mics = inf.microconceptos_obs ? inf.microconceptos_obs.split(',').filter(Boolean).map(function(m){return m.trim();}) : [];
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
+  html += '<style>';
+  html += 'body{font-family:Arial,sans-serif;background:#fff;color:#111;margin:0;padding:32px;max-width:700px;margin:0 auto;}';
+  html += 'h1{font-size:22px;font-weight:800;margin:0 0 4px;}';
+  html += '.sub{font-size:13px;color:#666;margin-bottom:24px;}';
+  html += '.nota-circle{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:70px;height:70px;border-radius:50%;border:3px solid '+nc+';color:'+nc+';font-size:24px;font-weight:800;line-height:1;margin-bottom:4px;}';
+  html += '.nota-wrap{display:flex;align-items:center;gap:20px;background:#f8f8f8;border-left:4px solid '+nc+';border-radius:8px;padding:16px;margin-bottom:24px;}';
+  html += '.fase{border-left:4px solid;border-radius:4px;padding:12px 16px;margin-bottom:14px;}';
+  html += '.fase-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}';
+  html += '.stars{font-size:20px;margin-bottom:6px;}';
+  html += '.bar-wrap{height:8px;background:#eee;border-radius:99px;margin-bottom:8px;}';
+  html += '.bar{height:8px;border-radius:99px;}';
+  html += '.fase-texto{font-size:13px;line-height:1.6;color:#333;}';
+  html += '.mics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px;}';
+  html += '.mic{font-size:11px;padding:4px 10px;border-radius:99px;background:#EEEDFE;color:#3C3489;font-weight:600;}';
+  html += '.fort-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;}';
+  html += '.fort-box{border-radius:8px;padding:14px;}';
+  html += '.fort-title{font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:8px;}';
+  html += '.fort-text{font-size:12px;line-height:1.6;}';
+  html += '.section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#999;margin:20px 0 10px;}';
+  html += '.notas-box{background:#f8f8f8;border-left:3px solid #ccc;border-radius:4px;padding:12px 16px;font-size:12px;line-height:1.7;color:#555;font-style:italic;}';
+  html += '.header-line{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}';
+  html += '</style></head><body>';
+
+  // Cabecera
+  html += '<h1>'+(inf.partido||'Informe de Partido')+'</h1>';
+  html += '<div class="sub">'+fecha+(inf.rival?' &middot; vs '+inf.rival:'')+(inf.resultado?' &middot; '+inf.resultado:'')+'</div>';
+
+  // Nota global
+  if(nota) {
+    html += '<div class="nota-wrap">';
+    html += '<div class="nota-circle"><span>'+nota.toFixed(1)+'</span><span style="font-size:10px;font-weight:400;">/10</span></div>';
+    html += '<div><div style="font-size:16px;font-weight:800;color:'+nc+';">'+(nota>=8?'Sobresaliente':nota>=6?'Bueno':nota>=5?'Correcto':nota>=3?'En progreso':'A mejorar')+'</div><div style="font-size:12px;color:#666;margin-top:4px;">Valoración global del partido</div></div>';
+    html += '</div>';
+  }
+
+  // 4 fases
+  html += '<div class="section-title">Valoración por momentos</div>';
+  FASES.forEach(function(f) {
+    if(!f.avg && !f.texto) return;
+    var pct = f.avg ? Math.round((f.avg/5)*100) : 0;
+    html += '<div class="fase" style="border-color:'+f.color+';background:'+f.color+'0d;">';
+    html += '<div class="header-line"><span class="fase-title" style="color:'+f.color+';">'+f.label+'</span>';
+    if(f.avg) html += '<span style="font-size:13px;font-weight:700;color:'+f.color+';">'+f.avg.toFixed(1)+'/5</span>';
+    html += '</div>';
+    if(f.avg) {
+      html += '<div class="stars" style="color:'+f.color+';">'+starsStr(f.avg)+'</div>';
+      html += '<div class="bar-wrap"><div class="bar" style="width:'+pct+'%;background:'+f.color+';"></div></div>';
+    }
+    if(f.texto) html += '<div class="fase-texto">'+f.texto+'</div>';
+    html += '</div>';
+  });
+
+  // Microconceptos
+  if(mics.length) {
+    html += '<div class="section-title">Microconceptos observados</div>';
+    html += '<div class="mics">';
+    mics.forEach(function(m){ html += '<span class="mic">'+m+'</span>'; });
+    html += '</div>';
+  }
+
+  // Fortalezas y mejoras
+  if(inf.positivos || inf.mejoras) {
+    html += '<div class="section-title">Análisis del analista</div>';
+    html += '<div class="fort-grid">';
+    if(inf.positivos) {
+      html += '<div class="fort-box" style="background:#3fb95012;border:1px solid #3fb95030;">';
+      html += '<div class="fort-title" style="color:#3fb950;">✓ Fortalezas</div>';
+      html += '<div class="fort-text">'+inf.positivos.split('\n').join('<br>')+'</div></div>';
+    }
+    if(inf.mejoras) {
+      html += '<div class="fort-box" style="background:#f8514912;border:1px solid #f8514930;">';
+      html += '<div class="fort-title" style="color:#f85149;">△ A mejorar</div>';
+      html += '<div class="fort-text">'+inf.mejoras.split('\n').join('<br>')+'</div></div>';
+    }
+    html += '</div>';
+  }
+
+  // Notas analista
+  if(inf.notas) {
+    html += '<div class="section-title">Notas del analista</div>';
+    html += '<div class="notas-box">'+inf.notas+'</div>';
+  }
+
+  html += '</body></html>';
+
+  // Abrir en nueva pestaña para imprimir/guardar como PDF
+  var win = window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(function(){ win.print(); }, 500);
 };
 </script>
 </html>
