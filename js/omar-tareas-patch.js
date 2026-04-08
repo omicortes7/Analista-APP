@@ -847,44 +847,9 @@ console.log('✅ Patch tareas Omar cargado: 40 tareas nuevas, crear tarea, fix i
 
       // ── TABS INTERNOS ──
       html += '<div style="display:flex;gap:6px;margin-bottom:1rem;" id="tareas-subtabs">';
-      html += '<button onclick="switchTareasTab(\'relacionadas\')" id="stab-rel" style="flex:1;height:32px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;background:rgba(29,158,117,0.15);color:#1D9E75;border:0.5px solid rgba(29,158,117,0.3);cursor:pointer;font-family:inherit;">🎯 Relacionadas</button>';
-      html += '<button onclick="switchTareasTab(\'buscar\')" id="stab-bus" style="flex:1;height:32px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">📚 Biblioteca</button>';
+      
+      html += '<button onclick="switchTareasTab(\'buscar\')" id="stab-bus" style="flex:1;height:32px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;background:rgba(29,158,117,0.15);color:#1D9E75;border:0.5px solid rgba(29,158,117,0.3);cursor:pointer;font-family:inherit;">📚 Biblioteca</button>';
       html += '<button onclick="switchTareasTab(\'asignadas\')" id="stab-asi" style="flex:1;height:32px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">✓ Asignadas</button>';
-      html += '</div>';
-
-      // ── PANEL RELACIONADAS ──
-      html += '<div id="panel-relacionadas">';
-      if(!tareasRel.length) {
-        html += '<div style="text-align:center;padding:2rem;color:var(--text3);"><div style="font-size:24px;margin-bottom:8px;">📋</div><div style="font-size:13px;margin-bottom:5px;">Sin tareas relacionadas</div><div style="font-size:11px;">Añade objetivos basados en microconceptos para ver sugerencias</div></div>';
-      } else {
-        html += '<div style="font-size:10px;color:var(--text3);margin-bottom:.75rem;">' + tareasRel.length + ' tarea' + (tareasRel.length!==1?'s':'') + ' sugeridas por los objetivos activos</div>';
-        tareasRel.forEach(function(t) {
-          var catColor = t.color||'#888'; var catBg = t.bg||'var(--bg2)';
-          var fase = FASES.find(function(f){ return f.id===t.fase; });
-          html += '<div style="' + CARD + 'border-left:3px solid ' + catColor + ';">';
-          html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">';
-          html += '<div style="font-size:13px;font-weight:600;flex:1;line-height:1.4;">' + (t.t||t.titulo||'') + '</div>';
-          if(t.catLabel) html += '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:' + catBg + ';color:' + catColor + ';white-space:nowrap;flex-shrink:0;">' + t.catLabel + '</span>';
-          html += '</div>';
-          html += '<div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:8px;">' + (t.desc||'') + '</div>';
-          html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">';
-          if(t.pos) html += '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:var(--bg2);color:var(--text2);">' + t.pos + '</span>';
-          if(fase) html += '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:' + (catBg||'var(--bg2)') + ';color:' + catColor + ';">' + fase.label + '</span>';
-          html += '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:var(--bg2);color:var(--text3);">' + (t.j||'') + ' jug · ' + (t.d||'') + '</span>';
-          html += '</div>';
-          // Microconceptos
-          if((t.mics||[]).length) {
-            html += '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px;">';
-            t.mics.forEach(function(m) { html += '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:#EEEDFE;color:#3C3489;">' + m + '</span>'; });
-            html += '</div>';
-          }
-          html += '<div style="display:flex;gap:6px;">';
-          html += '<button onclick="verTareaJugador(\'' + t.id + '\',\'' + (t._src||'base') + '\')" style="flex:1;height:30px;background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Ver tarea</button>';
-          html += '<button onclick="asignarTareaJugador(\'' + t.id + '\',\'' + (t._src||'base') + '\',\'' + id + '\')" style="flex:2;height:30px;background:rgba(29,158,117,0.12);border:0.5px solid rgba(29,158,117,0.35);border-radius:var(--radius-sm);color:#1D9E75;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">📤 Asignar a ' + j.nombre.split(' ')[0] + '</button>';
-          html += '</div>';
-          html += '</div>';
-        });
-      }
       html += '</div>';
 
       // ── PANEL BIBLIOTECA (buscar) ──
@@ -943,7 +908,7 @@ console.log('✅ Patch tareas Omar cargado: 40 tareas nuevas, crear tarea, fix i
 
 // ── Cambiar subtab ──
 window.switchTareasTab = function(tab) {
-  ['relacionadas','buscar','asignadas'].forEach(function(t) {
+  ['buscar','asignadas'].forEach(function(t) {
     var panel = document.getElementById('panel-' + t);
     var btn   = document.getElementById('stab-' + t.slice(0,3));
     if(!panel || !btn) return;
@@ -1276,7 +1241,7 @@ window.verTareaJugador = function(id, src) {
       '<input type="date" id="jd-fecha" value="' + hoy + '" style="' + SI + '">' +
 
       '<div style="display:flex;gap:6px;margin-bottom:1rem;">' +
-        '<button onclick="switchJugDiaTab(\'objetivo\')" id="jdt-objetivo" style="flex:1;height:30px;border-radius:8px;font-size:10px;font-weight:700;background:rgba(29,158,117,0.15);color:#1D9E75;border:0.5px solid rgba(29,158,117,0.3);cursor:pointer;font-family:inherit;">\ud83c\udfaf Objetivo</button>' +
+
         '<button onclick="switchJugDiaTab(\'tarea\')" id="jdt-tarea" style="flex:1;height:30px;border-radius:8px;font-size:10px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">\ud83d\udccb Tarea</button>' +
         '<button onclick="switchJugDiaTab(\'nota\')" id="jdt-nota" style="flex:1;height:30px;border-radius:8px;font-size:10px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">\ud83d\uddd2 Nota</button>' +
       '</div>' +
@@ -1310,11 +1275,12 @@ window.verTareaJugador = function(id, src) {
 
     document.body.appendChild(modal);
     modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+    switchJugDiaTab('tarea');
     setTimeout(function(){ buscarTareasDia(jugId); }, 100);
   };
 
   window.switchJugDiaTab = function(tab) {
-    ['objetivo','tarea','nota'].forEach(function(t) {
+    ['tarea','nota'].forEach(function(t) {
       var p = document.getElementById('jdp-'+t);
       var b = document.getElementById('jdt-'+t);
       if(!p||!b) return;
