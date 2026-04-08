@@ -1388,3 +1388,51 @@ window.verTareaJugador = function(id, src) {
   };
 
 })();
+
+// ─── FIX: subirClip usa restInsert con JWT para evitar RLS ───
+(function() {
+  function patchSubirClip() {
+    var _orig = window.subirClip;
+    if(!_orig) return setTimeout(patchSubirClip, 500);
+
+    window.subirClip = async function() {
+      // Leer valores del formulario igual que hace app.js
+      var jugId = window.state && window.state.currentJugador;
+      if(!jugId) { showToast('Selecciona un jugador'); return; }
+
+      var url    = (document.getElementById('clip-url')   ||{}).value||'';
+      var titulo = (document.getElementById('clip-titulo')||{}).value||'';
+      var tipo   = (document.getElementById('clip-tipo')  ||{}).value||'mejorar';
+      var desc   = (document.getElementById('clip-desc')  ||{}).value||'';
+
+      if(!url) { showToast('Introduce la URL del clip'); return; }
+
+      // Usar restInsert con JWT autenticado
+      var res = await restInsert('clips_jugador', {
+        jugador_id:   jugId,
+        url:          url,
+        titulo:       titulo,
+        tipo:         tipo,
+        descripcion:  desc,
+        created_at:   new Date().toISOString()
+      });
+
+      if(res.error) {
+        showToast('Error: ' + (res.error.message || JSON.stringify(res.error)));
+        return;
+      }
+
+      showToast('✓ Clip subido correctamente');
+      // Limpiar formulario
+      ['clip-url','clip-titulo','clip-desc'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if(el) el.value = '';
+      });
+      // Refrescar la vista si existe renderDT
+      if(typeof renderDT === 'function') renderDT('clips');
+    };
+
+    console.log('✅ subirClip patcheado con restInsert+JWT');
+  }
+  setTimeout(patchSubirClip, 800);
+})();
