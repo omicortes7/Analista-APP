@@ -546,6 +546,50 @@ const TAREAS_NUEVAS = [
   },
 ];
 
+
+// ─── HELPER REST DIRECTO (bypasa schema cache de Supabase JS) ───
+var _SURL = 'https://ghxwdauwrzupjmrujcns.supabase.co';
+var _SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
+
+async function restGet(table, params) {
+  var qs = Object.entries(params||{}).map(function(e){ return e[0]+'='+encodeURIComponent(e[1]); }).join('&');
+  var r = await fetch(_SURL+'/rest/v1/'+table+'?'+qs, {
+    headers: { 'apikey': _SKEY, 'Authorization': 'Bearer '+_SKEY, 'Accept': 'application/json' }
+  });
+  return r.ok ? r.json() : [];
+}
+
+async function restUpsert(table, data, conflictCol) {
+  var r = await fetch(_SURL+'/rest/v1/'+table+'?on_conflict='+conflictCol, {
+    method: 'POST',
+    headers: { 'apikey': _SKEY, 'Authorization': 'Bearer '+_SKEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    body: JSON.stringify(data)
+  });
+  var json = await r.json();
+  return { data: r.ok ? json : null, error: r.ok ? null : json };
+}
+
+async function restInsert(table, data) {
+  var r = await fetch(_SURL+'/rest/v1/'+table, {
+    method: 'POST',
+    headers: { 'apikey': _SKEY, 'Authorization': 'Bearer '+_SKEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+    body: JSON.stringify(data)
+  });
+  var json = await r.json();
+  return { data: r.ok ? json : null, error: r.ok ? null : json };
+}
+
+async function restPatch(table, id, data) {
+  var r = await fetch(_SURL+'/rest/v1/'+table+'?id=eq.'+id, {
+    method: 'PATCH',
+    headers: { 'apikey': _SKEY, 'Authorization': 'Bearer '+_SKEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+    body: JSON.stringify(data)
+  });
+  var json = await r.json();
+  return { data: r.ok ? json : null, error: r.ok ? null : json };
+}
+
+
 // ─── INTEGRAR TAREAS NUEVAS EN getAllTareas ───
 (function() {
   function patchGetAllTareas() {
@@ -1307,16 +1351,20 @@ window.verTareaJugador = function(id, src) {
     var foco  = ((document.getElementById('jd-objetivo-txt')||{}).value||'').trim();
     var tipo  = (document.getElementById('jd-tipo')||{}).value || 'entreno';
     if(!foco) { showToast('Escribe el objetivo primero'); return; }
-    var db = window.getDB();
-    if(!db) { showToast('Sin conexi\xf3n'); return; }
-    var res = await db.from('calendario_semana').select('id').eq('jugador_id',jugId).eq('fecha',fecha).maybeSingle();
-    var err;
-    if(res.data) {
-      ({error:err} = await db.from('calendario_semana').update({foco:foco,tipo:tipo}).eq('id',res.data.id));
+
+    // Buscar si ya existe fila para ese jugador+fecha via REST directo
+    var existing = await restGet('calendario_semana', {
+      'jugador_id': 'eq.'+jugId,
+      'fecha': 'eq.'+fecha,
+      'select': 'id'
+    });
+    var res2;
+    if(existing && existing.length) {
+      res2 = await restPatch('calendario_semana', existing[0].id, {foco:foco, tipo:tipo});
     } else {
-      ({error:err} = await db.from('calendario_semana').insert({jugador_id:jugId,fecha:fecha,tipo:tipo,foco:foco,hora:'',notas:''}));
+      res2 = await restInsert('calendario_semana', {jugador_id:jugId, fecha:fecha, tipo:tipo, foco:foco, hora:'', notas:''});
     }
-    if(err) { showToast('Error: '+err.message); return; }
+    if(res2.error) { showToast('Error: '+(res2.error.message||JSON.stringify(res2.error))); return; }
     var cache = window._jugadoresCache || [];
     var j = cache.find(function(x){return x.id===jugId;});
     showToast('\u2713 Objetivo guardado para ' + (j?j.nombre.split(' ')[0]:'jugador'));
@@ -1327,8 +1375,6 @@ window.verTareaJugador = function(id, src) {
   window.guardarTareaDia = async function(jugId) {
     var fecha  = (document.getElementById('jd-fecha')||{}).value || new Date().toISOString().slice(0,10);
     var custom = ((document.getElementById('jd-tarea-custom')||{}).value||'').trim();
-    var db = window.getDB();
-    if(!db) { showToast('Sin conexi\xf3n'); return; }
     var texto;
     if(window._tareaSelDia) {
       var t = window._tareaSelDia;
@@ -1342,8 +1388,8 @@ window.verTareaJugador = function(id, src) {
     } else {
       showToast('Selecciona o escribe una tarea'); return;
     }
-    var res = await db.from('notas_video').insert({jugador_id:jugId,fecha:fecha,texto:texto}).select();
-    if(res.error) { showToast('Error: '+res.error.message); return; }
+    var res = await restInsert('notas_video', {jugador_id:jugId, fecha:fecha, texto:texto});
+    if(res.error) { showToast('Error: '+(res.error.message||JSON.stringify(res.error))); return; }
     var cache = window._jugadoresCache || [];
     var j = cache.find(function(x){return x.id===jugId;});
     showToast('\u2713 Tarea asignada a ' + (j?j.nombre.split(' ')[0]:'jugador'));
@@ -1354,10 +1400,8 @@ window.verTareaJugador = function(id, src) {
     var fecha = (document.getElementById('jd-fecha')||{}).value || new Date().toISOString().slice(0,10);
     var nota  = ((document.getElementById('jd-nota-txt')||{}).value||'').trim();
     if(!nota) { showToast('Escribe la nota primero'); return; }
-    var db = window.getDB();
-    if(!db) { showToast('Sin conexi\xf3n'); return; }
-    var res = await db.from('notas_video').insert({jugador_id:jugId,fecha:fecha,texto:nota}).select();
-    if(res.error) { showToast('Error: '+res.error.message); return; }
+    var res = await restInsert('notas_video', {jugador_id:jugId, fecha:fecha, texto:nota});
+    if(res.error) { showToast('Error: '+(res.error.message||JSON.stringify(res.error))); return; }
     var cache = window._jugadoresCache || [];
     var j = cache.find(function(x){return x.id===jugId;});
     showToast('\u2713 Nota guardada para ' + (j?j.nombre.split(' ')[0]:'jugador'));
