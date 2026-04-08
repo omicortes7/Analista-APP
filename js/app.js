@@ -2803,19 +2803,28 @@ function generarInformeVisual(jugId, infId) {
     {key:'TAD', label:'TRANS. DEFENSIVA',    color:'#D85A30', texto: inf.tad},
   ];
 
-  // Fortalezas y mejoras desde los textos de fase
-  const fortalezas = [];
-  const mejoras = [];
-  const objs = getObjJugador(jugId);
-  objs.forEach((o,i) => {
-    const v = (starsData.OBJ || [])[i] || 0;
-    if(v >= 4) fortalezas.push(o.texto);
-    else if(v > 0 && v <= 2) mejoras.push(o.texto);
-  });
+  // Fortalezas y mejoras — desde campos guardados del informe
+  const fortalezas = inf.positivos
+    ? inf.positivos.split('\n').filter(Boolean)
+    : [];
+  const mejoras = inf.mejoras
+    ? inf.mejoras.split('\n').filter(Boolean)
+    : [];
 
-  // Si no hay fortalezas desde objetivos, extraer de los textos de observación
-  if(!fortalezas.length && inf.mcb) fortalezas.push(inf.mcb.split('.')[0]);
-  if(!mejoras.length && inf.msb) mejoras.push(inf.msb.split('.')[0]);
+  // Fallback desde objetivos si no hay campos escritos
+  const objs = getObjJugador(jugId);
+  if(!fortalezas.length) {
+    objs.forEach((o,i) => {
+      const v = (starsData.OBJ || [])[i] || 0;
+      if(v >= 4) fortalezas.push(o.texto);
+    });
+  }
+  if(!mejoras.length) {
+    objs.forEach((o,i) => {
+      const v = (starsData.OBJ || [])[i] || 0;
+      if(v > 0 && v <= 2) mejoras.push(o.texto);
+    });
+  }
 
   const micros = (inf.microconceptos_obs || '').split(',').filter(Boolean).map(m => m.trim());
   const fechaFormateada = new Date((inf.fecha||'') + 'T12:00:00').toLocaleDateString('es-ES', {day:'numeric', month:'long', year:'numeric'});
