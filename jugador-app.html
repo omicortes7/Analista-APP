@@ -785,6 +785,7 @@ function goSec(id, btn) {
   if (id === 'cal')    window.renderCalJugador && window.renderCalJugador();
   if (id === 'inicio') renderInicio && renderInicio();
   if (id === 'tareas') window.renderTareasJugador && window.renderTareasJugador();
+  if (id === 'informes') renderInformesJugador && renderInformesJugador();
   if (id === 'clips')  { if (typeof renderClipsSec === 'function') renderClipsSec(window._clipsFiltroActivo || 'mejorar'); }
 }
 
@@ -2872,6 +2873,82 @@ window.renderCalJugador = function() {
         });
       });
   }, 400);
+};
+
+// ─── SECCIÓN INFORMES DEL JUGADOR ───
+window.renderInformesJugador = function() {
+  var jugId = window._jugId;
+  var db    = window.DB_REF;
+  var cont  = document.getElementById('informes-content');
+  if(!jugId || !db || !cont) return;
+
+  cont.innerHTML = '<div class="loading">Cargando...</div>';
+
+  db.from('informes_partido')
+    .select('*')
+    .eq('jugador_id', jugId)
+    .order('fecha', {ascending: false})
+    .then(function(res) {
+      var informes = res.data || [];
+      if(!informes.length) {
+        cont.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:var(--text3);"><div style="font-size:40px;margin-bottom:12px;">📋</div><div style="font-size:14px;font-weight:600;margin-bottom:6px;">Sin informes todavía</div><div style="font-size:12px;">Tu analista subirá los informes de partido aquí.</div></div>';
+        return;
+      }
+
+      var FASES = [
+        {key:'MCB', label:'Con balón',     color:'#3fb950'},
+        {key:'MSB', label:'Sin balón',     color:'#58a6ff'},
+        {key:'TDA', label:'Trans. ofens.', color:'#d29922'},
+        {key:'TAD', label:'Trans. defens.',color:'#f85149'},
+      ];
+
+      var html = '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:1rem;">' + informes.length + ' informe' + (informes.length!==1?'s':'') + '</div>';
+
+      informes.forEach(function(inf) {
+        var nota = parseFloat(inf.nota_decimal) || 0;
+        var nc   = nota>=8?'#3fb950':nota>=6?'#d29922':'#f85149';
+        var fecha = new Date((inf.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+        fecha = fecha.charAt(0).toUpperCase() + fecha.slice(1);
+
+        var starsData = {};
+        try { starsData = inf.estrellas_json ? JSON.parse(inf.estrellas_json) : {}; } catch(e) {}
+
+        function avgF(key) {
+          var vals = (starsData[key]||[]).filter(function(v){return v>0;});
+          return vals.length ? (vals.reduce(function(a,b){return a+b;},0)/vals.length) : 0;
+        }
+
+        html += '<div style="background:var(--card);border:0.5px solid var(--border);border-left:3px solid ' + nc + ';border-radius:var(--radius);padding:1rem;margin-bottom:.875rem;">';
+
+        // Header
+        html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">';
+        if(nota) html += '<div style="width:50px;height:50px;border-radius:50%;background:' + nc + '15;color:' + nc + ';border:2px solid ' + nc + '40;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:18px;font-weight:800;line-height:1;">' + nota.toFixed(1) + '</span><span style="font-size:8px;color:' + nc + ';">/10</span></div>';
+        html += '<div style="flex:1;"><div style="font-size:14px;font-weight:700;">' + (inf.partido||'Partido') + '</div>';
+        html += '<div style="font-size:11px;color:var(--text2);margin-top:2px;">' + fecha + (inf.rival?' · vs '+inf.rival:'') + (inf.resultado?' · '+inf.resultado:'') + '</div></div>';
+        html += '</div>';
+
+        // Barras por fase
+        var hayFases = FASES.some(function(f){ return avgF(f.key) > 0; });
+        if(hayFases) {
+          html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">';
+          FASES.forEach(function(f) {
+            var avg = avgF(f.key);
+            if(!avg) return;
+            var pct = Math.round((avg/5)*100);
+            html += '<div><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px;"><span style="color:var(--text2);">' + f.label + '</span><span style="color:' + f.color + ';font-weight:700;">' + avg.toFixed(1) + '</span></div>';
+            html += '<div style="height:4px;background:var(--border2);border-radius:99px;"><div style="width:' + pct + '%;height:4px;background:' + f.color + ';border-radius:99px;"></div></div></div>';
+          });
+          html += '</div>';
+        }
+
+        // Observaciones
+        if(inf.mcb) html += '<div style="font-size:11px;color:var(--text2);line-height:1.6;border-top:0.5px solid var(--border);padding-top:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">' + inf.mcb + '</div>';
+
+        html += '</div>';
+      });
+
+      cont.innerHTML = html;
+    });
 };
 </script>
 </html>
