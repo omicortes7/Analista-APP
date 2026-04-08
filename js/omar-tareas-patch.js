@@ -551,18 +551,34 @@ const TAREAS_NUEVAS = [
 var _SURL = 'https://ghxwdauwrzupjmrujcns.supabase.co';
 var _SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
 
+// Obtener JWT del usuario autenticado (necesario para RLS)
+async function getAuthToken() {
+  try {
+    var db = window.DB_REF || window.getDB();
+    if(db && db.auth) {
+      var s = await db.auth.getSession();
+      if(s && s.data && s.data.session && s.data.session.access_token) {
+        return s.data.session.access_token;
+      }
+    }
+  } catch(e) {}
+  return _SKEY; // fallback a anon key
+}
+
 async function restGet(table, params) {
+  var token = await getAuthToken();
   var qs = Object.entries(params||{}).map(function(e){ return e[0]+'='+encodeURIComponent(e[1]); }).join('&');
   var r = await fetch(_SURL+'/rest/v1/'+table+'?'+qs, {
-    headers: { 'apikey': _SKEY, 'Authorization': 'Bearer '+_SKEY, 'Accept': 'application/json' }
+    headers: { 'apikey': _SKEY, 'Authorization': 'Bearer '+token, 'Accept': 'application/json' }
   });
   return r.ok ? r.json() : [];
 }
 
 async function restUpsert(table, data, conflictCol) {
+  var token = await getAuthToken();
   var r = await fetch(_SURL+'/rest/v1/'+table+'?on_conflict='+conflictCol, {
     method: 'POST',
-    headers: { 'apikey': _SKEY, 'Authorization': 'Bearer '+_SKEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    headers: { 'apikey': _SKEY, 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=representation' },
     body: JSON.stringify(data)
   });
   var json = await r.json();
@@ -570,9 +586,10 @@ async function restUpsert(table, data, conflictCol) {
 }
 
 async function restInsert(table, data) {
+  var token = await getAuthToken();
   var r = await fetch(_SURL+'/rest/v1/'+table, {
     method: 'POST',
-    headers: { 'apikey': _SKEY, 'Authorization': 'Bearer '+_SKEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+    headers: { 'apikey': _SKEY, 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
     body: JSON.stringify(data)
   });
   var json = await r.json();
@@ -580,9 +597,10 @@ async function restInsert(table, data) {
 }
 
 async function restPatch(table, id, data) {
+  var token = await getAuthToken();
   var r = await fetch(_SURL+'/rest/v1/'+table+'?id=eq.'+id, {
     method: 'PATCH',
-    headers: { 'apikey': _SKEY, 'Authorization': 'Bearer '+_SKEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+    headers: { 'apikey': _SKEY, 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
     body: JSON.stringify(data)
   });
   var json = await r.json();
