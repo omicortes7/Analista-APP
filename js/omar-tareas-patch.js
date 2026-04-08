@@ -1436,3 +1436,62 @@ window.verTareaJugador = function(id, src) {
   }
   setTimeout(patchSubirClip, 800);
 })();
+
+// ─── FIX: subirClipJugadorDirecto usa restInsert con JWT ───
+(function() {
+  function patchClips() {
+    if(typeof window.subirClipJugadorDirecto === 'undefined') {
+      return setTimeout(patchClips, 500);
+    }
+
+    window.subirClipJugadorDirecto = async function(jugId) {
+      var tipo   = (document.getElementById('clip-jug-tipo')  ||{}).value || 'mejorar';
+      var titulo = ((document.getElementById('clip-jug-titulo')||{}).value||'').trim();
+      var fileInput = document.getElementById('clip-jug-file');
+      var url    = ((document.getElementById('clip-jug-url')  ||{}).value||'').trim();
+
+      if(fileInput && fileInput.files && fileInput.files[0]) {
+        var file = fileInput.files[0];
+        if(file.size > 50*1024*1024) { showToast('El archivo supera 50MB'); return; }
+        showToast('Subiendo clip...');
+        // Subir al storage usando el cliente DB original (uploadVideoClip ya existe en app.js)
+        if(typeof uploadVideoClip === 'function') {
+          url = await uploadVideoClip(file);
+          if(!url) { showToast('Error al subir'); return; }
+        } else {
+          showToast('Error: función de subida no disponible'); return;
+        }
+      }
+
+      if(!url) { showToast('Selecciona un archivo o pega un enlace de Drive'); return; }
+
+      // Usar restInsert con JWT autenticado para bypasear RLS
+      var res = await restInsert('clips_jugador', {
+        jugador_id: jugId,
+        tipo:       tipo,
+        titulo:     titulo,
+        url:        url
+      });
+
+      if(res.error) {
+        showToast('Error: ' + (res.error.message || JSON.stringify(res.error)));
+        return;
+      }
+
+      if(!state.clipsJugador) state.clipsJugador = [];
+      if(res.data && res.data[0]) state.clipsJugador.push(res.data[0]);
+
+      if(fileInput) fileInput.value = '';
+      var urlEl = document.getElementById('clip-jug-url');
+      var titEl = document.getElementById('clip-jug-titulo');
+      if(urlEl) urlEl.value = '';
+      if(titEl) titEl.value = '';
+
+      showToast('✓ Clip subido — ya visible en la app del jugador');
+      if(typeof renderDT === 'function') renderDT('clips');
+    };
+
+    console.log('✅ subirClipJugadorDirecto patcheado con restInsert+JWT');
+  }
+  setTimeout(patchClips, 800);
+})();
