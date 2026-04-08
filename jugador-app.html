@@ -2878,237 +2878,73 @@ window.renderCalJugador = function() {
 // ─── SECCIÓN INFORMES DEL JUGADOR ───
 window.renderInformesJugador = function() {
   var jugId = window._jugId;
-  var db    = window.DB_REF;
-  var cont  = document.getElementById('informes-content');
+  var db = window.DB_REF;
+  var cont = document.getElementById('informes-content');
   if(!jugId || !db || !cont) return;
-
   cont.innerHTML = '<div class="loading">Cargando...</div>';
-
-  db.from('informes_partido')
-    .select('*')
-    .eq('jugador_id', jugId)
-    .order('fecha', {ascending: false})
-    .then(function(res) {
-      var informes = res.data || [];
-      if(!informes.length) {
-        cont.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:var(--text3);"><div style="font-size:40px;margin-bottom:12px;">📋</div><div style="font-size:14px;font-weight:600;margin-bottom:6px;">Sin informes todavía</div><div style="font-size:12px;">Tu analista subirá los informes de partido aquí.</div></div>';
-        return;
-      }
-
-      var FASES = [
-        {key:'MCB', label:'Con balón',      color:'#3fb950'},
-        {key:'MSB', label:'Sin balón',      color:'#58a6ff'},
-        {key:'TDA', label:'Trans. ofens.',  color:'#d29922'},
-        {key:'TAD', label:'Trans. defens.', color:'#f85149'},
-      ];
-
-      // Guardar informes para el detalle
-      window._informesCache = informes;
-
-      var html = '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:1rem;">' + informes.length + ' informe' + (informes.length!==1?'s':'') + '</div>';
-
-      informes.forEach(function(inf) {
-        var nota = parseFloat(inf.nota_decimal) || 0;
-        // Verde si >5, amarillo si 3-5, rojo si <3
-        var nc = nota>=5?'#3fb950':nota>=3?'#d29922':'#f85149';
-        var fecha = new Date((inf.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
-
-        var starsData = {};
-        try { starsData = inf.estrellas_json ? JSON.parse(inf.estrellas_json) : {}; } catch(e) {}
-
-        function avgF(key) {
-          var vals = (starsData[key]||[]).filter(function(v){return v>0;});
-          return vals.length ? (vals.reduce(function(a,b){return a+b;},0)/vals.length) : 0;
-        }
-
-        html += '<div onclick="verInformeDetalle(\'' + inf.id + '\')" style="background:var(--card);border:0.5px solid var(--border);border-left:3px solid ' + nc + ';border-radius:var(--radius);padding:1rem;margin-bottom:.875rem;cursor:pointer;">';
-
-        // Header: nota + partido
-        html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">';
-        if(nota) html += '<div style="width:48px;height:48px;border-radius:50%;background:' + nc + '15;color:' + nc + ';border:2px solid ' + nc + '40;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:17px;font-weight:800;line-height:1;">' + nota.toFixed(1) + '</span><span style="font-size:8px;color:' + nc + ';">/10</span></div>';
-        html += '<div style="flex:1;"><div style="font-size:14px;font-weight:700;">' + (inf.partido||'Partido') + '</div>';
-        html += '<div style="font-size:11px;color:var(--text2);margin-top:2px;">' + fecha + (inf.rival?' · vs '+inf.rival:'') + (inf.resultado?' · '+inf.resultado:'') + '</div></div>';
-        html += '<div style="font-size:20px;color:var(--text3);">›</div>';
-        html += '</div>';
-
-        // Barras 4 fases + microconceptos
-        var hayFases = FASES.some(function(f){ return avgF(f.key) > 0; });
-        if(hayFases) {
-          html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px;">';
-          FASES.forEach(function(f) {
-            var avg = avgF(f.key);
-            if(!avg) return;
-            var pct = Math.round((avg/5)*100);
-            html += '<div><div style="display:flex;justify-content:space-between;font-size:9px;margin-bottom:2px;"><span style="color:var(--text3);">' + f.label + '</span><span style="color:' + f.color + ';font-weight:700;">' + avg.toFixed(1) + '</span></div>';
-            html += '<div style="height:4px;background:var(--border2);border-radius:99px;"><div style="width:' + pct + '%;height:4px;background:' + f.color + ';border-radius:99px;"></div></div></div>';
-          });
-          html += '</div>';
-        }
-
-        // Microconceptos si los hay
-        if(inf.microconceptos_obs) {
-          var mics = inf.microconceptos_obs.split(',').filter(Boolean).map(function(m){return m.trim();});
-          if(mics.length) {
-            html += '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;">';
-            mics.slice(0,4).forEach(function(m){
-              html += '<span style="font-size:9px;padding:2px 6px;border-radius:99px;background:#EEEDFE;color:#3C3489;">' + m + '</span>';
-            });
-            if(mics.length>4) html += '<span style="font-size:9px;color:var(--text3);">+' + (mics.length-4) + '</span>';
-            html += '</div>';
-          }
-        }
-
-        // Fortalezas / Mejoras resumen
-        if(inf.positivos || inf.mejoras) {
-          html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;border-top:0.5px solid var(--border);padding-top:8px;">';
-          if(inf.positivos) html += '<div style="font-size:10px;color:#3fb950;line-height:1.5;"><span style="font-weight:700;">✓ </span>' + inf.positivos.split('\n')[0].slice(0,50) + (inf.positivos.length>50?'...':'') + '</div>';
-          if(inf.mejoras)   html += '<div style="font-size:10px;color:#f85149;line-height:1.5;"><span style="font-weight:700;">△ </span>' + inf.mejoras.split('\n')[0].slice(0,50) + (inf.mejoras.length>50?'...':'') + '</div>';
-          html += '</div>';
-        }
-
-        html += '</div>';
-      });
-
-      cont.innerHTML = html;
+  db.from('informes_partido').select('*').eq('jugador_id', jugId).order('fecha', {ascending:false}).then(function(res) {
+    var informes = res.data || [];
+    window._informesCache = informes;
+    if(!informes.length) {
+      cont.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text3);">Sin informes todavia</div>';
+      return;
+    }
+    var html = '';
+    informes.forEach(function(inf) {
+      var nota = parseFloat(inf.nota_decimal) || 0;
+      var nc = nota>=5?'#3fb950':nota>=3?'#d29922':'#f85149';
+      var fecha = new Date((inf.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+      var sid = inf.id.toString().replace(/-/g,'_');
+      window['_inf_'+sid] = inf;
+      html += '<div onclick="verInformeDetalle(this)" data-id="'+inf.id+'" style="background:var(--card);border:0.5px solid var(--border);border-left:3px solid '+nc+';border-radius:var(--radius);padding:1rem;margin-bottom:.875rem;cursor:pointer;">';
+      html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">';
+      if(nota) html += '<div style="width:46px;height:46px;border-radius:50%;background:'+nc+'15;color:'+nc+';border:2px solid '+nc+'40;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:16px;font-weight:800;line-height:1;">'+nota.toFixed(1)+'</span><span style="font-size:8px;">/10</span></div>';
+      html += '<div style="flex:1;"><div style="font-size:14px;font-weight:700;">'+(inf.partido||'Partido')+'</div><div style="font-size:11px;color:var(--text2);margin-top:2px;">'+fecha+(inf.rival?' vs '+inf.rival:'')+(inf.resultado?' '+inf.resultado:'')+'</div></div><div style="color:var(--text3);font-size:20px;">›</div>';
+      html += '</div></div>';
     });
+    cont.innerHTML = html;
+  });
 };
 
-// ── Modal detalle de informe ──
-window.verInformeDetalle = function(infId) {
+window.verInformeDetalle = function(el) {
+  var infId = el.getAttribute('data-id');
   var informes = window._informesCache || [];
-  var inf = informes.find(function(x){ return x.id === infId; });
+  var inf = informes.find(function(x){ return String(x.id)===String(infId); });
   if(!inf) return;
-
-  var nota = parseFloat(inf.nota_decimal) || 0;
+  var nota = parseFloat(inf.nota_decimal)||0;
   var nc = nota>=5?'#3fb950':nota>=3?'#d29922':'#f85149';
   var fecha = new Date((inf.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
-  fecha = fecha.charAt(0).toUpperCase() + fecha.slice(1);
-
   var starsData = {};
   try { starsData = inf.estrellas_json ? JSON.parse(inf.estrellas_json) : {}; } catch(e) {}
-
-  function avgF(key) {
-    var vals = (starsData[key]||[]).filter(function(v){return v>0;});
-    return vals.length ? (vals.reduce(function(a,b){return a+b;},0)/vals.length) : 0;
-  }
-
-  function starsHtml(avg, color) {
-    var html = '';
-    for(var s=1;s<=5;s++) {
-      html += '<span style="font-size:18px;color:' + (s<=Math.round(avg)?color:'var(--border2)') + ';">★</span>';
-    }
-    return html;
-  }
-
-  var FASES = [
-    {key:'MCB', label:'Con balón',           color:'#3fb950', bg:'rgba(63,185,80,0.08)',   texto: inf.mcb},
-    {key:'MSB', label:'Sin balón',           color:'#58a6ff', bg:'rgba(88,166,255,0.08)',  texto: inf.msb},
-    {key:'TDA', label:'Transición ofensiva', color:'#d29922', bg:'rgba(210,153,34,0.08)',  texto: inf.tda},
-    {key:'TAD', label:'Transición defensiva',color:'#f85149', bg:'rgba(248,81,73,0.08)',   texto: inf.tad},
-  ];
-
+  function avgF(k) { var v=(starsData[k]||[]).filter(function(x){return x>0;}); return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0; }
+  function stars(avg,col) { var h=''; for(var s=1;s<=5;s++) h+='<span style="font-size:16px;color:'+(s<=Math.round(avg)?col:'var(--border2)')+';">&#9733;</span>'; return h; }
+  var FASES=[{key:'MCB',label:'Con balon',color:'#3fb950',bg:'rgba(63,185,80,0.08)',texto:inf.mcb},{key:'MSB',label:'Sin balon',color:'#58a6ff',bg:'rgba(88,166,255,0.08)',texto:inf.msb},{key:'TDA',label:'Trans. Of.',color:'#d29922',bg:'rgba(210,153,34,0.08)',texto:inf.tda},{key:'TAD',label:'Trans. Def.',color:'#f85149',bg:'rgba(248,81,73,0.08)',texto:inf.tad}];
   var modal = document.createElement('div');
-  modal.id = 'modal-informe-detalle';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;display:flex;align-items:flex-end;justify-content:center;';
-
-  var html = '<div style="background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding:1.25rem;padding-bottom:calc(1.25rem + env(safe-area-inset-bottom,0px));">';
-
-  // Handle
-  html += '<div style="width:40px;height:4px;background:var(--border2);border-radius:99px;margin:0 auto 1.25rem;"></div>';
-
-  // Header
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">';
-  html += '<div>';
-  html += '<div style="font-size:16px;font-weight:800;">' + (inf.partido||'Partido') + '</div>';
-  html += '<div style="font-size:11px;color:var(--text2);margin-top:2px;">' + fecha + (inf.rival?' · vs '+inf.rival:'') + (inf.resultado?' · '+inf.resultado:'') + '</div>';
-  html += '</div>';
-  html += '<button onclick="document.getElementById(\'modal-informe-detalle\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
-  html += '</div>';
-
-  // Nota global
-  if(nota) {
-    html += '<div style="display:flex;align-items:center;gap:16px;background:' + nc + '10;border:0.5px solid ' + nc + '30;border-radius:12px;padding:1rem;margin-bottom:1rem;">';
-    html += '<div style="width:60px;height:60px;border-radius:50%;background:' + nc + '20;color:' + nc + ';border:2px solid ' + nc + '50;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">';
-    html += '<span style="font-size:22px;font-weight:800;line-height:1;">' + nota.toFixed(1) + '</span>';
-    html += '<span style="font-size:9px;color:' + nc + ';">/10</span></div>';
-    html += '<div><div style="font-size:13px;font-weight:700;color:' + nc + ';">' + (nota>=8?'Sobresaliente':nota>=6?'Bueno':nota>=5?'Correcto':nota>=3?'En progreso':'A mejorar') + '</div>';
-    html += '<div style="font-size:11px;color:var(--text2);margin-top:3px;">Nota global del partido</div></div>';
-    html += '</div>';
-  }
-
-  // 4 fases con estrellas y texto
+  modal.id='modal-informe-detalle';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;display:flex;align-items:flex-end;justify-content:center;';
+  var h='<div style="background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding:1.25rem;">';
+  h+='<div style="width:40px;height:4px;background:var(--border2);border-radius:99px;margin:0 auto 1.25rem;"></div>';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><div><div style="font-size:16px;font-weight:800;">'+(inf.partido||'Partido')+'</div><div style="font-size:11px;color:var(--text2);">'+fecha+(inf.rival?' vs '+inf.rival:'')+(inf.resultado?' '+inf.resultado:'')+'</div></div>';
+  h+='<button onclick="document.getElementById('modal-informe-detalle').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;">x</button></div>';
+  if(nota) { h+='<div style="display:flex;align-items:center;gap:12px;background:'+nc+'10;border-radius:12px;padding:1rem;margin-bottom:1rem;"><div style="width:56px;height:56px;border-radius:50%;background:'+nc+'20;color:'+nc+';border:2px solid '+nc+'50;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:20px;font-weight:800;line-height:1;">'+nota.toFixed(1)+'</span><span style="font-size:9px;">/10</span></div><div><div style="font-size:13px;font-weight:700;color:'+nc+';">'+(nota>=8?'Sobresaliente':nota>=6?'Bueno':nota>=5?'Correcto':nota>=3?'En progreso':'A mejorar')+'</div></div></div>'; }
   FASES.forEach(function(f) {
-    var avg = avgF(f.key);
-    if(!avg && !f.texto) return;
-    var pct = avg ? Math.round((avg/5)*100) : 0;
-    html += '<div style="background:' + f.bg + ';border:0.5px solid ' + f.color + '20;border-left:3px solid ' + f.color + ';border-radius:0 10px 10px 0;padding:.875rem;margin-bottom:.75rem;">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
-    html += '<span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:' + f.color + ';">' + f.label + '</span>';
-    if(avg) html += '<div style="display:flex;align-items:center;gap:6px;">' + starsHtml(avg,f.color) + '<span style="font-size:12px;font-weight:700;color:' + f.color + ';">' + avg.toFixed(1) + '</span></div>';
-    html += '</div>';
-    if(avg) {
-      html += '<div style="height:5px;background:rgba(0,0,0,0.1);border-radius:99px;margin-bottom:8px;"><div style="width:' + pct + '%;height:5px;background:' + f.color + ';border-radius:99px;"></div></div>';
-    }
-    if(f.texto) html += '<div style="font-size:12px;line-height:1.7;color:var(--text);">' + f.texto + '</div>';
-    html += '</div>';
+    var avg=avgF(f.key); if(!avg&&!f.texto) return;
+    var pct=avg?Math.round((avg/5)*100):0;
+    h+='<div style="background:'+f.bg+';border-left:3px solid '+f.color+';border-radius:0 10px 10px 0;padding:.875rem;margin-bottom:.75rem;">';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><span style="font-size:10px;font-weight:800;text-transform:uppercase;color:'+f.color+';">'+f.label+'</span>';
+    if(avg) h+='<div>'+stars(avg,f.color)+'<span style="font-size:11px;font-weight:700;color:'+f.color+';margin-left:4px;">'+avg.toFixed(1)+'</span></div>';
+    h+='</div>';
+    if(avg) h+='<div style="height:5px;background:rgba(0,0,0,0.1);border-radius:99px;margin-bottom:8px;"><div style="width:'+pct+'%;height:5px;background:'+f.color+';border-radius:99px;"></div></div>';
+    if(f.texto) h+='<div style="font-size:12px;line-height:1.7;">'+f.texto+'</div>';
+    h+='</div>';
   });
-
-  // Microconceptos observados
-  if(inf.microconceptos_obs) {
-    var mics = inf.microconceptos_obs.split(',').filter(Boolean).map(function(m){return m.trim();});
-    if(mics.length) {
-      html += '<div style="margin-bottom:.875rem;">';
-      html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.625rem;">Microconceptos observados</div>';
-      html += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
-      mics.forEach(function(m){ html += '<span style="font-size:11px;padding:4px 10px;border-radius:99px;background:#EEEDFE;color:#3C3489;font-weight:500;">' + m + '</span>'; });
-      html += '</div></div>';
-    }
-  }
-
-  // Objetivos trabajados
-  if(inf.objetivos_trabajados) {
-    html += '<div style="margin-bottom:.875rem;">';
-    html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.625rem;">Objetivos trabajados</div>';
-    var objs = inf.objetivos_trabajados.split(',').filter(Boolean);
-    objs.forEach(function(o){
-      html += '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border);">';
-      html += '<div style="width:6px;height:6px;border-radius:50%;background:#7C6FF0;flex-shrink:0;"></div>';
-      html += '<div style="font-size:12px;">' + o.trim() + '</div></div>';
-    });
-    html += '</div>';
-  }
-
-  // Fortalezas y mejoras
-  if(inf.positivos || inf.mejoras) {
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.875rem;">';
-    if(inf.positivos) {
-      html += '<div style="background:rgba(63,185,80,0.08);border:0.5px solid rgba(63,185,80,0.25);border-radius:10px;padding:.75rem;">';
-      html += '<div style="font-size:10px;font-weight:800;color:#3fb950;margin-bottom:6px;">✓ FORTALEZAS</div>';
-      html += '<div style="font-size:11px;line-height:1.6;color:var(--text);">' + inf.positivos + '</div>';
-      html += '</div>';
-    }
-    if(inf.mejoras) {
-      html += '<div style="background:rgba(248,81,73,0.08);border:0.5px solid rgba(248,81,73,0.25);border-radius:10px;padding:.75rem;">';
-      html += '<div style="font-size:10px;font-weight:800;color:#f85149;margin-bottom:6px;">△ A MEJORAR</div>';
-      html += '<div style="font-size:11px;line-height:1.6;color:var(--text);">' + inf.mejoras + '</div>';
-      html += '</div>';
-    }
-    html += '</div>';
-  }
-
-  // Notas del analista
-  if(inf.notas) {
-    html += '<div style="background:var(--bg3);border-left:3px solid var(--border2);border-radius:0 8px 8px 0;padding:.875rem;">';
-    html += '<div style="font-size:10px;font-weight:800;color:var(--text3);margin-bottom:5px;">NOTAS DEL ANALISTA</div>';
-    html += '<div style="font-size:12px;line-height:1.7;color:var(--text2);font-style:italic;">' + inf.notas + '</div>';
-    html += '</div>';
-  }
-
-  html += '</div>';
-  modal.innerHTML = html;
+  if(inf.microconceptos_obs){var mics=inf.microconceptos_obs.split(',').filter(Boolean);if(mics.length){h+='<div style="margin-bottom:.875rem;"><div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:.625rem;">Microconceptos</div><div style="display:flex;flex-wrap:wrap;gap:5px;">';mics.forEach(function(m){h+='<span style="font-size:11px;padding:4px 10px;border-radius:99px;background:#EEEDFE;color:#3C3489;">'+m.trim()+'</span>';});h+='</div></div>';}}
+  if(inf.positivos||inf.mejoras){h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.875rem;">';if(inf.positivos)h+='<div style="background:rgba(63,185,80,0.08);border:0.5px solid rgba(63,185,80,0.25);border-radius:10px;padding:.75rem;"><div style="font-size:10px;font-weight:800;color:#3fb950;margin-bottom:6px;">FORTALEZAS</div><div style="font-size:11px;line-height:1.6;">'+inf.positivos+'</div></div>';if(inf.mejoras)h+='<div style="background:rgba(248,81,73,0.08);border:0.5px solid rgba(248,81,73,0.25);border-radius:10px;padding:.75rem;"><div style="font-size:10px;font-weight:800;color:#f85149;margin-bottom:6px;">A MEJORAR</div><div style="font-size:11px;line-height:1.6;">'+inf.mejoras+'</div></div>';h+='</div>';}
+  if(inf.notas){h+='<div style="background:var(--bg3);border-left:3px solid var(--border2);border-radius:0 8px 8px 0;padding:.875rem;"><div style="font-size:10px;font-weight:800;color:var(--text3);margin-bottom:5px;">NOTAS</div><div style="font-size:12px;line-height:1.7;color:var(--text2);">'+inf.notas+'</div></div>';}
+  h+='</div>';
+  modal.innerHTML=h;
   document.body.appendChild(modal);
-  modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
-};
+  modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
 };
 </script>
 </html>
