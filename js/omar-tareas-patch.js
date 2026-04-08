@@ -1174,7 +1174,7 @@ window.verTareaJugador = function(id, src) {
       jugs.forEach(function(j) {
         var pc = AV[j.posicion] || {bg:'#1a2040', color:'#8090d0'};
         var ico = TIPOS[j.posicion] || '\u26bd';
-        var jid = JSON.stringify(j.id);
+        var jid = '\'' + j.id + '\'';
         html += '<div onclick="abrirJugadorDia(' + jid + ')" style="display:flex;align-items:center;gap:10px;padding:.75rem;border-radius:10px;background:var(--bg,#0d1117);border:0.5px solid var(--border,#30363d);margin-bottom:6px;cursor:pointer;">';
         html += '<div style="width:38px;height:38px;border-radius:50%;background:' + pc.bg + ';color:' + pc.color + ';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">' + ico + '</div>';
         html += '<div style="flex:1;min-width:0;">';
@@ -1211,7 +1211,7 @@ window.verTareaJugador = function(id, src) {
     var AV = window.AV_COLORS || {};
     var pc = AV[j.posicion] || {bg:'#1a2040', color:'#8090d0'};
     var nombre1 = j.nombre.split(' ')[0];
-    var jidJson = JSON.stringify(jugId);
+    var jidJson = '\'' + jugId + '\'';
 
     var modal = document.createElement('div');
     modal.id = 'modal-jug-dia';
@@ -1295,8 +1295,8 @@ window.verTareaJugador = function(id, src) {
 
     var html = '';
     lista.forEach(function(t) {
-      var tid = JSON.stringify(String(t.id));
-      var src = JSON.stringify(t._src || 'base');
+      var tid = '\'' + String(t.id) + '\'';
+      var src = '\'' + (t._src || 'base') + '\'';
       html += '<div onclick="seleccionarTareaDia(' + tid + ',' + src + ')" style="display:flex;align-items:center;gap:8px;padding:.5rem;border-radius:6px;background:var(--bg,#0d1117);border:0.5px solid var(--border,#30363d);margin-bottom:4px;cursor:pointer;">';
       html += '<div style="flex:1;font-size:12px;font-weight:500;">' + (t.t||'') + '</div>';
       html += '<div style="font-size:10px;color:var(--text3);">' + (t.pos||'') + '</div>';
