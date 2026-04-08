@@ -1242,22 +1242,12 @@ window.verTareaJugador = function(id, src) {
 
       '<div style="display:flex;gap:6px;margin-bottom:1rem;">' +
 
-        '<button onclick="switchJugDiaTab(\'tarea\')" id="jdt-tarea" style="flex:1;height:30px;border-radius:8px;font-size:10px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">\ud83d\udccb Tarea</button>' +
+        '<button onclick="switchJugDiaTab(\'tarea\')" id="jdt-tarea" style="flex:1;height:30px;border-radius:8px;font-size:10px;font-weight:700;background:rgba(124,111,240,0.15);color:#7C6FF0;border:0.5px solid rgba(124,111,240,0.3);cursor:pointer;font-family:inherit;">\ud83d\udccb Tarea</button>' +
         '<button onclick="switchJugDiaTab(\'nota\')" id="jdt-nota" style="flex:1;height:30px;border-radius:8px;font-size:10px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">\ud83d\uddd2 Nota</button>' +
       '</div>' +
 
-      '<div id="jdp-objetivo">' +
-        '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Foco del d\xeda para ' + nombre1 + ' \u2014 aparece destacado en su semana</div>' +
-        '<textarea id="jd-objetivo-txt" rows="3" placeholder="Ej: Hoy trabaja la anticipaci\xf3n en los duelos 1v1..." style="' + TA + '"></textarea>' +
-        '<select id="jd-tipo" style="' + SI + '">' +
-          '<option value="entreno">\ud83d\udcaa Entrenamiento</option>' +
-          '<option value="partido">\u26bd Partido</option>' +
-          '<option value="descanso">\ud83d\ude34 Descanso</option>' +
-        '</select>' +
-        '<button onclick="guardarObjetivoDia(' + jidJson + ')" style="width:100%;height:40px;background:linear-gradient(135deg,#1D9E75,#0f6e56);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;">Guardar en su semana</button>' +
-      '</div>' +
 
-      '<div id="jdp-tarea" style="display:none;">' +
+      '<div id="jdp-tarea">' +
         '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Asigna una tarea de la biblioteca o escribe una personalizada</div>' +
         '<input id="jd-tarea-q" oninput="buscarTareasDia(' + jidJson + ')" placeholder="Buscar tarea..." style="' + SI + '">' +
         '<div id="jd-tarea-lista" style="max-height:180px;overflow-y:auto;margin-bottom:8px;"></div>' +
