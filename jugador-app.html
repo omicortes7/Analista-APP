@@ -2921,7 +2921,7 @@ window.renderInformesJugador = function() {
           return vals.length ? (vals.reduce(function(a,b){return a+b;},0)/vals.length) : 0;
         }
 
-        html += '<div onclick="verInformeDetalle(\'' + inf.id + '\')" style="background:var(--card);border:0.5px solid var(--border);border-left:3px solid ' + nc + ';border-radius:var(--radius);padding:1rem;margin-bottom:.875rem;cursor:pointer;" onmouseover="this.style.borderColor=\'' + nc + '\'" onmouseout="this.style.borderColor=\'var(--border)\'">';
+        html += '<div onclick="verInformeDetalle(\'' + inf.id + '\')" style="background:var(--card);border:0.5px solid var(--border);border-left:3px solid ' + nc + ';border-radius:var(--radius);padding:1rem;margin-bottom:.875rem;cursor:pointer;">';
 
         // Header: nota + partido
         html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">';
