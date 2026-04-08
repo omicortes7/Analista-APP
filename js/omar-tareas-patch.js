@@ -1370,24 +1370,29 @@ window.verTareaJugador = function(id, src) {
     var tipo  = (document.getElementById('jd-tipo')||{}).value || 'entreno';
     if(!foco) { showToast('Escribe el objetivo primero'); return; }
 
-    // Buscar si ya existe fila para ese jugador+fecha via REST directo
-    var existing = await restGet('calendario_semana', {
-      'jugador_id': 'eq.'+jugId,
-      'fecha': 'eq.'+fecha,
-      'select': 'id'
-    });
-    var res2;
-    if(existing && existing.length) {
-      res2 = await restPatch('calendario_semana', existing[0].id, {foco:foco, tipo:tipo});
-    } else {
-      res2 = await restInsert('calendario_semana', {jugador_id:jugId, fecha:fecha, tipo:tipo, foco:foco, hora:'', notas:''});
-    }
-    if(res2.error) { showToast('Error: '+(res2.error.message||JSON.stringify(res2.error))); return; }
-    var cache = window._jugadoresCache || [];
-    var j = cache.find(function(x){return x.id===jugId;});
-    showToast('\u2713 Objetivo guardado para ' + (j?j.nombre.split(' ')[0]:'jugador'));
-    document.getElementById('modal-jug-dia') && document.getElementById('modal-jug-dia').remove();
-    if(typeof renderCalendario === 'function') renderCalendario();
+    // Usar DB_REF igual que hace jugador-app.html en su guardado de nutricion (linea 1423)
+    var db = window.DB_REF;
+    if(!db) { showToast('Sin conexión'); return; }
+
+    // Buscar si ya existe fila
+    db.from('calendario_semana').select('id')
+      .eq('jugador_id', jugId).eq('fecha', fecha)
+      .then(function(sel) {
+        var prom;
+        if(sel.data && sel.data.length) {
+          prom = db.from('calendario_semana').update({foco:foco, tipo:tipo}).eq('id', sel.data[0].id);
+        } else {
+          prom = db.from('calendario_semana').insert({jugador_id:jugId, fecha:fecha, tipo:tipo, foco:foco, hora:'', notas:''});
+        }
+        prom.then(function(res) {
+          if(res.error) { showToast('Error: '+res.error.message); return; }
+          var cache = window._jugadoresCache || [];
+          var j = cache.find(function(x){return x.id===jugId;});
+          showToast('\u2713 Objetivo guardado para ' + (j?j.nombre.split(' ')[0]:'jugador'));
+          document.getElementById('modal-jug-dia') && document.getElementById('modal-jug-dia').remove();
+          if(typeof renderCalendario === 'function') renderCalendario();
+        });
+      });
   };
 
   window.guardarTareaDia = async function(jugId) {
