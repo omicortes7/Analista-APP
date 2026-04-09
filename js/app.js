@@ -4102,3 +4102,387 @@ async function renderSeguimientoSection() {
   body.innerHTML = html;
 }
 
+
+// ═══════════════════════════════════════════════════
+// MÓDULO IA — ANÁLISIS DE PARTIDO Y PREGUNTAS DINÁMICAS
+// ═══════════════════════════════════════════════════
+
+// ─── 1. ANALIZAR PARTIDO CON IA ───
+async function analizarConIA() {
+  const jugId = document.getElementById('ia-jug')?.value || '';
+  const pos = document.getElementById('ia-pos')?.value || '';
+  const partido = document.getElementById('ia-partido')?.value.trim() || '';
+  const notas = document.getElementById('ia-notas')?.value.trim() || '';
+
+  if(!notas) { showToast('Escribe tus observaciones del partido primero'); return; }
+
+  const jug = jugId ? state.jugadores.find(x => x.id === jugId) : null;
+  const objs = jugId ? getObjJugador(jugId) : [];
+  const micros = state.microconceptos.filter(m => !pos || m.posicion === (jug?.posicion || pos));
+  const microsList = micros.map(m => m.titulo).join(', ');
+
+  const resultEl = document.getElementById('ia-result');
+  resultEl.innerHTML = `
+    <div style="background:var(--bg2);border-radius:var(--radius);padding:2rem;text-align:center;border:0.5px solid var(--border);">
+      <div style="font-size:28px;margin-bottom:10px;">🧠</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:5px;">Analizando con tu metodología...</div>
+      <div style="font-size:11px;color:var(--text3);">La IA está leyendo tus observaciones</div>
+    </div>`;
+
+  const prompt = `Eres Omar Cortés Ferrero, analista individual de fútbol base con metodología propia basada en microconceptos tácticos por posición.
+
+DATOS DEL PARTIDO:
+- Jugador: ${jug ? jug.nombre + ' (' + jug.posicion + ')' : 'Posición: ' + pos}
+- Partido: ${partido || 'Sin especificar'}
+- Objetivos actuales del jugador: ${objs.map(o => o.texto).join(', ') || 'No definidos'}
+- Microconceptos disponibles en la biblioteca: ${microsList}
+
+OBSERVACIONES DEL ANALISTA:
+${notas}
+
+Analiza estas observaciones y devuelve un JSON con esta estructura exacta:
+{
+  "resumen": "Resumen ejecutivo de 2-3 frases del partido",
+  "mcb": "Análisis del momento con balón (2-3 frases concretas)",
+  "msb": "Análisis del momento sin balón (2-3 frases concretas)",
+  "tda": "Análisis de la transición defensiva→ataque (1-2 frases)",
+  "tad": "Análisis de la transición ataque→defensa (1-2 frases)",
+  "estrellasEstimadas": {"MCB": 3.5, "MSB": 3.0, "TDA": 2.5, "TAD": 3.0},
+  "notaGlobal": 6.5,
+  "microconceptosDetectados": ["micro1", "micro2", "micro3"],
+  "fortalezas": ["fortaleza1", "fortaleza2"],
+  "mejoras": ["mejora1", "mejora2"],
+  "patronesDetectados": "Si hay patrones recurrentes menciónalos, sino di null",
+  "preguntasParaSesion": ["¿Pregunta 1 adaptada al jugador?", "¿Pregunta 2?", "¿Pregunta 3?"]
+}
+
+IMPORTANTE: Devuelve SOLO el JSON, sin texto antes ni después. Los microconceptosDetectados deben ser de la biblioteca proporcionada.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || '';
+    let parsed;
+    try {
+      const clean = text.replace(/```json|```/g, '').trim();
+      parsed = JSON.parse(clean);
+    } catch(e) {
+      resultEl.innerHTML = `<div style="color:#f85149;padding:1rem;background:rgba(248,81,73,0.08);border-radius:8px;">Error al procesar la respuesta de la IA. Inténtalo de nuevo.</div>`;
+      return;
+    }
+
+    renderResultadoIA(parsed, jugId, jug, partido, pos);
+
+  } catch(e) {
+    resultEl.innerHTML = `<div style="color:#f85149;padding:1rem;background:rgba(248,81,73,0.08);border-radius:8px;">Error de conexión con la IA: ${e.message}</div>`;
+  }
+}
+
+function renderResultadoIA(data, jugId, jug, partido, pos) {
+  const resultEl = document.getElementById('ia-result');
+  const nc = data.notaGlobal >= 7 ? '#3fb950' : data.notaGlobal >= 5 ? '#d29922' : '#f85149';
+  const FASES = [
+    {key:'MCB', label:'Con balón', color:'#3fb950', texto: data.mcb},
+    {key:'MSB', label:'Sin balón', color:'#58a6ff', texto: data.msb},
+    {key:'TDA', label:'Trans. Ofensiva', color:'#d29922', texto: data.tda},
+    {key:'TAD', label:'Trans. Defensiva', color:'#f85149', texto: data.tad},
+  ];
+
+  const CARD = 'background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:.875rem;';
+
+  let html = `
+  <div style="background:linear-gradient(135deg,rgba(124,111,240,.1),rgba(29,158,117,.06));border:0.5px solid rgba(124,111,240,.25);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;display:flex;align-items:center;gap:16px;">
+    <div style="width:60px;height:60px;border-radius:50%;background:${nc}20;color:${nc};border:2px solid ${nc}50;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
+      <span style="font-size:20px;font-weight:800;line-height:1;">${data.notaGlobal?.toFixed(1)}</span>
+      <span style="font-size:9px;">/10</span>
+    </div>
+    <div style="flex:1;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(124,111,240,.8);margin-bottom:4px;">🤖 Análisis IA</div>
+      <div style="font-size:13px;line-height:1.6;">${data.resumen}</div>
+    </div>
+  </div>`;
+
+  // 4 fases
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;">`;
+  FASES.forEach(f => {
+    const avg = data.estrellasEstimadas?.[f.key] || 0;
+    const pct = Math.round((avg/5)*100);
+    html += `<div style="background:${f.color}08;border:0.5px solid ${f.color}25;border-left:3px solid ${f.color};border-radius:0 8px 8px 0;padding:.875rem;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:${f.color};">${f.label}</span>
+        ${avg ? `<span style="font-size:13px;font-weight:700;color:${f.color};">${avg}/5</span>` : ''}
+      </div>
+      ${avg ? `<div style="height:4px;background:rgba(0,0,0,.1);border-radius:99px;margin-bottom:8px;"><div style="width:${pct}%;height:4px;background:${f.color};border-radius:99px;"></div></div>` : ''}
+      <div style="font-size:11px;line-height:1.6;color:var(--text2);">${f.texto || ''}</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // Fortalezas y mejoras
+  if(data.fortalezas?.length || data.mejoras?.length) {
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;">`;
+    if(data.fortalezas?.length) {
+      html += `<div style="${CARD}border-left:3px solid #3fb950;margin-bottom:0;">
+        <div style="font-size:10px;font-weight:700;color:#3fb950;margin-bottom:8px;">✓ FORTALEZAS</div>
+        ${data.fortalezas.map(f => `<div style="font-size:12px;line-height:1.6;padding:4px 0;border-bottom:0.5px solid var(--border);">• ${f}</div>`).join('')}
+      </div>`;
+    }
+    if(data.mejoras?.length) {
+      html += `<div style="${CARD}border-left:3px solid #f85149;margin-bottom:0;">
+        <div style="font-size:10px;font-weight:700;color:#f85149;margin-bottom:8px;">△ A MEJORAR</div>
+        ${data.mejoras.map(m => `<div style="font-size:12px;line-height:1.6;padding:4px 0;border-bottom:0.5px solid var(--border);">• ${m}</div>`).join('')}
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Microconceptos detectados
+  if(data.microconceptosDetectados?.length) {
+    html += `<div style="${CARD}">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text3);margin-bottom:.75rem;">Microconceptos detectados</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;">
+        ${data.microconceptosDetectados.map(m => `<span style="font-size:11px;padding:3px 10px;border-radius:99px;background:#EEEDFE;color:#3C3489;">${m}</span>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Patrones detectados
+  if(data.patronesDetectados && data.patronesDetectados !== 'null') {
+    html += `<div style="${CARD}background:rgba(210,153,34,0.06);border-color:rgba(210,153,34,0.3);border-left:3px solid #d29922;">
+      <div style="font-size:10px;font-weight:700;color:#d29922;margin-bottom:6px;">📈 PATRÓN DETECTADO</div>
+      <div style="font-size:12px;line-height:1.6;">${data.patronesDetectados}</div>
+    </div>`;
+  }
+
+  // Preguntas para la sesión
+  if(data.preguntasParaSesion?.length) {
+    html += `<div style="${CARD}border-left:3px solid #7C6FF0;">
+      <div style="font-size:10px;font-weight:700;color:#7C6FF0;margin-bottom:.75rem;">💬 PREGUNTAS PARA LA SESIÓN DE VÍDEO</div>
+      ${data.preguntasParaSesion.map((p,i) => `<div style="background:var(--bg2);border-radius:6px;padding:8px 12px;margin-bottom:6px;border-left:3px solid #1D9E75;">
+        <span style="font-size:10px;color:var(--text3);">Pregunta ${i+1}</span>
+        <div style="font-size:12px;margin-top:2px;">${p}</div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // Botón guardar informe
+  if(jugId) {
+    const dataStr = encodeURIComponent(JSON.stringify(data));
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:.5rem;">
+      <button onclick="guardarInformeDesdeIA('${jugId}','${encodeURIComponent(partido)}','${encodeURIComponent(pos)}')" class="btn" style="height:44px;">💾 Guardar como informe</button>
+      <button onclick="copiarPreguntasIA()" class="btn-outline" style="height:44px;">📋 Copiar preguntas</button>
+    </div>`;
+    window._lastIAResult = data;
+  }
+
+  resultEl.innerHTML = html;
+}
+
+async function guardarInformeDesdeIA(jugId, partidoEnc, posEnc) {
+  const data = window._lastIAResult;
+  if(!data || !jugId) return;
+  const partido = decodeURIComponent(partidoEnc);
+
+  const stars = {
+    MCB: new Array(7).fill(0).map((_,i) => i < Math.round(data.estrellasEstimadas?.MCB || 0) * 1.4 ? Math.round(data.estrellasEstimadas?.MCB || 0) : 0),
+    MSB: new Array(7).fill(0).map((_,i) => i < Math.round(data.estrellasEstimadas?.MSB || 0) * 1.4 ? Math.round(data.estrellasEstimadas?.MSB || 0) : 0),
+    TDA: new Array(5).fill(Math.round(data.estrellasEstimadas?.TDA || 0)),
+    TAD: new Array(5).fill(Math.round(data.estrellasEstimadas?.TAD || 0)),
+    OBJ: []
+  };
+
+  const infData = {
+    jugador_id: jugId,
+    partido: partido || 'Partido',
+    fecha: new Date().toISOString().slice(0,10),
+    nota_decimal: data.notaGlobal || null,
+    estrellas_json: JSON.stringify(stars),
+    mcb: data.mcb || '',
+    msb: data.msb || '',
+    tda: data.tda || '',
+    tad: data.tad || '',
+    microconceptos_obs: (data.microconceptosDetectados || []).join(', '),
+    positivos: (data.fortalezas || []).join('\n'),
+    mejoras: (data.mejoras || []).join('\n'),
+    notas: 'Informe generado por IA a partir de observaciones del analista.',
+  };
+
+  const { data: saved, error } = await DB.from('informes_partido').insert(infData).select();
+  if(error) { showToast('Error: ' + error.message); return; }
+  state.informesPartido.unshift(saved[0]);
+  showToast('✓ Informe guardado en el jugador');
+  renderInicio();
+}
+
+function copiarPreguntasIA() {
+  const data = window._lastIAResult;
+  if(!data?.preguntasParaSesion) return;
+  const texto = data.preguntasParaSesion.map((p,i) => `${i+1}. ${p}`).join('\n');
+  navigator.clipboard.writeText(texto).then(() => showToast('✓ Preguntas copiadas al portapapeles'));
+}
+
+// ─── 2. PREGUNTAS DINÁMICAS EN SESIÓN DE VÍDEO ───
+async function genSesConIA() {
+  const jugId = document.getElementById('sesjug')?.value || '';
+  const pos = document.getElementById('sespos')?.value || '';
+  const fase = document.getElementById('sesfase')?.value || 'AMBAS';
+  const partido = document.getElementById('sespartido')?.value.trim() || '';
+
+  const jug = jugId ? state.jugadores.find(x => x.id === jugId) : null;
+  const objs = jugId ? getObjJugador(jugId) : [];
+  const informes = jugId ? getInformesJugador(jugId) : [];
+  const ultimoInf = informes[0];
+
+  // Construir contexto del jugador
+  let contextoJugador = '';
+  if(ultimoInf) {
+    let starsData = {};
+    try { starsData = ultimoInf.estrellas_json ? JSON.parse(ultimoInf.estrellas_json) : {}; } catch(e) {}
+    function avgF(k) { const v=(starsData[k]||[]).filter(x=>x>0); return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):null; }
+    contextoJugador = `Último partido (${ultimoInf.partido}): MCB ${avgF('MCB')}/5, MSB ${avgF('MSB')}/5, TDA ${avgF('TDA')}/5, TAD ${avgF('TAD')}/5. Nota: ${ultimoInf.nota_decimal}/10.`;
+    if(ultimoInf.mcb) contextoJugador += ` Con balón: ${ultimoInf.mcb.slice(0,100)}`;
+    if(ultimoInf.msb) contextoJugador += ` Sin balón: ${ultimoInf.msb.slice(0,100)}`;
+  }
+
+  const resEl = document.getElementById('sesres');
+  resEl.innerHTML = `<div style="padding:2rem;text-align:center;"><div style="font-size:28px;margin-bottom:10px;">🧠</div><div style="font-size:13px;">Generando preguntas personalizadas...</div></div>`;
+
+  const prompt = `Eres Omar Cortés Ferrero, analista individual de fútbol base. Vas a preparar el guión de una sesión de vídeo con un jugador específico.
+
+JUGADOR: ${jug ? jug.nombre : 'Jugador'} — ${jug?.posicion || pos}
+PARTIDO A ANALIZAR: ${partido || 'Partido de esta semana'}
+FASE A TRABAJAR: ${fase === 'AMBAS' ? 'Ofensiva y Defensiva' : fase}
+OBJETIVOS DEL JUGADOR: ${objs.map(o => o.texto).join(', ') || 'No definidos aún'}
+CONTEXTO DEL ÚLTIMO PARTIDO: ${contextoJugador || 'Sin datos previos'}
+
+Genera un guión de sesión de vídeo completo y personalizado. Devuelve un JSON:
+{
+  "apertura": [
+    {"pregunta": "texto", "hint": "para qué sirve esta pregunta"}
+  ],
+  "fasePrincipal": [
+    {"pregunta": "texto", "hint": "contexto", "microconcepto": "concepto relacionado"}
+  ],
+  "objetivos": [
+    {"objetivo": "texto del objetivo", "pregunta": "pregunta específica sobre este objetivo"}
+  ],
+  "cierre": ["pregunta de cierre 1", "pregunta de cierre 2", "pregunta de cierre 3"]
+}
+
+Las preguntas deben ser Socráticas — que el jugador descubra, no que el analista explique. Basadas en lo que pasó en este partido concreto. Máximo 3 preguntas por sección.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || '';
+    let parsed;
+    try {
+      const clean = text.replace(/```json|```/g, '').trim();
+      parsed = JSON.parse(clean);
+    } catch(e) {
+      resEl.innerHTML = `<div style="color:#f85149;padding:1rem;">Error al procesar respuesta. Inténtalo de nuevo.</div>`;
+      return;
+    }
+
+    renderGuionIA(parsed, jug, partido, pos, fase);
+
+  } catch(e) {
+    resEl.innerHTML = `<div style="color:#f85149;padding:1rem;">Error: ${e.message}</div>`;
+  }
+}
+
+function renderGuionIA(data, jug, partido, pos, fase) {
+  const resEl = document.getElementById('sesres');
+  const nombre = jug ? jug.nombre : 'Jugador';
+  const posicion = jug?.posicion || pos;
+  const CARD = 'background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:.875rem;';
+
+  let html = `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+    <div>
+      <div style="font-size:15px;font-weight:700;">Guión · ${nombre} · ${posicion}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px;">${partido} · Generado por IA · ${new Date().toLocaleDateString('es-ES')}</div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button onclick="window.print()" class="btn-outline" style="font-size:11px;height:32px;">🖨 Imprimir</button>
+    </div>
+  </div>`;
+
+  // Apertura
+  if(data.apertura?.length) {
+    html += `<div style="${CARD}border-left:3px solid #7C6FF0;">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7C6FF0;margin-bottom:.875rem;">◎ Apertura</div>
+      ${data.apertura.map((p,i) => `<div style="padding:.625rem 0;border-bottom:0.5px solid var(--border);">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:2px;">Pregunta ${i+1}</div>
+        <div style="font-size:13px;font-weight:500;">${p.pregunta}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;">${p.hint}</div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // Fase principal
+  if(data.fasePrincipal?.length) {
+    html += `<div style="${CARD}border-left:3px solid #1D9E75;">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#1D9E75;margin-bottom:.875rem;">⚽ Análisis del partido</div>
+      ${data.fasePrincipal.map((p,i) => `<div style="padding:.625rem 0;border-bottom:0.5px solid var(--border);">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:2px;">Pregunta ${i+1}</div>
+        <div style="font-size:13px;font-weight:500;">${p.pregunta}</div>
+        ${p.hint ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;">${p.hint}</div>` : ''}
+        ${p.microconcepto ? `<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:#EEEDFE;color:#3C3489;display:inline-block;margin-top:5px;">${p.microconcepto}</span>` : ''}
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // Objetivos del jugador
+  if(data.objetivos?.length) {
+    html += `<div style="${CARD}border-left:3px solid #d29922;">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#d29922;margin-bottom:.875rem;">🎯 Sus objetivos en este partido</div>
+      ${data.objetivos.map(o => `<div style="padding:.625rem 0;border-bottom:0.5px solid var(--border);">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Objetivo: ${o.objetivo}</div>
+        <div style="font-size:13px;font-weight:500;">${o.pregunta}</div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // Cierre
+  if(data.cierre?.length) {
+    html += `<div style="${CARD}border-left:3px solid #3fb950;">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#3fb950;margin-bottom:.875rem;">✓ Cierre</div>
+      ${data.cierre.map((p,i) => `<div style="font-size:13px;padding:6px 0;border-bottom:0.5px solid var(--border);">${p}</div>`).join('')}
+    </div>`;
+  }
+
+  resEl.innerHTML = html;
+}
+
+// ─── NAVEGACIÓN: añadir página IA al goTo ───
+const _origGoTo = goTo;
+goTo = function(page) {
+  _origGoTo(page);
+  if(page === 'ia') {
+    // Poblar selector de jugadores
+    const sel = document.getElementById('ia-jug');
+    if(sel && state.jugadores.length) {
+      sel.innerHTML = '<option value="">Sin jugador específico</option>' +
+        state.jugadores.map(j => `<option value="${j.id}">${j.nombre} · ${j.posicion}</option>`).join('');
+    }
+  }
+};
