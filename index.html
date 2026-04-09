@@ -58,6 +58,13 @@
       <span>Tareas</span>
     </a>
 
+    <a class="nav-item" data-page="ia" onclick="goTo('ia')" style="--nav-accent:#a371f7;">
+      <span class="nav-icon-box" style="background:linear-gradient(135deg,#a371f7,#6e3fc7);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/><circle cx="12" cy="12" r="10"/></svg>
+      </span>
+      <span>Analizar con IA</span>
+    </a>
+
 
 
 
@@ -222,7 +229,10 @@
           <div class="field"><label>Fase</label><select id="sesfase"><option value="AMBAS">Ofensiva y defensiva</option><option value="OF">Solo ofensiva</option><option value="DE">Solo defensiva</option><option value="TO">T. ofensiva</option><option value="TD">T. defensiva</option></select></div>
           <div class="field"><label>Partido analizado</label><input type="text" id="sespartido" placeholder="vs Alzira J8"></div>
         </div>
-        <button class="btn" style="width:100%;" onclick="genSes()">Generar sesión de vídeo</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button class="btn-outline" onclick="genSes()">📋 Guión estándar</button>
+          <button class="btn" onclick="genSesConIA()" style="background:linear-gradient(135deg,#7C6FF0,#4a3ec9);">🤖 Generar con IA</button>
+        </div>
       </div>
       <div id="sesres"></div>
     </div>
