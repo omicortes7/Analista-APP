@@ -2955,6 +2955,21 @@ window.generarInformeVisualJugador = function(inf) {
   // Datos del jugador desde window._jugadorData
   const jug = window._jugadorData || {};
   if(!inf) return;
+  // Cargar objetivos y luego generar PDF
+  var jugId = window._jugId;
+  var db = window.DB_REF;
+  if(jugId && db) {
+    db.from('objetivos').select('*').eq('jugador_id', jugId).order('created_at').then(function(res) {
+      window._objsJugador = res.data || [];
+      _generarPDFJugadorConObjs(inf, jug);
+    });
+  } else {
+    window._objsJugador = [];
+    _generarPDFJugadorConObjs(inf, jug);
+  }
+};
+
+window._generarPDFJugadorConObjs = function(inf, jug) {
 
   const nota = parseFloat(inf.nota_decimal) || 0;
   const nc = nota >= 8 ? '#1D9E75' : nota >= 6 ? '#E07B00' : '#D85A30';
@@ -2990,7 +3005,7 @@ window.generarInformeVisualJugador = function(inf) {
   // Fortalezas y mejoras — desde campos guardados del informe
   const fortalezas = inf.positivos ? inf.positivos.split('\n').filter(Boolean) : [];
   const mejoras = inf.mejoras ? inf.mejoras.split('\n').filter(Boolean) : [];
-  const objs = [];
+  const objs = window._objsJugador || [];
 
   const micros = (inf.microconceptos_obs || '').split(',').filter(Boolean).map(m => m.trim());
   const fechaFormateada = new Date((inf.fecha||'') + 'T12:00:00').toLocaleDateString('es-ES', {day:'numeric', month:'long', year:'numeric'});
