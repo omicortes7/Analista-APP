@@ -4159,7 +4159,7 @@ Analiza estas observaciones y devuelve un JSON con esta estructura exacta:
 IMPORTANTE: Devuelve SOLO el JSON, sin texto antes ni después. Los microconceptosDetectados deben ser de la biblioteca proporcionada.`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://ghxwdauwrzupjmrujcns.supabase.co/functions/v1/smart-api', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -4381,7 +4381,7 @@ Genera un guión de sesión de vídeo completo y personalizado. Devuelve un JSON
 Las preguntas deben ser Socráticas — que el jugador descubra, no que el analista explique. Basadas en lo que pasó en este partido concreto. Máximo 3 preguntas por sección.`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://ghxwdauwrzupjmrujcns.supabase.co/functions/v1/smart-api', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
