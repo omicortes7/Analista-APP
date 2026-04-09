@@ -579,6 +579,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         return;
       }
       window._jugId = jug.id;
+      window._jugadorData = jug;
       document.getElementById('app-nombre').textContent = jug.nombre;
       document.getElementById('app-pos').textContent = (jug.posicion || '') + (jug.equipo ? ' · ' + jug.equipo : '') + (jug.categoria ? ' · ' + jug.categoria : '');
       loadDatos(jug);
@@ -2925,7 +2926,7 @@ window.verInformeDetalle = function(el) {
   h+='<div style="width:40px;height:4px;background:var(--border2);border-radius:99px;margin:0 auto 1.25rem;"></div>';
   h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><div><div style="font-size:16px;font-weight:800;">'+(inf.partido||'Partido')+'</div><div style="font-size:11px;color:var(--text2);">'+fecha+(inf.rival?' vs '+inf.rival:'')+(inf.resultado?' '+inf.resultado:'')+'</div></div>';
   h+='<div style="display:flex;gap:8px;">';
-  h+='<button onclick="window.descargarInformePDF(window._informesCache.find(function(x){return String(x.id)===\''+String(inf.id)+'\'}))" style="background:rgba(88,166,255,0.15);border:0.5px solid rgba(88,166,255,0.4);cursor:pointer;color:#58a6ff;font-size:11px;font-weight:700;height:32px;padding:0 12px;border-radius:99px;font-family:inherit;">↓ PDF</button>';
+  h+='<button onclick="window.generarInformeVisualJugador(window._informesCache.find(function(x){return String(x.id)===\''+String(inf.id)+'\'}))" style="background:rgba(88,166,255,0.15);border:0.5px solid rgba(88,166,255,0.4);cursor:pointer;color:#58a6ff;font-size:11px;font-weight:700;height:32px;padding:0 12px;border-radius:99px;font-family:inherit;">↓ PDF</button>';
   h+='<button onclick="document.getElementById(\'modal-informe-detalle\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;">x</button>';
   h+='</div></div>';
   if(nota) { h+='<div style="display:flex;align-items:center;gap:12px;background:'+nc+'10;border-radius:12px;padding:1rem;margin-bottom:1rem;"><div style="width:56px;height:56px;border-radius:50%;background:'+nc+'20;color:'+nc+';border:2px solid '+nc+'50;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:20px;font-weight:800;line-height:1;">'+nota.toFixed(1)+'</span><span style="font-size:9px;">/10</span></div><div><div style="font-size:13px;font-weight:700;color:'+nc+';">'+(nota>=8?'Sobresaliente':nota>=6?'Bueno':nota>=5?'Correcto':nota>=3?'En progreso':'A mejorar')+'</div></div></div>'; }
@@ -2949,118 +2950,427 @@ window.verInformeDetalle = function(el) {
   modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
 };
 
-// ─── DESCARGAR INFORME PDF ───
-window.descargarInformePDF = function(inf) {
-  var nota = parseFloat(inf.nota_decimal)||0;
-  var nc = nota>=5?'#3fb950':nota>=3?'#d29922':'#f85149';
-  var fecha = new Date((inf.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  fecha = fecha.charAt(0).toUpperCase()+fecha.slice(1);
+// ─── DESCARGAR INFORME PDF (mismo diseño que app analista) ───
+window.generarInformeVisualJugador = function(inf) {
+  // Datos del jugador desde window._jugadorData
+  const jug = window._jugadorData || {};
+  if(!inf) return;
 
-  var starsData = {};
+  const nota = parseFloat(inf.nota_decimal) || 0;
+  const nc = nota >= 8 ? '#1D9E75' : nota >= 6 ? '#E07B00' : '#D85A30';
+  const nl = nota >= 8 ? 'SOBRESALIENTE' : nota >= 6 ? 'CORRECTO' : nota >= 4 ? 'EN PROGRESO' : 'A MEJORAR';
+
+  let starsData = {};
   try { starsData = inf.estrellas_json ? JSON.parse(inf.estrellas_json) : {}; } catch(e) {}
-  function avgF(k) { var v=(starsData[k]||[]).filter(function(x){return x>0;}); return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0; }
-  function starsStr(avg) { var s=''; for(var i=1;i<=5;i++) s+=(i<=Math.round(avg)?'★':'☆'); return s; }
 
-  var FASES=[
-    {key:'MCB',label:'Con Balón',color:nc,avg:avgF('MCB'),texto:inf.mcb},
-    {key:'MSB',label:'Sin Balón',color:'#58a6ff',avg:avgF('MSB'),texto:inf.msb},
-    {key:'TDA',label:'Transición Ofensiva',color:'#d29922',avg:avgF('TDA'),texto:inf.tda},
-    {key:'TAD',label:'Transición Defensiva',color:'#f85149',avg:avgF('TAD'),texto:inf.tad}
+  function avgF(key) {
+    const vals = (starsData[key] || []).filter(v => v > 0);
+    return vals.length ? vals.reduce((a,b) => a+b,0) / vals.length : 0;
+  }
+
+  function starsHtml(val, color) {
+    return [1,2,3,4,5].map(s =>
+      `<span style="color:${s <= Math.round(val) ? '#F5A623' : '#ddd'};font-size:16px;">★</span>`
+    ).join('');
+  }
+
+  function barHtml(pct, color) {
+    return `<div style="width:100%;height:6px;background:#eee;border-radius:99px;margin-top:5px;">
+      <div style="width:${Math.round(pct)}%;height:6px;background:${color};border-radius:99px;"></div>
+    </div>`;
+  }
+
+  const fases = [
+    {key:'MCB', label:'CON BALÓN',           color:'#1D9E75', texto: inf.mcb},
+    {key:'MSB', label:'SIN BALÓN',           color:'#378ADD', texto: inf.msb},
+    {key:'TDA', label:'TRANS. OFENSIVA',     color:'#E07B00', texto: inf.tda},
+    {key:'TAD', label:'TRANS. DEFENSIVA',    color:'#D85A30', texto: inf.tad},
   ];
 
-  var mics = inf.microconceptos_obs ? inf.microconceptos_obs.split(',').filter(Boolean).map(function(m){return m.trim();}) : [];
-
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
-  html += '<style>';
-  html += 'body{font-family:Arial,sans-serif;background:#fff;color:#111;margin:0;padding:32px;max-width:700px;margin:0 auto;}';
-  html += 'h1{font-size:22px;font-weight:800;margin:0 0 4px;}';
-  html += '.sub{font-size:13px;color:#666;margin-bottom:24px;}';
-  html += '.nota-circle{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:70px;height:70px;border-radius:50%;border:3px solid '+nc+';color:'+nc+';font-size:24px;font-weight:800;line-height:1;margin-bottom:4px;}';
-  html += '.nota-wrap{display:flex;align-items:center;gap:20px;background:#f8f8f8;border-left:4px solid '+nc+';border-radius:8px;padding:16px;margin-bottom:24px;}';
-  html += '.fase{border-left:4px solid;border-radius:4px;padding:12px 16px;margin-bottom:14px;}';
-  html += '.fase-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}';
-  html += '.stars{font-size:20px;margin-bottom:6px;}';
-  html += '.bar-wrap{height:8px;background:#eee;border-radius:99px;margin-bottom:8px;}';
-  html += '.bar{height:8px;border-radius:99px;}';
-  html += '.fase-texto{font-size:13px;line-height:1.6;color:#333;}';
-  html += '.mics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px;}';
-  html += '.mic{font-size:11px;padding:4px 10px;border-radius:99px;background:#EEEDFE;color:#3C3489;font-weight:600;}';
-  html += '.fort-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;}';
-  html += '.fort-box{border-radius:8px;padding:14px;}';
-  html += '.fort-title{font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:8px;}';
-  html += '.fort-text{font-size:12px;line-height:1.6;}';
-  html += '.section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#999;margin:20px 0 10px;}';
-  html += '.notas-box{background:#f8f8f8;border-left:3px solid #ccc;border-radius:4px;padding:12px 16px;font-size:12px;line-height:1.7;color:#555;font-style:italic;}';
-  html += '.header-line{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}';
-  html += '</style></head><body>';
-
-  // Cabecera
-  html += '<h1>'+(inf.partido||'Informe de Partido')+'</h1>';
-  html += '<div class="sub">'+fecha+(inf.rival?' &middot; vs '+inf.rival:'')+(inf.resultado?' &middot; '+inf.resultado:'')+'</div>';
-
-  // Nota global
-  if(nota) {
-    html += '<div class="nota-wrap">';
-    html += '<div class="nota-circle"><span>'+nota.toFixed(1)+'</span><span style="font-size:10px;font-weight:400;">/10</span></div>';
-    html += '<div><div style="font-size:16px;font-weight:800;color:'+nc+';">'+(nota>=8?'Sobresaliente':nota>=6?'Bueno':nota>=5?'Correcto':nota>=3?'En progreso':'A mejorar')+'</div><div style="font-size:12px;color:#666;margin-top:4px;">Valoración global del partido</div></div>';
-    html += '</div>';
-  }
-
-  // 4 fases
-  html += '<div class="section-title">Valoración por momentos</div>';
-  FASES.forEach(function(f) {
-    if(!f.avg && !f.texto) return;
-    var pct = f.avg ? Math.round((f.avg/5)*100) : 0;
-    html += '<div class="fase" style="border-color:'+f.color+';background:'+f.color+'0d;">';
-    html += '<div class="header-line"><span class="fase-title" style="color:'+f.color+';">'+f.label+'</span>';
-    if(f.avg) html += '<span style="font-size:13px;font-weight:700;color:'+f.color+';">'+f.avg.toFixed(1)+'/5</span>';
-    html += '</div>';
-    if(f.avg) {
-      html += '<div class="stars" style="color:'+f.color+';">'+starsStr(f.avg)+'</div>';
-      html += '<div class="bar-wrap"><div class="bar" style="width:'+pct+'%;background:'+f.color+';"></div></div>';
-    }
-    if(f.texto) html += '<div class="fase-texto">'+f.texto+'</div>';
-    html += '</div>';
+  // Fortalezas y mejoras desde los textos de fase
+  const fortalezas = [];
+  const mejoras = [];
+  const objs = [];
+  objs.forEach((o,i) => {
+    const v = (starsData.OBJ || [])[i] || 0;
+    if(v >= 4) fortalezas.push(o.texto);
+    else if(v > 0 && v <= 2) mejoras.push(o.texto);
   });
 
-  // Microconceptos
-  if(mics.length) {
-    html += '<div class="section-title">Microconceptos observados</div>';
-    html += '<div class="mics">';
-    mics.forEach(function(m){ html += '<span class="mic">'+m+'</span>'; });
-    html += '</div>';
+  // Si no hay fortalezas desde objetivos, extraer de los textos de observación
+  if(!fortalezas.length && inf.mcb) fortalezas.push(inf.mcb.split('.')[0]);
+  if(!mejoras.length && inf.msb) mejoras.push(inf.msb.split('.')[0]);
+
+  const micros = (inf.microconceptos_obs || '').split(',').filter(Boolean).map(m => m.trim());
+  const fechaFormateada = new Date((inf.fecha||'') + 'T12:00:00').toLocaleDateString('es-ES', {day:'numeric', month:'long', year:'numeric'});
+
+  // Logo academia
+  const logoAcademia = `<div style="display:flex;align-items:center;gap:6px;">
+    <div style="width:32px;height:32px;border-radius:50%;background:#1a1a2e;display:flex;align-items:center;justify-content:center;font-size:14px;">⚽</div>
+    <div style="line-height:1.2;"><div style="font-size:9px;font-weight:800;letter-spacing:.12em;color:#1a1a2e;">ANALISTA</div><div style="font-size:9px;color:#666;letter-spacing:.08em;">INDIVIDUAL</div></div>
+  </div>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Informe ${jug.nombre} · ${inf.partido || ''}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;1,400;1,700&family=Barlow:wght@400;500;600&display=swap');
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Barlow', sans-serif; background:#f0ede8; color:#1a1a1a; min-height:100vh; }
+
+  .page {
+    width:794px; min-height:1123px; margin:0 auto;
+    background:#fff; position:relative; overflow:hidden;
   }
 
-  // Fortalezas y mejoras
-  if(inf.positivos || inf.mejoras) {
-    html += '<div class="section-title">Análisis del analista</div>';
-    html += '<div class="fort-grid">';
-    if(inf.positivos) {
-      html += '<div class="fort-box" style="background:#3fb95012;border:1px solid #3fb95030;">';
-      html += '<div class="fort-title" style="color:#3fb950;">✓ Fortalezas</div>';
-      html += '<div class="fort-text">'+inf.positivos.split('\n').join('<br>')+'</div></div>';
-    }
-    if(inf.mejoras) {
-      html += '<div class="fort-box" style="background:#f8514912;border:1px solid #f8514930;">';
-      html += '<div class="fort-title" style="color:#f85149;">△ A mejorar</div>';
-      html += '<div class="fort-text">'+inf.mejoras.split('\n').join('<br>')+'</div></div>';
-    }
-    html += '</div>';
+  /* HEADER */
+  .header {
+    display:grid;
+    grid-template-columns:1fr auto;
+    min-height:240px;
+    background:#1a1a2e;
+    position:relative;
+    overflow:hidden;
+  }
+  .header::before {
+    content:''; position:absolute; top:0; left:0; right:0; bottom:0;
+    background:radial-gradient(ellipse at 30% 50%, rgba(0,212,255,0.08) 0%, transparent 60%);
+  }
+  .header-left {
+    padding:36px 36px 28px;
+    display:flex; flex-direction:column; justify-content:flex-end;
+    position:relative; z-index:1;
+  }
+  .header-badge {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:10px; font-weight:700; letter-spacing:.18em;
+    color:rgba(255,255,255,.4); text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  .header-name {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:52px; font-weight:800; letter-spacing:-.01em;
+    color:#fff; line-height:.95; text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  .header-meta {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:14px; font-weight:400; color:rgba(255,255,255,.55);
+    letter-spacing:.04em; text-transform:uppercase;
+    line-height:1.8;
+  }
+  .header-right {
+    width:280px; position:relative; overflow:hidden;
+  }
+  .player-photo {
+    width:100%; height:100%; object-fit:cover; object-position:top center;
+    display:block;
+  }
+  .player-photo-placeholder {
+    width:100%; height:100%;
+    background:linear-gradient(135deg,#0f3460,#16213e);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .photo-initials {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:72px; font-weight:800; color:rgba(255,255,255,.15);
+    text-transform:uppercase;
+  }
+  /* Gradiente sobre la foto */
+  .header-right::after {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(to right, #1a1a2e 0%, transparent 40%);
+    pointer-events:none;
   }
 
-  // Notas analista
-  if(inf.notas) {
-    html += '<div class="section-title">Notas del analista</div>';
-    html += '<div class="notas-box">'+inf.notas+'</div>';
+  /* NOTA GLOBAL */
+  .nota-strip {
+    background:#1a1a2e;
+    padding:0 36px 24px;
+    display:flex; align-items:center; gap:20px;
+  }
+  .nota-circle {
+    width:72px; height:72px; border-radius:50%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    flex-shrink:0; border:2px solid;
+  }
+  .nota-num {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:28px; font-weight:800; line-height:1;
+  }
+  .nota-label {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:16px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    color:#fff; margin-left:4px;
+  }
+  .nota-sub { font-size:11px; color:rgba(255,255,255,.4); margin-top:2px; letter-spacing:.04em; }
+  .partido-info {
+    margin-left:auto; text-align:right;
+    font-family:'Barlow Condensed', sans-serif;
+  }
+  .partido-name { font-size:18px; font-weight:700; color:#fff; letter-spacing:.02em; }
+  .partido-meta { font-size:12px; color:rgba(255,255,255,.4); margin-top:3px; letter-spacing:.04em; }
+
+  /* CONTENIDO */
+  .content { padding:28px 36px; }
+
+  /* FASES */
+  .fases-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:24px; }
+  .fase-card {
+    border-radius:10px; padding:16px;
+    border:1px solid;
+  }
+  .fase-tag {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:9px; font-weight:800; letter-spacing:.14em;
+    padding:3px 9px; border-radius:99px; display:inline-block; margin-bottom:10px;
+  }
+  .fase-avg {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:22px; font-weight:800; float:right; margin-top:-4px;
+  }
+  .fase-texto {
+    font-size:11px; line-height:1.6; color:#444; margin-top:10px;
+    clear:both;
   }
 
-  html += '</body></html>';
+  /* FORTALEZAS / MEJORAS */
+  .dos-cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+  .col-title {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:10px; font-weight:800; letter-spacing:.14em;
+    text-transform:uppercase; margin-bottom:10px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .col-title::before {
+    content:''; display:inline-block;
+    width:3px; height:14px; border-radius:2px;
+  }
+  .col-item {
+    display:flex; align-items:flex-start; gap:8px;
+    font-size:12px; line-height:1.5; margin-bottom:8px; color:#333;
+  }
+  .col-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; margin-top:5px; }
 
-  // Abrir en nueva pestaña para imprimir/guardar como PDF
-  var win = window.open('','_blank');
-  win.document.write(html);
-  win.document.close();
-  setTimeout(function(){ win.print(); }, 500);
+  /* OBJETIVOS */
+  .obj-section { margin-bottom:24px; }
+  .section-title {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:10px; font-weight:800; letter-spacing:.14em;
+    text-transform:uppercase; color:#888; margin-bottom:12px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .section-title::after {
+    content:''; flex:1; height:1px; background:#eee;
+  }
+  .obj-row {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:7px 0; border-bottom:1px solid #f0f0f0;
+  }
+  .obj-text { font-size:12px; color:#333; flex:1; }
+  .obj-fase {
+    font-size:9px; font-weight:700; letter-spacing:.08em;
+    padding:2px 7px; border-radius:99px; margin:0 10px; flex-shrink:0;
+  }
+
+  /* MICROS */
+  .mic-pills { display:flex; flex-wrap:wrap; gap:5px; }
+  .mic-pill {
+    font-size:10px; padding:4px 10px; border-radius:99px;
+    background:#EEEDFE; color:#3C3489; font-weight:500;
+  }
+
+  /* NOTAS */
+  .notas-box {
+    background:#f7f7f5; border-left:3px solid #1a1a2e;
+    border-radius:0 8px 8px 0; padding:14px 16px;
+    margin-bottom:24px;
+  }
+  .notas-text { font-size:12px; line-height:1.7; color:#444; font-style:italic; }
+
+  /* FOOTER */
+  .footer {
+    padding:16px 36px;
+    border-top:1px solid #eee;
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top:auto;
+  }
+  .footer-analista { font-size:10px; color:#999; }
+  .footer-analista strong { color:#333; font-weight:600; }
+
+  /* LOGOS */
+  .logos-row {
+    display:flex; align-items:center; gap:16px;
+    padding:0 36px 20px;
+  }
+
+  /* PRINT */
+  @media print {
+    body { background:#fff; }
+    .page { box-shadow:none; margin:0; }
+    .no-print { display:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- BOTÓN IMPRIMIR -->
+<div class="no-print" style="text-align:center;padding:16px;background:#f0ede8;">
+  <button onclick="window.print()" style="background:#1a1a2e;color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600;letter-spacing:.04em;">↓ DESCARGAR PDF</button>
+  <div style="font-size:11px;color:#999;margin-top:6px;">En el diálogo de impresión → Guardar como PDF</div>
+</div>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-badge">Informe Técnico Individual · ${fechaFormateada}</div>
+      <div class="header-name">${jug.nombre}</div>
+      <div class="header-meta">
+        ${jug.posicion}<br>
+        ${jug.equipo || ''} ${jug.categoria ? '· '+jug.categoria : ''}
+      </div>
+    </div>
+    <div class="header-right">
+      ${jug.foto_jugador
+        ? `<img class="player-photo" src="${jug.foto_jugador}" alt="${jug.nombre}">`
+        : `<div class="player-photo-placeholder"><div class="photo-initials">${jug.nombre.split(' ').map(w=>w[0]).join('').slice(0,2)}</div></div>`
+      }
+    </div>
+  </div>
+
+  <!-- NOTA + PARTIDO -->
+  <div class="nota-strip">
+    <div class="nota-circle" style="border-color:${nc}60;background:${nc}15;">
+      <span class="nota-num" style="color:${nc};">${nota ? nota.toFixed(1) : '—'}</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:8px;color:${nc};letter-spacing:.08em;">/ 10</span>
+    </div>
+    <div>
+      <div class="nota-label">${nl}</div>
+      <div class="nota-sub">Nota global · Media ponderada de las 4 fases</div>
+    </div>
+    <div class="partido-info">
+      <div class="partido-name">${inf.partido || ''}</div>
+      <div class="partido-meta">${inf.rival ? 'vs '+inf.rival : ''}${inf.resultado ? ' · '+inf.resultado : ''}</div>
+    </div>
+  </div>
+
+  <!-- LOGOS -->
+  <div class="logos-row" style="background:#1a1a2e;padding-bottom:24px;">
+    ${jug.logo_club ? `<img src="${jug.logo_club}" style="height:40px;object-fit:contain;" onerror="this.style.display='none'">` : ''}
+    <div style="flex:1;"></div>
+    <div style="text-align:right;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:800;letter-spacing:.15em;color:rgba(255,255,255,.35);">OMAR CORTÉS FERRERO</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;color:rgba(255,255,255,.25);letter-spacing:.1em;">ANALISTA INDIVIDUAL · FÚTBOL BASE</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- FASES -->
+    <div class="section-title">Valoración por fases</div>
+    <div class="fases-grid">
+      ${fases.map(f => {
+        const avg = avgF(f.key);
+        const pct = avg ? Math.round((avg/5)*100) : 0;
+        return avg > 0 || f.texto ? `<div class="fase-card" style="border-color:${f.color}25;background:${f.color}05;">
+          <div>
+            <span class="fase-tag" style="background:${f.color}15;color:${f.color};">${f.label}</span>
+            ${avg > 0 ? `<span class="fase-avg" style="color:${f.color};">${avg.toFixed(1)}<span style="font-size:13px;color:#bbb;">/5</span></span>` : ''}
+          </div>
+          ${avg > 0 ? `<div style="display:flex;gap:1px;margin-bottom:4px;">${starsHtml(avg, f.color)}</div>${barHtml(pct, f.color)}` : ''}
+          ${f.texto ? `<div class="fase-texto">${f.texto}</div>` : ''}
+        </div>` : '';
+      }).filter(Boolean).join('')}
+    </div>
+
+    <!-- FORTALEZAS Y MEJORAS -->
+    ${(fortalezas.length || mejoras.length) ? `
+    <div class="dos-cols">
+      <div>
+        <div class="col-title" style="color:#1D9E75;">
+          <span style="background:#1D9E75;width:3px;height:14px;border-radius:2px;"></span>
+          Fortalezas
+        </div>
+        ${fortalezas.map(f => `<div class="col-item"><div class="col-dot" style="background:#1D9E75;"></div><span>${f}</span></div>`).join('') || '<div style="font-size:11px;color:#bbb;font-style:italic;">Sin registrar</div>'}
+      </div>
+      <div>
+        <div class="col-title" style="color:#D85A30;">
+          <span style="background:#D85A30;width:3px;height:14px;border-radius:2px;"></span>
+          Aspectos a mejorar
+        </div>
+        ${mejoras.map(m => `<div class="col-item"><div class="col-dot" style="background:#D85A30;"></div><span>${m}</span></div>`).join('') || '<div style="font-size:11px;color:#bbb;font-style:italic;">Sin registrar</div>'}
+      </div>
+    </div>` : ''}
+
+    <!-- OBJETIVOS -->
+    ${objs.length ? `
+    <div class="obj-section">
+      <div class="section-title">Objetivos del jugador</div>
+      ${objs.map((o,i) => {
+        const v = (starsData.OBJ || [])[i] || 0;
+        const fi = FASES.find(f => f.id === o.fase);
+        const col = fi ? (fi.dot || '#888') : '#888';
+        return `<div class="obj-row">
+          <div class="obj-text">${o.texto}</div>
+          ${fi ? `<span class="obj-fase" style="background:${col}15;color:${col};">${fi.label}</span>` : ''}
+          <div>${starsHtml(v, '#F5A623')}</div>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+
+    <!-- MICROCONCEPTOS -->
+    ${micros.length ? `
+    <div style="margin-bottom:24px;">
+      <div class="section-title">Microconceptos observados</div>
+      <div class="mic-pills">
+        ${micros.map(m => `<span class="mic-pill">${m}</span>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <!-- NOTAS -->
+    ${inf.notas ? `
+    <div class="notas-box">
+      <div style="font-size:9px;font-weight:800;letter-spacing:.14em;color:#999;text-transform:uppercase;margin-bottom:6px;">Notas del analista</div>
+      <div class="notas-text">${inf.notas}</div>
+    </div>` : ''}
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-analista">Informe elaborado por <strong>Omar Cortés Ferrero</strong> · Analista Individual de Fútbol Base</div>
+    <div style="font-size:10px;color:#bbb;">${fechaFormateada}</div>
+  </div>
+
+</div>
+
+<scr'+'ipt>
+// Auto print al cargar
+window.addEventListener('load', () => {
+  setTimeout(() => window.print(), 800);
+});
+</scr'+'ipt>
+</body>
+</html>`;
+
+  // Abrir en nueva pestaña
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if(!win) {
+    showToastGlobal('Permite ventanas emergentes para ver el informe');
+    // Fallback: descarga directa
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Informe_${jug.nombre.replace(/ /g,'_')}_${inf.partido || 'partido'}.html`;
+    a.click();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
 };
-</script>
-</html>
+
+>
