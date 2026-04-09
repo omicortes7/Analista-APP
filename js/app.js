@@ -534,6 +534,18 @@ function renderDT(tab){
         <div id="inf-mic-tags" style="display:flex;flex-wrap:wrap;gap:5px;min-height:20px;"></div>
       </div>
       <div style="${CARD}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#3fb950;margin-bottom:4px;">✓ Fortalezas del jugador</div>
+            <textarea id="inf-positivos" rows="3" placeholder="Lo que hizo bien en este partido..." style="${TA}border-color:rgba(63,185,80,0.3);"></textarea>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#f85149;margin-bottom:4px;">△ Aspectos a mejorar</div>
+            <textarea id="inf-mejoras" rows="3" placeholder="Lo que debe trabajar..." style="${TA}border-color:rgba(248,81,73,0.3);"></textarea>
+          </div>
+        </div>
+      </div>
+      <div style="${CARD}">
         <div style="${SEC_TITLE}">Notas privadas</div>
         <textarea id="inf-notas" placeholder="Contexto del partido, condiciones, observaciones extra..." style="${TA}height:70px;"></textarea>
       </div>
@@ -2803,19 +2815,10 @@ function generarInformeVisual(jugId, infId) {
     {key:'TAD', label:'TRANS. DEFENSIVA',    color:'#D85A30', texto: inf.tad},
   ];
 
-  // Fortalezas y mejoras desde los textos de fase
-  const fortalezas = [];
-  const mejoras = [];
+  // Fortalezas y mejoras — SOLO lo que escribió el analista
+  const fortalezas = inf.positivos ? inf.positivos.split('\n').filter(Boolean) : [];
+  const mejoras = inf.mejoras ? inf.mejoras.split('\n').filter(Boolean) : [];
   const objs = getObjJugador(jugId);
-  objs.forEach((o,i) => {
-    const v = (starsData.OBJ || [])[i] || 0;
-    if(v >= 4) fortalezas.push(o.texto);
-    else if(v > 0 && v <= 2) mejoras.push(o.texto);
-  });
-
-  // Si no hay fortalezas desde objetivos, extraer de los textos de observación
-  if(!fortalezas.length && inf.mcb) fortalezas.push(inf.mcb.split('.')[0]);
-  if(!mejoras.length && inf.msb) mejoras.push(inf.msb.split('.')[0]);
 
   const micros = (inf.microconceptos_obs || '').split(',').filter(Boolean).map(m => m.trim());
   const fechaFormateada = new Date((inf.fecha||'') + 'T12:00:00').toLocaleDateString('es-ES', {day:'numeric', month:'long', year:'numeric'});
