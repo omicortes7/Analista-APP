@@ -788,6 +788,7 @@ function goSec(id, btn) {
   if (id === 'tareas') window.renderTareasJugador && window.renderTareasJugador();
   if (id === 'informes') renderInformesJugador && renderInformesJugador();
   if (id === 'clips')  { if (typeof renderClipsSec === 'function') renderClipsSec(window._clipsFiltroActivo || 'mejorar'); }
+  if (id === 'plan')   window.renderPlanCompleto && window.renderPlanCompleto();
 }
 
 function showToastGlobal(msg) {
