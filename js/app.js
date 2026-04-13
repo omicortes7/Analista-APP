@@ -4495,7 +4495,7 @@ goTo = function(page) {
 async function renderAnalisisTab() {
   const j = window._jug;
   if(!j) return;
-  const body = document.getElementById('dt-body');
+  const body = document.getElementById('djbody');
   body.innerHTML = '<div style="padding:1rem;color:var(--text2);">Cargando...</div>';
 
   const { data: items } = await DB.from('analisis_semanal')
