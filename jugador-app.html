@@ -127,7 +127,7 @@ body {
 }
 
 /* SECCIONES */
-.secs { flex: 1; overflow-y: auto; padding: 1rem; padding-bottom: 90px; }
+.secs { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 1rem; padding-bottom: 100px; -webkit-overflow-scrolling: touch; }
 .sec { display: none; }
 .sec.active { display: block; }
 
@@ -753,8 +753,26 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
 
     <!-- PLAN DE PARTIDO -->
     <div class="sec" id="sec-plan">
-      <div id="plan-content-full">
-        <div style="text-align:center;padding:3rem;color:var(--text3);"><div style="font-size:32px;margin-bottom:10px;">📋</div><div style="font-size:13px;">Sin plan todavía.<br>Tu analista lo preparará antes del partido.</div></div>
+      <!-- TABS PLAN -->
+      <div style="display:flex;gap:6px;margin-bottom:1rem;">
+        <button onclick="switchPlanTab('plan',this)" id="ptab-plan"
+          style="flex:1;padding:10px 4px;border-radius:10px;font-size:12px;font-weight:700;background:rgba(0,150,255,0.15);color:var(--blue);border:1px solid rgba(0,150,255,0.3);cursor:pointer;font-family:inherit;">
+          📋 Plan
+        </button>
+        <button onclick="switchPlanTab('objetivos',this)" id="ptab-objetivos"
+          style="flex:1;padding:10px 4px;border-radius:10px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:1px solid var(--border2);cursor:pointer;font-family:inherit;">
+          🎯 Objetivos
+        </button>
+      </div>
+      <!-- TAB PLAN -->
+      <div id="ptab-content-plan">
+        <div id="plan-content-full">
+          <div style="text-align:center;padding:3rem;color:var(--text3);"><div style="font-size:32px;margin-bottom:10px;">📋</div><div style="font-size:13px;">Sin plan todavía.<br>Tu analista lo preparará antes del partido.</div></div>
+        </div>
+      </div>
+      <!-- TAB OBJETIVOS -->
+      <div id="ptab-content-objetivos" style="display:none;">
+        <div id="objetivos-content"><div class="loading">Cargando...</div></div>
       </div>
     </div>
 
@@ -999,7 +1017,7 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
       html += '<span style="font-size:9px;padding:3px 8px;border-radius:99px;background:'+f.c+'/15;color:'+f.c+';font-weight:700;">'+f.l+'</span>';
       html += '</div>';
       html += '<div style="font-size:14px;line-height:1.5;">'+obj.texto+'</div>';
-      if(objs.length>1) html += '<div style="font-size:11px;color:var(--text3);margin-top:8px;cursor:pointer;" onclick="goSec(\'informes\',document.querySelector(\'[onclick*=informes]\'))">'+(objs.length-1)+' objetivos más →</div>';
+      if(objs.length>1) html += '<div style="font-size:11px;color:var(--text3);margin-top:8px;cursor:pointer;" onclick="goSec(\'plan\',document.querySelector(\'[onclick*=plan]\'));setTimeout(function(){switchPlanTab(\'objetivos\',document.getElementById(\'ptab-objetivos\'));},100);">'+(objs.length-1)+' objetivos más →</div>';
       html += '</div>';
     }
 
@@ -1126,7 +1144,7 @@ function goSec(id, btn) {
   if (id === 'tareas') window.renderTareasJugador && window.renderTareasJugador();
   if (id === 'informes') { renderInformesJugador && renderInformesJugador(); switchInformesTab('partido', document.getElementById('itab-partido')); }
   if (id === 'clips')  { if (typeof renderClipsSec === 'function') renderClipsSec(window._clipsFiltroActivo || 'mejorar'); }
-  if (id === 'plan')   window.renderPlanCompleto && window.renderPlanCompleto();
+  if (id === 'plan')   { window.renderPlanCompleto && window.renderPlanCompleto(); switchPlanTab('plan', document.getElementById('ptab-plan')); }
 }
 
 function showToastGlobal(msg) {
@@ -3622,6 +3640,65 @@ window.verAnalisisDetalle = function(id) {
   modal.innerHTML = h;
   document.body.appendChild(modal);
   modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+};
+
+// ─── TABS PLAN + OBJETIVOS ───
+window.switchPlanTab = function(tab, btn) {
+  document.getElementById('ptab-content-plan').style.display      = tab==='plan'      ? 'block' : 'none';
+  document.getElementById('ptab-content-objetivos').style.display = tab==='objetivos' ? 'block' : 'none';
+  ['plan','objetivos'].forEach(function(t) {
+    var b = document.getElementById('ptab-'+t);
+    if(!b) return;
+    var on = t===tab;
+    b.style.background = on ? 'rgba(0,150,255,0.15)' : 'none';
+    b.style.color      = on ? 'var(--blue)' : 'var(--text3)';
+    b.style.border     = on ? '1px solid rgba(0,150,255,0.3)' : '1px solid var(--border2)';
+  });
+  if(tab==='objetivos') renderObjetivosJugador();
+};
+
+window.renderObjetivosJugador = function() {
+  var jugId = window._jugId;
+  var db    = window.DB_REF;
+  var cont  = document.getElementById('objetivos-content');
+  if(!jugId || !db || !cont) return;
+  cont.innerHTML = '<div class="loading">Cargando...</div>';
+
+  db.from('objetivos').select('*').eq('jugador_id', jugId).order('created_at').then(function(res) {
+    var objs = res.data || [];
+    if(!objs.length) {
+      cont.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎯</div><div class="empty-state-title">Sin objetivos todavía</div><div class="empty-state-text">Tu analista irá añadiendo aquí los objetivos a trabajar.</div></div>';
+      return;
+    }
+    var FCFG = {
+      OF:  {c:'var(--green)',  bg:'var(--green-soft)',  l:'Ataque'},
+      DE:  {c:'var(--blue)',   bg:'var(--blue-soft)',   l:'Defensa'},
+      TO:  {c:'var(--amber)',  bg:'rgba(255,159,10,0.12)', l:'Trans. Of.'},
+      TD:  {c:'var(--red)',    bg:'var(--red-soft)',    l:'Trans. Def.'},
+      GEN: {c:'var(--purple)', bg:'var(--purple-soft)', l:'General'}
+    };
+    var html = '';
+    // Agrupar por fase
+    var grupos = {};
+    objs.forEach(function(o) {
+      var fase = o.fase || 'GEN';
+      if(!grupos[fase]) grupos[fase] = [];
+      grupos[fase].push(o);
+    });
+    Object.keys(grupos).forEach(function(fase) {
+      var f = FCFG[fase] || FCFG.GEN;
+      html += '<div class="card" style="border-left:3px solid '+f.c+';margin-bottom:1rem;">';
+      html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:'+f.c+';margin-bottom:.75rem;">'+f.l+'</div>';
+      grupos[fase].forEach(function(o) {
+        html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid var(--border);">';
+        html += '<div style="width:8px;height:8px;border-radius:50%;background:'+f.c+';flex-shrink:0;margin-top:5px;"></div>';
+        html += '<div style="font-size:14px;line-height:1.6;flex:1;">'+o.texto+'</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+    cont.innerHTML = html;
+  });
 };
 </script>
 </html>
