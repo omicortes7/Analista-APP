@@ -119,8 +119,8 @@ body {
 #app-screen {
   height: 100vh;
   height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   overflow: hidden;
 }
 
@@ -143,10 +143,7 @@ body {
   padding: 1rem;
   padding-bottom: 100px;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
   min-height: 0;
-  /* Forzar scroll en PC */
-  height: 0;
 }
 .sec { display: none; }
 .sec.active { display: block; }
