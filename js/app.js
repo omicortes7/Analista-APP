@@ -261,7 +261,7 @@ function openJug(id){
 }
 
 function switchDT(tab){
-  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','clips','informe','historial','tareas','plan','seguimiento'][i]===tab));
+  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','clips','informe','historial','tareas','plan','seguimiento','analisis'][i]===tab));
   renderDT(tab);
 }
 
@@ -697,6 +697,10 @@ function renderDT(tab){
 
   if(tab==='seguimiento'){
     renderSeguimientoSection();
+  }
+
+  if(tab==='analisis'){
+    renderAnalisisTab();
   }
 }
 
@@ -4486,3 +4490,79 @@ goTo = function(page) {
     }
   }
 };
+
+// ─── TAB ANÁLISIS SEMANAL (app analista) ───
+async function renderAnalisisTab() {
+  const j = window._jug;
+  if(!j) return;
+  const body = document.getElementById('dt-body');
+  body.innerHTML = '<div style="padding:1rem;color:var(--text2);">Cargando...</div>';
+
+  const { data: items } = await DB.from('analisis_semanal')
+    .select('*').eq('jugador_id', j.id)
+    .order('fecha', { ascending: false });
+
+  const list = items || [];
+
+  let html = `
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:.75rem;color:var(--text2);">Nuevo análisis para ${j.nombre}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Título</div>
+          <input id="anal-titulo" placeholder="Ej: Análisis jornada 12" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Fecha</div>
+          <input id="anal-fecha" type="date" value="${new Date().toISOString().slice(0,10)}" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;">
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">URL del vídeo de análisis (Google Drive, YouTube...)</div>
+      <input id="anal-video" placeholder="https://drive.google.com/..." style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;">
+      <button onclick="guardarAnalisisSemanal('${j.id}')" class="btn" style="width:100%;height:38px;font-size:12px;">
+        ✓ Subir análisis
+      </button>
+    </div>`;
+
+  if(list.length) {
+    html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.75rem;">Análisis anteriores</div>';
+    list.forEach(item => {
+      const fecha = new Date((item.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'});
+      html += `<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:.75rem;margin-bottom:.5rem;display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;">${item.titulo||'Análisis semanal'}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px;">${fecha}</div>
+        </div>
+        ${item.video_url ? '<a href="'+item.video_url+'" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;flex-shrink:0;">▶ Ver</a>' : ''}
+        <button onclick="eliminarAnalisis('${item.id}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:16px;padding:0 4px;">×</button>
+      </div>`;
+    });
+  } else {
+    html += '<div style="text-align:center;padding:2rem;color:var(--text3);font-size:12px;">Sin análisis subidos todavía</div>';
+  }
+
+  body.innerHTML = html;
+}
+
+async function guardarAnalisisSemanal(jugId) {
+  const titulo    = document.getElementById('anal-titulo')?.value.trim();
+  const fecha     = document.getElementById('anal-fecha')?.value;
+  const video_url = document.getElementById('anal-video')?.value.trim();
+
+  if(!titulo) { showToast('Escribe un título'); return; }
+  if(!video_url) { showToast('Añade la URL del vídeo'); return; }
+
+  const { error } = await DB.from('analisis_semanal').insert({
+    jugador_id: jugId, titulo, fecha, video_url
+  });
+
+  if(error) { showToast('Error al guardar'); console.error(error); return; }
+  showToast('✓ Análisis subido');
+  renderAnalisisTab();
+}
+
+async function eliminarAnalisis(id) {
+  if(!confirm('¿Eliminar este análisis?')) return;
+  await DB.from('analisis_semanal').delete().eq('id', id);
+  renderAnalisisTab();
+}
