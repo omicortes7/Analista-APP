@@ -37,7 +37,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html { height: 100%; }
+html, body { height: 100%; margin: 0; }
 body {
   font-family: 'Inter', -apple-system, sans-serif;
   background: var(--bg);
@@ -45,7 +45,6 @@ body {
   font-size: 16px;
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
-  height: 100%;
   overflow: hidden;
 }
 
@@ -116,11 +115,13 @@ body {
 
 /* APP LAYOUT */
 #app-screen {
-  height: 100%;
-  height: 100dvh; /* dynamic viewport height — clave en móvil */
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
 }
 
 /* HEADER */
@@ -137,13 +138,13 @@ body {
 /* SECCIONES */
 .secs {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
   padding: 1rem;
   padding-bottom: 100px;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  min-height: 0; /* crítico para flex scroll en iOS */
+  min-height: 0;
 }
 .sec { display: none; }
 .sec.active { display: block; }
@@ -171,6 +172,27 @@ body {
 .nb svg { width: 24px; height: 24px; transition: all .2s; }
 .nb.active { color: var(--gold); }
 .nb.active svg { filter: drop-shadow(0 0 6px rgba(212,175,55,0.5)); }
+
+/* Colores individuales nav */
+.nb[data-id="inicio"].active    { color: var(--gold); }
+.nb[data-id="cal"].active       { color: var(--blue); }
+.nb[data-id="clips"].active     { color: var(--green); }
+.nb[data-id="informes"].active  { color: var(--amber); }
+.nb[data-id="plan"].active      { color: var(--blue); }
+.nb[data-id="psico"].active     { color: var(--purple); }
+.nb[data-id="nut"].active       { color: var(--green); }
+.nb[data-id="tareas"].active    { color: var(--amber); }
+.nb[data-id="chat"].active      { color: #0096FF; }
+
+.nb[data-id="inicio"].active svg    { filter: drop-shadow(0 0 6px rgba(212,175,55,0.6)); }
+.nb[data-id="cal"].active svg       { filter: drop-shadow(0 0 5px rgba(0,150,255,0.5)); }
+.nb[data-id="clips"].active svg     { filter: drop-shadow(0 0 5px rgba(0,210,106,0.5)); }
+.nb[data-id="informes"].active svg  { filter: drop-shadow(0 0 5px rgba(255,159,10,0.5)); }
+.nb[data-id="plan"].active svg      { filter: drop-shadow(0 0 5px rgba(0,150,255,0.5)); }
+.nb[data-id="psico"].active svg     { filter: drop-shadow(0 0 5px rgba(191,90,242,0.5)); }
+.nb[data-id="nut"].active svg       { filter: drop-shadow(0 0 5px rgba(0,210,106,0.5)); }
+.nb[data-id="tareas"].active svg    { filter: drop-shadow(0 0 5px rgba(255,159,10,0.5)); }
+.nb[data-id="chat"].active svg      { filter: drop-shadow(0 0 5px rgba(0,150,255,0.5)); }
 .nb .badge {
   position: absolute; top: 6px; right: calc(50% - 16px);
   background: var(--red); color: #fff;
@@ -819,39 +841,39 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
 
   <!-- BOTTOM NAV -->
   <nav class="bnav">
-    <button class="nb active" onclick="goSec('inicio',this)">
+    <button class="nb active" onclick="goSec('inicio',this)" data-id="inicio">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       Inicio
     </button>
-    <button class="nb" onclick="goSec('cal',this)">
+    <button class="nb" onclick="goSec('cal',this)" data-id="cal">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Semana
     </button>
-    <button class="nb" onclick="goSec('clips',this)">
+    <button class="nb" onclick="goSec('clips',this)" data-id="clips">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
       Clips
     </button>
-    <button class="nb" onclick="goSec('informes',this)">
+    <button class="nb" onclick="goSec('informes',this)" data-id="informes">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Informes
     </button>
-    <button class="nb" onclick="goSec('plan',this)">
+    <button class="nb" onclick="goSec('plan',this)" data-id="plan">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
       Plan
     </button>
-    <button class="nb" onclick="goSec('psico',this)">
+    <button class="nb" onclick="goSec('psico',this)" data-id="psico">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
       Bienestar
     </button>
-    <button class="nb" onclick="goSec('nut',this)">
+    <button class="nb" onclick="goSec('nut',this)" data-id="nut">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       Nutrición
     </button>
-    <button class="nb" onclick="goSec('tareas',this)" id="nb-tareas">
+    <button class="nb" onclick="goSec('tareas',this)" data-id="tareas" id="nb-tareas">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
       Tareas
     </button>
-    <button class="nb" onclick="goSec('chat',this)" id="nb-chat">
+    <button class="nb" onclick="goSec('chat',this)" data-id="chat" id="nb-chat">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Chat
     </button>
