@@ -37,7 +37,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; overflow: hidden; }
+html { height: 100%; }
 body {
   font-family: 'Inter', -apple-system, sans-serif;
   background: var(--bg);
@@ -45,6 +45,8 @@ body {
   font-size: 16px;
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* SCROLLBAR */
@@ -113,7 +115,13 @@ body {
 .login-link { font-size: 12px; color: var(--gold); text-align: center; margin-top: 14px; cursor: pointer; opacity: .8; }
 
 /* APP LAYOUT */
-#app-screen { height: 100vh; display: flex; flex-direction: column; }
+#app-screen {
+  height: 100%;
+  height: 100dvh; /* dynamic viewport height — clave en móvil */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
 /* HEADER */
 .app-header-wrap {
@@ -127,7 +135,16 @@ body {
 }
 
 /* SECCIONES */
-.secs { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 1rem; padding-bottom: 100px; -webkit-overflow-scrolling: touch; }
+.secs {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem;
+  padding-bottom: 100px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  min-height: 0; /* crítico para flex scroll en iOS */
+}
 .sec { display: none; }
 .sec.active { display: block; }
 
@@ -974,19 +991,22 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
     // ── PLAN DEL PARTIDO ──
     if(planes.length) {
       var plan = planes[0];
-      html += '<div class="card" style="border-left:3px solid var(--blue);margin-bottom:1rem;">';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">';
-      html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);">📋 Plan del partido</div>';
-      html += '<button onclick="goSec(\'plan\',document.querySelector(\'[onclick*=plan]\'))" style="background:var(--blue-soft);border:none;border-radius:99px;padding:4px 12px;font-size:10px;font-weight:700;color:var(--blue);cursor:pointer;font-family:inherit;">Ver →</button>';
+      html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;border-top:3px solid var(--blue);">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;">';
+      html += '<div style="display:flex;align-items:center;gap:8px;">';
+      html += '<div style="width:32px;height:32px;border-radius:8px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center;font-size:16px;">📋</div>';
+      html += '<div><div style="font-size:13px;font-weight:800;color:var(--blue);">Plan del partido</div><div style="font-size:10px;color:var(--text3);">Próximo partido</div></div>';
       html += '</div>';
-      if(plan.rival) html += '<div style="font-size:13px;font-weight:600;margin-bottom:4px;">vs '+plan.rival+(plan.fecha?' · '+plan.fecha:'')+'</div>';
+      html += '<button onclick="goSec(\'plan\',document.querySelector(\'[onclick*=plan]\'))" style="background:var(--blue-soft);border:1px solid rgba(0,150,255,0.3);border-radius:99px;padding:5px 14px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;font-family:inherit;">Ver →</button>';
+      html += '</div>';
+      if(plan.rival) html += '<div style="font-size:14px;font-weight:700;margin-bottom:8px;">vs '+plan.rival+(plan.fecha?' · <span style="color:var(--text3);font-weight:500;">'+plan.fecha+'</span>':'')+'</div>';
       if(plan.items && plan.items.length) {
         plan.items.slice(0,2).forEach(function(item,i) {
-          html += '<div style="display:flex;gap:8px;padding:6px 0;border-top:1px solid var(--border);">';
-          html += '<div style="color:var(--blue);font-size:12px;font-weight:700;min-width:16px;">'+(i+1)+'</div>';
-          html += '<div style="font-size:13px;color:var(--text2);">'+item+'</div></div>';
+          html += '<div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--border);">';
+          html += '<div style="width:20px;height:20px;border-radius:50%;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;">'+(i+1)+'</div>';
+          html += '<div style="font-size:13px;color:var(--text2);line-height:1.5;">'+item+'</div></div>';
         });
-        if(plan.items.length>2) html += '<div style="font-size:11px;color:var(--text3);margin-top:6px;">+' +(plan.items.length-2)+' puntos más</div>';
+        if(plan.items.length>2) html += '<div style="font-size:11px;color:var(--text3);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">+' +(plan.items.length-2)+' puntos más</div>';
       }
       html += '</div>';
     }
@@ -994,15 +1014,21 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
     // ── ÚLTIMO INFORME ──
     if(ul) {
       var fecha = new Date((ul.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
-      html += '<div class="card" style="border-left:3px solid '+nc+';margin-bottom:1rem;cursor:pointer;" onclick="goSec(\'informes\',document.querySelector(\'[onclick*=informes]\'))">';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">';
-      html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);">📄 Último informe</div>';
+      html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;border-top:3px solid '+nc+';cursor:pointer;" onclick="goSec(\'informes\',document.querySelector(\'[onclick*=informes]\'))">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;">';
+      html += '<div style="display:flex;align-items:center;gap:8px;">';
+      html += '<div style="width:32px;height:32px;border-radius:8px;background:'+nc+'20;display:flex;align-items:center;justify-content:center;font-size:16px;">📄</div>';
+      html += '<div><div style="font-size:13px;font-weight:800;color:'+nc+';">Último informe</div><div style="font-size:10px;color:var(--text3);">'+fecha+'</div></div>';
+      html += '</div>';
       html += '<span style="font-size:11px;color:var(--text3);">Ver todos →</span>';
       html += '</div>';
-      html += '<div style="display:flex;align-items:center;gap:12px;">';
-      if(nota) html += '<div style="width:52px;height:52px;border-radius:50%;background:'+nc+'/15;color:'+nc+';border:2px solid '+nc+'/40;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:18px;font-weight:800;line-height:1;">'+nota.toFixed(1)+'</span><span style="font-size:9px;">/10</span></div>';
-      html += '<div><div style="font-size:14px;font-weight:700;">'+(ul.partido||'Partido')+'</div>';
-      html += '<div style="font-size:11px;color:var(--text2);margin-top:2px;">'+fecha+(ul.rival?' vs '+ul.rival:'')+'</div></div>';
+      html += '<div style="display:flex;align-items:center;gap:14px;">';
+      if(nota) {
+        html += '<div style="width:56px;height:56px;border-radius:50%;background:'+nc+'15;color:'+nc+';border:2px solid '+nc+'50;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">';
+        html += '<span style="font-size:20px;font-weight:900;line-height:1;">'+nota.toFixed(1)+'</span><span style="font-size:9px;opacity:.7;">/10</span></div>';
+      }
+      html += '<div><div style="font-size:15px;font-weight:700;">'+(ul.partido||'Partido')+'</div>';
+      html += '<div style="font-size:12px;color:var(--text2);margin-top:3px;">'+(ul.rival?'vs '+ul.rival:'')+(ul.resultado?' · '+ul.resultado:'')+'</div></div>';
       html += '</div></div>';
     }
 
@@ -1011,13 +1037,18 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
       var obj = objs[0];
       var FCFG = {OF:{c:'var(--green)',l:'Ataque'},DE:{c:'var(--blue)',l:'Defensa'},TO:{c:'var(--amber)',l:'Trans.Of.'},TD:{c:'var(--red)',l:'Trans.Def.'},GEN:{c:'var(--purple)',l:'General'}};
       var f = FCFG[obj.fase] || FCFG.GEN;
-      html += '<div class="card" style="border-left:3px solid '+f.c+';margin-bottom:1rem;">';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem;">';
-      html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);">🎯 Objetivo a trabajar</div>';
-      html += '<span style="font-size:9px;padding:3px 8px;border-radius:99px;background:'+f.c+'/15;color:'+f.c+';font-weight:700;">'+f.l+'</span>';
+      html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;border-top:3px solid var(--gold);">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;">';
+      html += '<div style="display:flex;align-items:center;gap:8px;">';
+      html += '<div style="width:32px;height:32px;border-radius:8px;background:var(--gold-soft);display:flex;align-items:center;justify-content:center;font-size:16px;">🎯</div>';
+      html += '<div><div style="font-size:13px;font-weight:800;color:var(--gold);">Objetivo a trabajar</div><div style="font-size:10px;color:var(--text3);">'+objs.length+' objetivo'+(objs.length!==1?'s':'')+' activos</div></div>';
       html += '</div>';
-      html += '<div style="font-size:14px;line-height:1.5;">'+obj.texto+'</div>';
-      if(objs.length>1) html += '<div style="font-size:11px;color:var(--text3);margin-top:8px;cursor:pointer;" onclick="goSec(\'plan\',document.querySelector(\'[onclick*=plan]\'));setTimeout(function(){switchPlanTab(\'objetivos\',document.getElementById(\'ptab-objetivos\'));},100);">'+(objs.length-1)+' objetivos más →</div>';
+      html += '<span style="font-size:10px;padding:4px 10px;border-radius:99px;background:'+f.c+'20;color:'+f.c+';font-weight:700;">'+f.l+'</span>';
+      html += '</div>';
+      html += '<div style="font-size:14px;line-height:1.6;color:var(--text);">'+obj.texto+'</div>';
+      if(objs.length>1) {
+        html += '<div style="font-size:12px;color:var(--gold);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);cursor:pointer;" onclick="goSec(\'plan\',document.querySelector(\'[onclick*=plan]\'));setTimeout(function(){switchPlanTab(\'objetivos\',document.getElementById(\'ptab-objetivos\'));},100);">Ver todos los objetivos →</div>';
+      }
       html += '</div>';
     }
 
@@ -1034,19 +1065,21 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
       html += '</div></div>';
     }
 
-    // ── CLIPS RECIENTES (solo si hay) ──
+    // ── CLIPS RECIENTES ──
     if(clips.length) {
-      html += '<div class="card" style="margin-bottom:1rem;cursor:pointer;" onclick="goSec(\'clips\',document.querySelector(\'[onclick*=clips]\'))">';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
-      html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);">🎥 Clips de vídeo</div>';
-      html += '<span style="font-size:11px;color:var(--text3);">'+clips.length+' clips →</span>';
-      html += '</div>';
       var tipos = {mejorar:0,positivo:0,referencia:0};
       clips.forEach(function(c){ if(tipos[c.tipo]!==undefined) tipos[c.tipo]++; });
-      html += '<div style="display:flex;gap:8px;margin-top:.75rem;">';
-      if(tipos.positivo) html += '<span style="font-size:11px;padding:4px 10px;border-radius:99px;background:var(--green-soft);color:var(--green);font-weight:600;">✓ '+tipos.positivo+' fuertes</span>';
-      if(tipos.mejorar) html += '<span style="font-size:11px;padding:4px 10px;border-radius:99px;background:var(--red-soft);color:var(--red);font-weight:600;">△ '+tipos.mejorar+' a mejorar</span>';
-      if(tipos.referencia) html += '<span style="font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(212,175,55,0.12);color:var(--gold);font-weight:600;">★ '+tipos.referencia+' élite</span>';
+      html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;border-top:3px solid var(--green);cursor:pointer;" onclick="goSec(\'clips\',document.querySelector(\'[onclick*=clips]\'))">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;">';
+      html += '<div style="display:flex;align-items:center;gap:8px;">';
+      html += '<div style="width:32px;height:32px;border-radius:8px;background:var(--green-soft);display:flex;align-items:center;justify-content:center;font-size:16px;">🎥</div>';
+      html += '<div><div style="font-size:13px;font-weight:800;color:var(--green);">Clips de vídeo</div><div style="font-size:10px;color:var(--text3);">'+clips.length+' clips disponibles</div></div>';
+      html += '</div><span style="font-size:20px;color:var(--text3);">›</span>';
+      html += '</div>';
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+      if(tipos.positivo) html += '<span style="font-size:12px;padding:5px 12px;border-radius:99px;background:var(--green-soft);color:var(--green);font-weight:600;">✓ '+tipos.positivo+' fortalezas</span>';
+      if(tipos.mejorar) html += '<span style="font-size:12px;padding:5px 12px;border-radius:99px;background:var(--red-soft);color:var(--red);font-weight:600;">△ '+tipos.mejorar+' a mejorar</span>';
+      if(tipos.referencia) html += '<span style="font-size:12px;padding:5px 12px;border-radius:99px;background:var(--gold-soft);color:var(--gold);font-weight:600;">★ '+tipos.referencia+' élite</span>';
       html += '</div></div>';
     }
 
