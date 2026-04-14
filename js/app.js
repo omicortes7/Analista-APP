@@ -4174,7 +4174,7 @@ IMPORTANTE: Devuelve SOLO el JSON, sin texto antes ni después. Los microconcept
   try {
     const response = await fetch('https://ghxwdauwrzupjmrujcns.supabase.co/functions/v1/smart-api', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 1000,
@@ -4396,7 +4396,7 @@ Las preguntas deben ser Socráticas — que el jugador descubra, no que el anali
   try {
     const response = await fetch('https://ghxwdauwrzupjmrujcns.supabase.co/functions/v1/smart-api', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 1000,
