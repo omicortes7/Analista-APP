@@ -700,7 +700,9 @@ function renderDT(tab){
   }
 
   if(tab==='analisis'){
+    body.innerHTML = '<div style="padding:1rem;color:var(--text2);font-size:12px;">Cargando análisis...</div>';
     renderAnalisisTab();
+    return;
   }
 }
 
