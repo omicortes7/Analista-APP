@@ -4176,7 +4176,7 @@ IMPORTANTE: Devuelve SOLO el JSON, sin texto antes ni después. Los microconcept
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5',
         max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -4398,7 +4398,7 @@ Las preguntas deben ser Socráticas — que el jugador descubra, no que el anali
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5',
         max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       })
