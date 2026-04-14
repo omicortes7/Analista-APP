@@ -106,6 +106,13 @@ function renderPage(page) {
   else if(page==='calendario') { renderCalendario(); }
   else if(page==='evolucion') fillEvSel();
   else if(page==='sesion') fillSesSel();
+  else if(page==='ia') {
+    const sel = document.getElementById('ia-jug');
+    if(sel && state.jugadores.length) {
+      sel.innerHTML = '<option value="">Sin jugador específico</option>' +
+        state.jugadores.map(j => '<option value="'+j.id+'">'+j.nombre+' · '+j.posicion+'</option>').join('');
+    }
+  }
 }
 
 // ─── HELPERS ───
@@ -4479,19 +4486,7 @@ function renderGuionIA(data, jug, partido, pos, fase) {
   resEl.innerHTML = html;
 }
 
-// ─── NAVEGACIÓN: añadir página IA al goTo ───
-const _origGoTo = goTo;
-goTo = function(page) {
-  _origGoTo(page);
-  if(page === 'ia') {
-    // Poblar selector de jugadores
-    const sel = document.getElementById('ia-jug');
-    if(sel && state.jugadores.length) {
-      sel.innerHTML = '<option value="">Sin jugador específico</option>' +
-        state.jugadores.map(j => `<option value="${j.id}">${j.nombre} · ${j.posicion}</option>`).join('');
-    }
-  }
-};
+// ─── NAVEGACIÓN IA: integrado en renderPage ───
 
 // ─── TAB ANÁLISIS SEMANAL (app analista) ───
 async function renderAnalisisTab() {
