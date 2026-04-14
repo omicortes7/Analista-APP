@@ -4493,7 +4493,8 @@ goTo = function(page) {
 
 // ─── TAB ANÁLISIS SEMANAL (app analista) ───
 async function renderAnalisisTab() {
-  const j = window._jug;
+  const id = state.currentJugador;
+  const j = state.jugadores.find(x => x.id === id);
   if(!j) return;
   const body = document.getElementById('djbody');
   body.innerHTML = '<div style="padding:1rem;color:var(--text2);">Cargando...</div>';
