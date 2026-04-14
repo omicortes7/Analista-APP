@@ -4183,13 +4183,22 @@ IMPORTANTE: Devuelve SOLO el JSON, sin texto antes ni después. Los microconcept
     });
 
     const data = await response.json();
+    // Si la API devuelve error, mostrarlo
+    if(data.error) {
+      resultEl.innerHTML = '<div style="color:#f85149;padding:1rem;background:rgba(248,81,73,0.08);border-radius:8px;">Error API: ' + JSON.stringify(data.error) + '</div>';
+      return;
+    }
     const text = data.content?.[0]?.text || '';
+    if(!text) {
+      resultEl.innerHTML = '<div style="color:#f85149;padding:1rem;background:rgba(248,81,73,0.08);border-radius:8px;">Sin respuesta. Respuesta completa: ' + JSON.stringify(data).slice(0,200) + '</div>';
+      return;
+    }
     let parsed;
     try {
       const clean = text.replace(/```json|```/g, '').trim();
       parsed = JSON.parse(clean);
     } catch(e) {
-      resultEl.innerHTML = `<div style="color:#f85149;padding:1rem;background:rgba(248,81,73,0.08);border-radius:8px;">Error al procesar la respuesta de la IA. Inténtalo de nuevo.</div>`;
+      resultEl.innerHTML = '<div style="color:#f85149;padding:1rem;background:rgba(248,81,73,0.08);border-radius:8px;">Error JSON. Respuesta IA: ' + text.slice(0,300) + '</div>';
       return;
     }
 
