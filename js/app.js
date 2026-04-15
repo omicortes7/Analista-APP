@@ -1277,11 +1277,8 @@ function rEv(){
     </div>`:''}
     <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
       <div style="font-size:12px;font-weight:500;margin-bottom:.875rem;">Progreso por objetivo</div>
-      ${objs.length?objs.map((o,i)=>{const pct=o.superado?100:Math.max(10,Math.min(90,Math.round((obs.length/(obs.length+2))*100))-i*12);const fc=FASES.find(f=>f.id===o.fase);const col=fc?fc.dot:'#888';return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-size:11px;flex:1;line-height:1.4;">${o.texto} ${getFaseBadge(o.fase)}</div><div style="width:80px;height:5px;background:var(--bg2);border-radius:99px;flex-shrink:0;"><div style="width:${pct}%;height:5px;border-radius:99px;background:${col};"></div></div><div style="font-size:10px;color:var(--text2);min-width:26px;text-align:right;">${pct}%</div></div>`;}).join(''):'<div style="font-size:12px;color:var(--text3);">Sin objetivos.</div>'}
+      ${objs.filter(o=>!o.superado).length?objs.filter(o=>!o.superado).map((o,i)=>{const pct=Math.max(10,Math.min(90,Math.round((obs.length/(obs.length+2))*100))-i*12);const fc=FASES.find(f=>f.id===o.fase);const col=fc?fc.dot:'#888';return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-size:11px;flex:1;line-height:1.4;">${o.texto} ${getFaseBadge(o.fase)}</div><div style="width:80px;height:5px;background:var(--bg2);border-radius:99px;flex-shrink:0;"><div style="width:${pct}%;height:5px;border-radius:99px;background:${col};"></div></div><div style="font-size:10px;color:var(--text2);min-width:26px;text-align:right;">${pct}%</div></div>`;}).join(''):'<div style="font-size:12px;color:var(--text3);">Sin objetivos en progreso.</div>'}
     </div>
-    <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;">
-      <div style="font-size:12px;font-weight:500;margin-bottom:.875rem;">Línea de tiempo</div>
-      <div class="timeline">${obs.length?obs.map(o=>{const s=sc(o.texto);const dc=s.p>s.n?'#1D9E75':'#E07B00';return`<div class="tl-item"><div class="tl-dot" style="background:${dc};"></div><div><div class="tl-fecha">${fmtDate(o.fecha)}</div><div class="tl-partido">${o.partido}</div><div class="tl-texto">${o.texto}</div></div></div>`;}).join(''):'<div style="font-size:12px;color:var(--text3);">Sin observaciones.</div>'}</div>
     </div>`;
   renderMicrosEv(id);
 }
