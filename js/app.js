@@ -285,7 +285,7 @@ function renderDT(tab){
 
   // ─── TAB OBJETIVOS ───
   if(tab==='obj'){
-    const objs=getObjJugador(id);
+    const objs=getObjJugador(id).filter(o=>!o.superado);
     const FASE_CFG={OF:{dot:'#1D9E75',bg:'#E1F5EE',color:'#085041',cls:'badge-of'},DE:{dot:'#378ADD',bg:'#E6F1FB',color:'#0C447C',cls:'badge-de'},TO:{dot:'#E07B00',bg:'#FAEEDA',color:'#633806',cls:'badge-to'},TD:{dot:'#D85A30',bg:'#FAECE7',color:'#993C1D',cls:'badge-td'},GEN:{dot:'#7C6FF0',bg:'#EEEDFE',color:'#3C3489',cls:''}};
     const objsHtml = objs.length ? objs.map(o=>{
       const fc=FASE_CFG[o.fase]||FASE_CFG.GEN;
