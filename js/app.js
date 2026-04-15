@@ -105,7 +105,7 @@ function renderPage(page) {
   else if(page==='tareas') renderTareas();
   else if(page==='calendario') { renderCalendario(); }
   else if(page==='evolucion') fillEvSel();
-  else if(page==='sesion') fillSesSel();
+  else if(page==='sesion') fillReunSel();
   else if(page==='ia') {
     const sel = document.getElementById('ia-jug');
     if(sel && state.jugadores.length) {
@@ -1193,11 +1193,274 @@ function rEv(){
 }
 
 // ─── SESIÓN VÍDEO ───
-function fillSesSel(){
-  const sel=document.getElementById('sesjug');sel.innerHTML='<option value="">Selecciona...</option>';
+function fillReunSel(){
+  const sel=document.getElementById('reun-jug');
+  if(!sel) return;
+  sel.innerHTML='<option value="">Selecciona jugador...</option>';
   state.jugadores.forEach(j=>sel.innerHTML+=`<option value="${j.id}">${j.nombre} · ${j.posicion}</option>`);
 }
-function onSJ(){const id=document.getElementById('sesjug').value;if(!id)return;const j=state.jugadores.find(x=>x.id===id);if(j)document.getElementById('sespos').value=j.posicion;}
+
+function onReunJugChange(){
+  const jugId = document.getElementById('reun-jug')?.value;
+  if(!jugId) return;
+  loadReunHistorial(jugId);
+  loadReunConclusiones(jugId);
+}
+
+function switchReunTab(tab, btn){
+  ['cuestionario','conclusiones','historial'].forEach(t=>{
+    const el=document.getElementById('reun-tab-'+t);
+    if(el) el.style.display = t===tab?'block':'none';
+    const b=document.getElementById('reuntab-'+t) || document.getElementById('reunTab-'+t);
+    if(b){
+      b.style.background = t===tab?'rgba(88,166,255,0.15)':'none';
+      b.style.color = t===tab?'#58a6ff':'var(--text3)';
+      b.style.borderColor = t===tab?'rgba(88,166,255,0.3)':'var(--border2)';
+    }
+  });
+  const jugId = document.getElementById('reun-jug')?.value;
+  if(tab==='historial' && jugId) loadReunHistorial(jugId);
+  if(tab==='conclusiones' && jugId) loadReunConclusiones(jugId);
+}
+
+// ─── BLOQUE 1: CUESTIONARIO IA PRE-REUNIÓN ───
+async function generarCuestionarioAnalistaIA(){
+  const jugId = document.getElementById('reun-jug')?.value;
+  if(!jugId){ showToast('Selecciona un jugador primero'); return; }
+  const jug = state.jugadores.find(x=>x.id===jugId);
+
+  const btn = document.querySelector('[onclick="generarCuestionarioAnalistaIA()"]');
+  if(btn){ btn.textContent='⏳ Generando...'; btn.disabled=true; }
+
+  // Recoger datos del jugador
+  const [mensuales, bienestar, informes, nutricion] = await Promise.all([
+    window.DB.from('psico_mensual').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(2),
+    window.DB.from('psico_diario').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(14),
+    window.DB.from('informes_partido').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(4),
+    window.DB.from('nutricion_log').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(7)
+  ]);
+
+  const ctx = `
+Jugador: ${jug.nombre} · ${jug.posicion}
+CUESTIONARIO MENSUAL (último): ${JSON.stringify(mensuales.data?.[0] || {})}
+BIENESTAR ÚLTIMAS 2 SEMANAS: mood medio ${bienestar.data?.length ? (bienestar.data.reduce((a,b)=>a+(b.mood||0),0)/bienestar.data.length).toFixed(1) : 'N/A'}, energía media ${bienestar.data?.length ? (bienestar.data.reduce((a,b)=>a+(b.energia||0),0)/bienestar.data.length).toFixed(1) : 'N/A'}
+ÚLTIMOS INFORMES: ${informes.data?.map(i=>`[${i.fecha}] nota:${i.nota_global}`).join(', ') || 'Sin informes'}
+NUTRICIÓN: ${nutricion.data?.length || 0} días registrados de los últimos 7
+  `.trim();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:`Eres un asistente para Omar Cortés Ferrero, analista individual de fútbol. 
+Genera exactamente 8 preguntas profundas y personalizadas para una reunión mensual de seguimiento con el jugador.
+Las preguntas deben basarse en los datos reales proporcionados — detecta patrones, contradicciones o áreas de atención.
+Responde SOLO con un JSON: {"preguntas": ["pregunta1","pregunta2",...]}
+Sin texto adicional, sin markdown.`,
+        messages:[{role:'user', content:`Datos del jugador:
+${ctx}
+
+Genera 8 preguntas personalizadas para la reunión.`}]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content?.[0]?.text || '{}';
+    const clean = txt.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    const preguntas = parsed.preguntas || [];
+
+    const lista = document.getElementById('reun-preguntas-lista');
+    if(lista){
+      lista.innerHTML = preguntas.map((p,i)=>`
+        <div style="margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px;">${i+1}. ${p}</div>
+          <textarea rows="2" id="reun-resp-${i}" placeholder="Anota aquí tu observación..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;box-sizing:border-box;"></textarea>
+        </div>
+      `).join('');
+      document.getElementById('reun-cuestionario-result').style.display='block';
+      window._reunPreguntas = preguntas;
+    }
+  } catch(e){
+    showToast('Error al generar: '+e.message);
+  }
+  if(btn){ btn.textContent='✨ Generar cuestionario con IA'; btn.disabled=false; }
+}
+
+async function guardarCuestionarioReunion(){
+  const jugId = document.getElementById('reun-jug')?.value;
+  if(!jugId){ showToast('Selecciona un jugador'); return; }
+  const preguntas = window._reunPreguntas || [];
+  const respuestas = preguntas.map((_,i)=>({
+    pregunta: preguntas[i],
+    respuesta: document.getElementById(`reun-resp-${i}`)?.value.trim() || ''
+  }));
+
+  const { error } = await window.DB.from('reuniones').insert({
+    jugador_id: jugId,
+    fecha: new Date().toISOString().slice(0,10),
+    tipo: 'cuestionario',
+    contenido: JSON.stringify(respuestas)
+  });
+
+  if(error){ showToast('Error: '+error.message); return; }
+  document.getElementById('reun-cues-msg').style.display='block';
+  setTimeout(()=>{ document.getElementById('reun-cues-msg').style.display='none'; },3000);
+  showToast('✅ Cuestionario guardado');
+}
+
+// ─── BLOQUE 2: CONCLUSIONES ───
+async function guardarConclusionesReunion(){
+  const jugId = document.getElementById('reun-jug')?.value;
+  const titulo = document.getElementById('reun-titulo')?.value.trim();
+  const texto = document.getElementById('reun-conclusiones-texto')?.value.trim();
+  if(!jugId){ showToast('Selecciona un jugador'); return; }
+  if(!texto){ showToast('Escribe las conclusiones'); return; }
+
+  const { error } = await window.DB.from('reuniones').insert({
+    jugador_id: jugId,
+    fecha: new Date().toISOString().slice(0,10),
+    tipo: 'conclusiones',
+    titulo: titulo || 'Reunión '+new Date().toISOString().slice(0,7),
+    contenido: texto
+  });
+
+  if(error){ showToast('Error: '+error.message); return; }
+  document.getElementById('reun-titulo').value='';
+  document.getElementById('reun-conclusiones-texto').value='';
+  document.getElementById('reun-conc-msg').style.display='block';
+  setTimeout(()=>{ document.getElementById('reun-conc-msg').style.display='none'; },3000);
+  showToast('✅ Conclusiones guardadas');
+  loadReunConclusiones(jugId);
+}
+
+async function loadReunConclusiones(jugId){
+  const { data } = await window.DB.from('reuniones')
+    .select('*').eq('jugador_id',jugId).eq('tipo','conclusiones')
+    .order('fecha',{ascending:false}).limit(6);
+
+  const el = document.getElementById('reun-historial-lista');
+  // también mostramos en tab conclusiones si hay
+}
+
+// ─── BLOQUE 3: RESUMEN IA POST-REUNIÓN ───
+async function generarResumenPostReunion(){
+  const jugId = document.getElementById('reun-jug')?.value;
+  if(!jugId){ showToast('Selecciona un jugador primero'); return; }
+  const jug = state.jugadores.find(x=>x.id===jugId);
+
+  const btn = document.querySelector('[onclick="generarResumenPostReunion()"]');
+  if(btn){ btn.textContent='⏳ Generando...'; btn.disabled=true; }
+
+  const [conclusiones, mensuales, bienestar] = await Promise.all([
+    window.DB.from('reuniones').select('*').eq('jugador_id',jugId).eq('tipo','conclusiones').order('fecha',{ascending:false}).limit(1),
+    window.DB.from('psico_mensual').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(1),
+    window.DB.from('psico_diario').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(14)
+  ]);
+
+  const moodMedio = bienestar.data?.length ? (bienestar.data.reduce((a,b)=>a+(b.mood||0),0)/bienestar.data.length).toFixed(1) : 'N/A';
+
+  const ctx = `
+Jugador: ${jug.nombre} · ${jug.posicion}
+Conclusiones de la reunión: ${conclusiones.data?.[0]?.contenido || 'Sin conclusiones escritas'}
+Cuestionario mensual: ${JSON.stringify(mensuales.data?.[0] || {})}
+Mood medio últimas 2 semanas: ${moodMedio}/5
+  `.trim();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:800,
+        system:`Eres el asistente de Omar Cortés Ferrero, analista de fútbol. 
+Genera un resumen post-reunión conciso (máx 300 palabras) con:
+1. Estado actual del jugador en 2-3 líneas
+2. Puntos clave trabajados en la reunión (3-4 bullets)
+3. Lo que vigilar el próximo mes (2-3 puntos concretos)
+Sé directo y práctico. Sin florituras.`,
+        messages:[{role:'user', content:ctx}]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content?.[0]?.text || 'Error al generar';
+    document.getElementById('reun-resumen-texto').textContent = txt;
+    document.getElementById('reun-resumen-result').style.display='block';
+    window._reunResumenTexto = txt;
+  } catch(e){
+    showToast('Error: '+e.message);
+  }
+  if(btn){ btn.textContent='🧠 Generar resumen con IA'; btn.disabled=false; }
+}
+
+async function guardarResumenReunion(){
+  const jugId = document.getElementById('reun-jug')?.value;
+  if(!jugId || !window._reunResumenTexto){ showToast('Genera el resumen primero'); return; }
+
+  const { error } = await window.DB.from('reuniones').insert({
+    jugador_id: jugId,
+    fecha: new Date().toISOString().slice(0,10),
+    tipo: 'resumen_ia',
+    contenido: window._reunResumenTexto
+  });
+
+  if(error){ showToast('Error: '+error.message); return; }
+  showToast('✅ Resumen guardado');
+  loadReunHistorial(jugId);
+}
+
+// ─── HISTORIAL ───
+async function loadReunHistorial(jugId){
+  if(!jugId) return;
+  const { data } = await window.DB.from('reuniones')
+    .select('*').eq('jugador_id',jugId)
+    .order('fecha',{ascending:false}).limit(20);
+
+  const el = document.getElementById('reun-historial-lista');
+  if(!el) return;
+  if(!data||!data.length){
+    el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px;">Sin reuniones registradas todavía.</div>';
+    return;
+  }
+
+  // Agrupar por fecha
+  const porFecha = {};
+  data.forEach(r=>{
+    if(!porFecha[r.fecha]) porFecha[r.fecha]=[];
+    porFecha[r.fecha].push(r);
+  });
+
+  el.innerHTML = Object.keys(porFecha).sort((a,b)=>b.localeCompare(a)).map(fecha=>{
+    const items = porFecha[fecha];
+    const tipos = items.map(i=>i.tipo);
+    return `<div style="border:0.5px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:13px;font-weight:700;">${fecha}</span>
+        <div style="display:flex;gap:6px;">
+          ${tipos.includes('cuestionario')?'<span style="font-size:10px;background:rgba(88,166,255,0.15);color:#58a6ff;padding:2px 8px;border-radius:4px;">📋 Cuestionario</span>':''}
+          ${tipos.includes('conclusiones')?'<span style="font-size:10px;background:rgba(163,113,247,0.15);color:#a371f7;padding:2px 8px;border-radius:4px;">📝 Conclusiones</span>':''}
+          ${tipos.includes('resumen_ia')?'<span style="font-size:10px;background:rgba(210,153,34,0.15);color:#d29922;padding:2px 8px;border-radius:4px;">🧠 Resumen IA</span>':''}
+        </div>
+      </div>
+      ${items.filter(i=>i.tipo==='conclusiones').map(i=>`
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px;background:var(--bg3);padding:10px;border-radius:8px;">
+          ${i.titulo ? '<div style="font-size:11px;font-weight:700;margin-bottom:4px;">'+i.titulo+'</div>' : ''}
+          <div style="font-size:12px;color:var(--text3);">${(i.contenido||'').substring(0,200)}${(i.contenido||'').length>200?'...':''}</div>
+        </div>
+      `).join('')}
+      ${items.filter(i=>i.tipo==='resumen_ia').map(i=>`
+        <div style="font-size:12px;background:rgba(210,153,34,0.05);border:0.5px solid rgba(210,153,34,0.2);padding:10px;border-radius:8px;">
+          <div style="font-size:11px;font-weight:700;color:#d29922;margin-bottom:4px;">Resumen IA</div>
+          <div style="color:var(--text3);">${(i.contenido||'').substring(0,300)}${(i.contenido||'').length>300?'...':''}</div>
+        </div>
+      `).join('')}
+    </div>`;
+  }).join('');
+}
+
 
 function genSes(){
   const pos=document.getElementById('sespos').value;
