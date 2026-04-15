@@ -292,7 +292,9 @@ function renderDT(tab){
       return '<div style="background:var(--bg);border:0.5px solid '+fc.dot+'30;border-left:3px solid '+fc.dot+';border-radius:var(--radius-sm);padding:.875rem;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;">'+
         '<div style="flex:1;"><div style="font-size:13px;margin-bottom:5px;line-height:1.4;">'+o.texto+'</div>'+
         '<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:'+fc.bg+';color:'+fc.color+';">'+(o.fase==='OF'?'Fase ofensiva':o.fase==='DE'?'Fase defensiva':o.fase==='TO'?'T. ofensiva':o.fase==='TD'?'T. defensiva':'General')+'</span></div>'+
-        '<button onclick="delObj(\"'+o.id+'\")" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;line-height:1;">×</button>'+(o.superado?'':'<button onclick="superarObj(\''+o.id+'\')" style="background:rgba(63,185,80,0.12);border:0.5px solid rgba(63,185,80,0.4);border-radius:6px;color:#3fb950;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;">✓</button>')+'</div>';
+        '<button onclick="delObj(\"'+o.id+'\")" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;line-height:1;">×</button>'+
+        '<button data-superar-id="'+o.id+'" style="background:rgba(63,185,80,0.12);border:0.5px solid rgba(63,185,80,0.4);border-radius:6px;color:#3fb950;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;">✓</button>'+
+        '</div>';
     }).join('') :
     '<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px;">Sin objetivos todavía.<br><span style="font-size:11px;">Añade el primero arriba.</span></div>';
 
@@ -753,11 +755,17 @@ async function superarObj(oid){
   var obj=state.objetivos.find(function(o){return o.id===oid;});
   if(!obj)return;
   var fecha=new Date().toISOString().slice(0,10);
-  await DB.from('objetivos').update({superado:true,fecha_superado:fecha}).eq('id',oid);
+  var res=await DB.from('objetivos').update({superado:true,fecha_superado:fecha}).eq('id',oid);
+  if(res.error){showToast('Error: '+res.error.message);return;}
   state.objetivos=state.objetivos.map(function(o){return o.id===oid?Object.assign({},o,{superado:true,fecha_superado:fecha}):o;});
   showToast('✅ Superado: '+obj.texto);
   renderDT('obj');
 }
+// Event listener global para botones data-superar-id
+document.addEventListener('click',function(e){
+  var btn=e.target.closest('[data-superar-id]');
+  if(btn){superarObj(btn.getAttribute('data-superar-id'));}
+});
 async function addObs(){const txt=document.getElementById('obta')?.value.trim();if(!txt)return;const{data,error}=await DB.from('observaciones').insert({jugador_id:state.currentJugador,partido:document.getElementById('obpa').value.trim()||'Partido',fecha:new Date().toISOString().slice(0,10),texto:txt}).select();if(error){showToast('Error');return;}state.observaciones.unshift(data[0]);document.getElementById('obta').value='';document.getElementById('obpa').value='';renderDT('obs');renderInicio();}
 async function setSes(){const fecha=document.getElementById('vidf')?.value;await DB.from('jugadores').update({sesion_fecha:fecha||null}).eq('id',state.currentJugador);const j=state.jugadores.find(x=>x.id===state.currentJugador);if(j)j.sesion_fecha=fecha||null;renderInicio();showToast('Fecha guardada');}
 async function addNota(){const txt=document.getElementById('nota')?.value.trim();if(!txt)return;const{data,error}=await DB.from('notas_video').insert({jugador_id:state.currentJugador,fecha:new Date().toISOString().slice(0,10),texto:txt}).select();if(error){showToast('Error');return;}state.notasVideo.unshift(data[0]);document.getElementById('nota').value='';renderDT('vid');}
@@ -1225,7 +1233,7 @@ async function renderMicrosEv(jugId){
     h+='<div style="margin-bottom:1rem;"><div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Por fase</div>';
     var mx=Math.max.apply(null,Object.values(porFase));
     Object.keys(porFase).forEach(function(f){var n=porFase[f],w=Math.round((n/mx)*100);
-      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="font-size:10px;color:var(--text2);width:55px;">'+(FLABEL[f]||f)+'</div><div style="flex:1;height:16px;background:var(--bg2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:'+w+'%;background:'+(FCOLOR[f]||'#888')+';border-radius:4px;display:flex;align-items:center;padding-left:5px;"><span style="font-size:10px;font-weight:700;color:#fff;">'+n+'</span></div></div></div>';});
+      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="font-size:10px;color:var(--text2);width:55px;">'+(FLABEL[f]||f)+'</div><div style="flex:1;height:16px;background:var(--bg2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:'+w+'%;background:'+(FCOLOR[f]||'#888')+';border-radius:4px;padding-left:5px;"><span style="font-size:10px;font-weight:700;color:#fff;">'+n+'</span></div></div></div>';});
     h+='</div>';}
   if(meses.length){
     h+='<div><div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Timeline</div>';
