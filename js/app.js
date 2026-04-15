@@ -760,16 +760,11 @@ async function superarObj(oid){
   state.objetivos=state.objetivos.map(function(o){return o.id===oid?Object.assign({},o,{superado:true,fecha_superado:fecha}):o;});
   showToast('✅ Superado: '+obj.texto);
   renderDT('obj');
+  // Refrescar progreso por objetivo en el modal sin cerrar
+  setTimeout(function(){renderDT('obj');},100);
   // Recargar gráfica de evolución si está visible
-  var evCont=document.getElementById('evcont');
-  if(evCont && evCont.innerHTML){
-    var evSel=document.getElementById('evsel');
-    if(evSel && evSel.value){
-      var grafDiv=evCont.querySelector('[style*="Evolución de microconceptos"]');
-      if(grafDiv) grafDiv.remove();
-      renderMicrosEv(evSel.value);
-    }
-  }
+  var evSel=document.getElementById('evsel');
+  if(evSel && evSel.value) renderMicrosEv(evSel.value);
 }
 // Event listener global para botones data-superar-id y data-deshacer-id
 document.addEventListener('click',function(e){
@@ -1196,6 +1191,40 @@ function openTarea(id){
 function fillEvSel(){
   const sel=document.getElementById('evsel');sel.innerHTML='<option value="">Selecciona jugador...</option>';
   state.jugadores.forEach(j=>sel.innerHTML+=`<option value="${j.id}">${j.nombre} · ${j.posicion}</option>`);
+  // Añadir tabs si no existen
+  if(!document.getElementById('ev-tab-bar')){
+    const bar = document.createElement('div');
+    bar.id='ev-tab-bar';
+    bar.style.cssText='display:flex;gap:6px;margin-bottom:1.5rem;';
+    bar.innerHTML=
+      '<button onclick="switchEvTab(\'actual\',this)" id="evtab-actual" style="flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;background:rgba(29,158,117,0.15);color:#1D9E75;border:0.5px solid rgba(29,158,117,0.3);cursor:pointer;font-family:inherit;">📊 Actual</button>'+
+      '<button onclick="switchEvTab(\'historial\',this)" id="evtab-historial" style="flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">📅 Historial mensual</button>';
+    const pageEv = document.getElementById('page-evolucion');
+    if(pageEv){
+      const selector = pageEv.querySelector('select#evsel')?.parentElement;
+      if(selector) selector.after(bar);
+    }
+  }
+}
+
+function switchEvTab(tab, btn){
+  ['actual','historial'].forEach(function(t){
+    var b=document.getElementById('evtab-'+t);
+    if(b){
+      b.style.background=t===tab?'rgba(29,158,117,0.15)':'none';
+      b.style.color=t===tab?'#1D9E75':'var(--text3)';
+      b.style.borderColor=t===tab?'rgba(29,158,117,0.3)':'var(--border2)';
+    }
+  });
+  var cont=document.getElementById('evcont');
+  if(!cont)return;
+  if(tab==='actual'){
+    rEv();
+  } else {
+    var sel=document.getElementById('evsel');
+    if(sel&&sel.value) renderEvHistorial(sel.value);
+    else cont.innerHTML='<div class="empty">Selecciona un jugador primero.</div>';
+  }
 }
 function rEv(){
   const id=document.getElementById('evsel').value;
@@ -1240,6 +1269,141 @@ function rEv(){
       <div class="timeline">${obs.length?obs.map(o=>{const s=sc(o.texto);const dc=s.p>s.n?'#1D9E75':'#E07B00';return`<div class="tl-item"><div class="tl-dot" style="background:${dc};"></div><div><div class="tl-fecha">${fmtDate(o.fecha)}</div><div class="tl-partido">${o.partido}</div><div class="tl-texto">${o.texto}</div></div></div>`;}).join(''):'<div style="font-size:12px;color:var(--text3);">Sin observaciones.</div>'}</div>
     </div>`;
   renderMicrosEv(id);
+}
+
+async function renderEvHistorial(jugId){
+  var cont=document.getElementById('evcont');
+  if(!cont)return;
+  cont.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);">Cargando historial...</div>';
+
+  var jug=state.jugadores.find(function(x){return x.id===jugId;});
+  if(!jug)return;
+
+  // Cargar superados, observaciones e informes
+  var [rSup, rObs] = await Promise.all([
+    DB.from('objetivos').select('*').eq('jugador_id',jugId).eq('superado',true).order('fecha_superado',{ascending:true}),
+    DB.from('ev_observaciones').select('*').eq('jugador_id',jugId).order('mes',{ascending:false})
+  ]);
+
+  var superados=rSup.data||[];
+  var evObs=rObs.data||[];
+  var informes=getInformesJugador(jugId);
+
+  // Agrupar superados por mes
+  var porMes={};
+  superados.forEach(function(o){
+    var m=(o.fecha_superado||'').slice(0,7);
+    if(!m)return;
+    if(!porMes[m])porMes[m]={superados:[],obs:null,informe:null};
+    porMes[m].superados.push(o);
+  });
+
+  // Asociar observaciones del analista por mes
+  evObs.forEach(function(o){if(porMes[o.mes])porMes[o.mes].obs=o;});
+
+  // Asociar informe (nota media) por mes
+  informes.forEach(function(inf){
+    var m=(inf.fecha||'').slice(0,7);
+    if(porMes[m] && inf.nota_decimal){
+      if(!porMes[m].notas)porMes[m].notas=[];
+      porMes[m].notas.push(parseFloat(inf.nota_decimal));
+    }
+  });
+
+  var meses=Object.keys(porMes).sort().reverse();
+  var totalSuperados=superados.length;
+  var FCOLOR={OF:'#1D9E75',DE:'#378ADD',TO:'#E07B00',TD:'#D85A30',GEN:'#7C6FF0'};
+
+  if(!meses.length){
+    cont.innerHTML='<div style="text-align:center;padding:3rem;color:var(--text3);"><div style="font-size:32px;margin-bottom:10px;">📅</div><div style="font-size:13px;">Sin historial todavía.<br><small>Marca microconceptos como superados para generar el historial.</small></div></div>';
+    return;
+  }
+
+  var h='';
+
+  // KPI global
+  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.5rem;">';
+  h+='<div style="background:var(--bg2);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:700;color:#3fb950;">'+totalSuperados+'</div><div style="font-size:10px;color:var(--text3);">Total superados</div></div>';
+  h+='<div style="background:var(--bg2);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:700;color:#58a6ff;">'+meses.length+'</div><div style="font-size:10px;color:var(--text3);">Meses activos</div></div>';
+  var ritmo=meses.length?Math.round(totalSuperados/meses.length*10)/10:0;
+  h+='<div style="background:var(--bg2);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:700;color:#d29922;">'+ritmo+'</div><div style="font-size:10px;color:var(--text3);">Micros/mes</div></div>';
+  h+='</div>';
+
+  // Tarjetas por mes
+  meses.forEach(function(mes){
+    var data=porMes[mes];
+    var parts=mes.split('-');
+    var mesLabel=new Date(parts[0],parseInt(parts[1])-1).toLocaleDateString('es',{month:'long',year:'numeric'});
+    mesLabel=mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1);
+    var notaMedia=data.notas&&data.notas.length?(data.notas.reduce(function(a,b){return a+b;},0)/data.notas.length).toFixed(1):null;
+    var obsData=data.obs;
+
+    h+='<div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;">';
+
+    // Header mes
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">';
+    h+='<div style="font-size:14px;font-weight:700;">'+mesLabel+'</div>';
+    h+='<div style="display:flex;gap:8px;align-items:center;">';
+    if(notaMedia){h+='<span style="font-size:11px;background:rgba(29,158,117,0.1);color:#1D9E75;padding:3px 10px;border-radius:6px;">⭐ '+notaMedia+' media</span>';}
+    h+='<span style="font-size:11px;background:rgba(63,185,80,0.1);color:#3fb950;padding:3px 10px;border-radius:6px;">'+data.superados.length+' superados</span>';
+    h+='</div></div>';
+
+    // Microconceptos superados ese mes
+    h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:1rem;">';
+    data.superados.forEach(function(o){
+      var c=FCOLOR[o.fase]||'#888';
+      h+='<div style="font-size:11px;background:'+c+'20;border:0.5px solid '+c+'60;color:'+c+';border-radius:6px;padding:3px 10px;">✓ '+o.texto+'</div>';
+    });
+    h+='</div>';
+
+    // Observaciones del analista
+    h+='<div style="border-top:0.5px solid var(--border2);padding-top:.875rem;">';
+    h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">📝 Observación del analista</div>';
+    if(obsData){
+      h+='<div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:8px;">'+obsData.texto+'</div>';
+      h+='<button data-ev-edit="'+mes+'" data-ev-jugid="'+jugId+'" style="font-size:11px;background:none;border:0.5px solid var(--border2);border-radius:6px;color:var(--text3);padding:4px 10px;cursor:pointer;">✏️ Editar</button>';
+    } else {
+      h+='<textarea id="ev-obs-'+mes+'" placeholder="Escribe tu observación de este mes..." style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:8px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:8px;" rows="3"></textarea>';
+      h+='<button data-ev-save="'+mes+'" data-ev-jugid="'+jugId+'" style="font-size:12px;background:rgba(29,158,117,0.15);border:0.5px solid rgba(29,158,117,0.4);border-radius:6px;color:#1D9E75;padding:6px 16px;cursor:pointer;font-weight:700;">💾 Guardar observación</button>';
+    }
+    h+='</div>';
+    h+='</div>';
+  });
+
+  cont.innerHTML=h;
+
+  // Event listeners para guardar/editar observaciones
+  cont.addEventListener('click',function(e){
+    var saveBtn=e.target.closest('[data-ev-save]');
+    if(saveBtn){
+      var mes=saveBtn.getAttribute('data-ev-save');
+      var jugId2=saveBtn.getAttribute('data-ev-jugid');
+      var ta=document.getElementById('ev-obs-'+mes);
+      if(ta&&ta.value.trim()) guardarEvObs(jugId2,mes,ta.value.trim());
+      return;
+    }
+    var editBtn=e.target.closest('[data-ev-edit]');
+    if(editBtn){
+      var mes2=editBtn.getAttribute('data-ev-edit');
+      var jugId3=editBtn.getAttribute('data-ev-jugid');
+      var obsTexto=editBtn.previousElementSibling?editBtn.previousElementSibling.textContent:'';
+      // Reemplazar con textarea
+      var container=editBtn.parentElement;
+      container.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">📝 Observación del analista</div>'+
+        '<textarea id="ev-obs-'+mes2+'" style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:8px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:8px;" rows="3">'+obsTexto+'</textarea>'+
+        '<button data-ev-save="'+mes2+'" data-ev-jugid="'+jugId3+'" style="font-size:12px;background:rgba(29,158,117,0.15);border:0.5px solid rgba(29,158,117,0.4);border-radius:6px;color:#1D9E75;padding:6px 16px;cursor:pointer;font-weight:700;">💾 Guardar</button>';
+    }
+  });
+}
+
+async function guardarEvObs(jugId, mes, texto){
+  var {data, error}=await DB.from('ev_observaciones').upsert({
+    jugador_id:jugId, mes:mes, texto:texto,
+    updated_at:new Date().toISOString()
+  },{onConflict:'jugador_id,mes'});
+  if(error){showToast('Error: '+error.message);return;}
+  showToast('✅ Observación guardada');
+  renderEvHistorial(jugId);
 }
 
 async function renderMicrosEv(jugId){
