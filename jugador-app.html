@@ -1193,7 +1193,7 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
     var fotoSrc = jug.foto_jugador || '';
     html += '<div style="display:flex;align-items:center;gap:14px;margin-bottom:1.25rem;">';
     if(fotoSrc) {
-      html += '<img src="'+fotoSrc+'" style="width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:top;border:2px solid rgba(212,175,55,0.3);flex-shrink:0;" onerror="this.style.display='none'"';
+      html += '<img src="'+fotoSrc+'" style="width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:top;border:2px solid rgba(212,175,55,0.3);flex-shrink:0;" onerror="this.style.display=\'none\'"';
     } else {
       html += '<label for="foto-upload-input" style="width:52px;height:52px;border-radius:50%;background:var(--card);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:20px;">📷</label>';
       html += '<input type="file" id="foto-upload-input" accept="image/*" style="display:none;" onchange="subirFotoJugador(this)">';
@@ -1212,7 +1212,7 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
       html += '<div style="width:32px;height:32px;border-radius:8px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center;font-size:16px;">📋</div>';
       html += '<div><div style="font-size:13px;font-weight:800;color:var(--blue);">Plan del partido</div><div style="font-size:10px;color:var(--text3);">Próximo partido</div></div>';
       html += '</div>';
-      html += '<button onclick="goSec('plan',document.querySelector('[onclick*=plan]'))" style="background:var(--blue-soft);border:1px solid rgba(0,150,255,0.3);border-radius:99px;padding:5px 14px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;font-family:inherit;">Ver →</button>';
+      html += '<button onclick="goSec(\'plan\',document.querySelector(\'[onclick*=plan]\'))" style="background:var(--blue-soft);border:1px solid rgba(0,150,255,0.3);border-radius:99px;padding:5px 14px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;font-family:inherit;">Ver →</button>';
       html += '</div>';
       if(plan.rival) html += '<div style="font-size:14px;font-weight:700;margin-bottom:8px;">vs '+plan.rival+(plan.fecha?' · <span style="color:var(--text3);font-weight:500;">'+plan.fecha+'</span>':'')+'</div>';
       if(plan.items && plan.items.length) {
@@ -1229,7 +1229,7 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
     // ── ÚLTIMO INFORME ──
     if(ul) {
       var fecha = new Date((ul.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
-      html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;border-top:3px solid '+nc+';cursor:pointer;" onclick="goSec('informes',document.querySelector('[onclick*=informes]'))">';
+      html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;border-top:3px solid '+nc+';cursor:pointer;" onclick="goSec(\'informes\',document.querySelector(\'[onclick*=informes]\'))">';
       html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;">';
       html += '<div style="display:flex;align-items:center;gap:8px;">';
       html += '<div style="width:32px;height:32px;border-radius:8px;background:'+nc+'20;display:flex;align-items:center;justify-content:center;font-size:16px;">📄</div>';
@@ -1262,7 +1262,7 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
       html += '</div>';
       html += '<div style="font-size:14px;line-height:1.6;color:var(--text);">'+obj.texto+'</div>';
       if(objs.length>1) {
-        html += '<div style="font-size:12px;color:var(--gold);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);cursor:pointer;" onclick="goSec('plan',document.querySelector('[onclick*=plan]'));setTimeout(function(){switchPlanTab('objetivos',document.getElementById('ptab-objetivos'));},100);">Ver todos los objetivos →</div>';
+        html += '<div style="font-size:12px;color:var(--gold);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);cursor:pointer;" onclick="goSec(\'plan\',document.querySelector(\'[onclick*=plan]\'));setTimeout(function(){switchPlanTab(\'objetivos\',document.getElementById(\'ptab-objetivos\'));},100);">Ver todos los objetivos →</div>';
       }
       html += '</div>';
     }
@@ -1271,7 +1271,7 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
     var hoyStr = new Date().toISOString().slice(0,10);
     var lastCheckin = localStorage.getItem('last_checkin_'+jug.id);
     if(lastCheckin !== hoyStr) {
-      html += '<div class="card" style="border:1.5px solid rgba(191,90,242,0.3);background:rgba(191,90,242,0.06);margin-bottom:1rem;cursor:pointer;" onclick="goSec('psico',document.querySelector('[onclick*=psico]'))">';
+      html += '<div class="card" style="border:1.5px solid rgba(191,90,242,0.3);background:rgba(191,90,242,0.06);margin-bottom:1rem;cursor:pointer;" onclick="goSec(\'psico\',document.querySelector(\'[onclick*=psico]\'))">';
       html += '<div style="display:flex;align-items:center;gap:12px;">';
       html += '<div style="font-size:32px;">❤️</div>';
       html += '<div><div style="font-size:14px;font-weight:700;color:var(--purple);">Check-in de hoy pendiente</div>';
@@ -1284,7 +1284,7 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
     if(clips.length) {
       var tipos = {mejorar:0,positivo:0,referencia:0};
       clips.forEach(function(c){ if(tipos[c.tipo]!==undefined) tipos[c.tipo]++; });
-      html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;border-top:3px solid var(--green);cursor:pointer;" onclick="goSec('clips',document.querySelector('[onclick*=clips]'))">';
+      html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;border-top:3px solid var(--green);cursor:pointer;" onclick="goSec(\'clips\',document.querySelector(\'[onclick*=clips]\'))">';
       html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;">';
       html += '<div style="display:flex;align-items:center;gap:8px;">';
       html += '<div style="width:32px;height:32px;border-radius:8px;background:var(--green-soft);display:flex;align-items:center;justify-content:center;font-size:16px;">🎥</div>';
@@ -1633,9 +1633,9 @@ function buscarAlimento(bloque, q) {
   drop.style.display = 'block';
 
   drop.innerHTML = matches.map(function(a, i) {
-    return '<div onmousedown="event.preventDefault();seleccionarAlimento('' + bloque + '',' + i + ',event)" ' +
+    return '<div onmousedown="event.preventDefault();seleccionarAlimento(\'' + bloque + '\',' + i + ',event)" ' +
       'style="padding:11px 14px;cursor:pointer;font-size:13px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;" ' +
-      'onmouseover="this.style.background='rgba(29,158,117,0.1)'" onmouseout="this.style.background='transparent'">' +
+      'onmouseover="this.style.background=\'rgba(29,158,117,0.1)\'" onmouseout="this.style.background=\'transparent\'">' +
       '<span>' + a[0] + '</span>' +
       '<span style="font-size:10px;color:var(--text3);background:var(--bg3);padding:2px 7px;border-radius:99px;">' + a[4] + ' kcal/100g</span>' +
     '</div>';
@@ -1679,7 +1679,7 @@ function mostrarSelectorCantidad(bloque, alimento) {
     var g = (tipo === 'peso') ? c : c * std;
     var kcal = Math.round((alimento[4]*g)/100);
     var prot = Math.round((alimento[1]*g)/100);
-    html += '<button onclick="confirmarCantidad('' + bloque + '',' + c + ')" ' +
+    html += '<button onclick="confirmarCantidad(\'' + bloque + '\',' + c + ')" ' +
       'style="padding:8px 14px;border-radius:99px;background:var(--bg2);border:0.5px solid var(--border2);font-size:12px;cursor:pointer;font-family:inherit;color:var(--text);">' +
       '<b>' + c + ' ' + ulbl + '</b> <span style="font-size:9px;color:var(--text3);">' + kcal + 'kcal · ' + prot + 'g prot</span>' +
     '</button>';
@@ -1689,9 +1689,9 @@ function mostrarSelectorCantidad(bloque, alimento) {
   html += '<div style="display:flex;gap:6px;">' +
     '<input type="number" id="ac-custom-'+bloque+'" placeholder="Otra cantidad ('+ulbl+')..." min="0.5" step="0.5" ' +
     'style="flex:1;height:36px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;color:var(--text);outline:none;">' +
-    '<button onclick="confirmarCantidadCustom('' + bloque + '')" ' +
+    '<button onclick="confirmarCantidadCustom(\'' + bloque + '\')" ' +
     'style="height:36px;padding:0 16px;background:rgba(29,158,117,0.15);border:0.5px solid rgba(29,158,117,0.4);border-radius:var(--radius-sm);color:#1D9E75;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">OK</button>' +
-    '<button onclick="cancelarCantidad('' + bloque + '')" ' +
+    '<button onclick="cancelarCantidad(\'' + bloque + '\')" ' +
     'style="height:36px;padding:0 12px;background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text3);cursor:pointer;font-family:inherit;">✕</button>' +
   '</div>';
 
@@ -1760,7 +1760,7 @@ function renderItemsBloque(bloque) {
     return '<div style="display:flex;align-items:center;gap:5px;background:rgba(29,158,117,0.08);border:0.5px solid rgba(29,158,117,0.2);border-radius:99px;padding:4px 8px 4px 12px;font-size:11px;">' +
       '<span>' + item.display + '</span>' +
       '<span style="font-size:10px;color:var(--text3);">' + item.kcal + 'kcal</span>' +
-      '<button onmousedown="event.preventDefault();eliminarItem('' + bloque + '',' + i + ')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;line-height:1;padding:0 2px;">×</button>' +
+      '<button onmousedown="event.preventDefault();eliminarItem(\'' + bloque + '\',' + i + ')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;line-height:1;padding:0 2px;">×</button>' +
     '</div>';
   }).join('');
 }
@@ -2142,7 +2142,7 @@ function initPPStars() {
     html += '<div style="font-size:12px;font-weight:600;flex:1;">' + item.label + '</div>';
     html += '<div style="display:flex;gap:4px;" id="pps-' + item.id + '">';
     for (var s = 1; s <= 5; s++) {
-      html += '<span onclick="setPPStar('' + item.id + '',' + s + ','' + item.color + '')" style="font-size:24px;cursor:pointer;color:var(--border2);transition:color .1s;" data-v="' + s + '">★</span>';
+      html += '<span onclick="setPPStar(\'' + item.id + '\',' + s + ',\'' + item.color + '\')" style="font-size:24px;cursor:pointer;color:var(--border2);transition:color .1s;" data-v="' + s + '">★</span>';
     }
     html += '</div></div>';
   });
@@ -2525,7 +2525,7 @@ window.renderCalJugador = function() {
       var borderColor = esHoy ? 'rgba(255,255,255,0.4)' : tc ? tc.color + '60' : 'var(--border)';
       var bgColor     = esHoy ? 'rgba(255,255,255,0.07)' : tc ? tc.bg : 'var(--card)';
 
-      html += '<div onclick="verDiaCalendario('' + fecha + '')" style="border-radius:12px;padding:10px 4px;text-align:center;border:1.5px solid ' + borderColor + ';background:' + bgColor + ';cursor:pointer;min-height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:transform .1s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">';
+      html += '<div onclick="verDiaCalendario(\'' + fecha + '\')" style="border-radius:12px;padding:10px 4px;text-align:center;border:1.5px solid ' + borderColor + ';background:' + bgColor + ';cursor:pointer;min-height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:transform .1s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">';
       html += '<div style="font-size:10px;font-weight:700;color:' + (esHoy?'rgba(255,255,255,0.6)':'var(--text3)') + ';">' + DIAS_L[i] + '</div>';
       html += '<div style="font-size:20px;font-weight:800;color:' + (esHoy?'#fff':'var(--text)') + ';line-height:1;">' + d.getDate() + '</div>';
       if(tc) html += '<div style="font-size:14px;">' + tc.ico + '</div>';
@@ -2544,7 +2544,7 @@ window.renderCalJugador = function() {
     var evHoy = porFecha[hoyStr];
     if(evHoy) {
       var tc = TIPOS[evHoy.tipo] || TIPOS.entreno;
-      html += '<div style="background:' + tc.bg + ';border:1.5px solid ' + tc.color + '40;border-left:4px solid ' + tc.color + ';border-radius:var(--radius);padding:1rem;margin-bottom:1rem;cursor:pointer;" onclick="verDiaCalendario('' + hoyStr + '')">';
+      html += '<div style="background:' + tc.bg + ';border:1.5px solid ' + tc.color + '40;border-left:4px solid ' + tc.color + ';border-radius:var(--radius);padding:1rem;margin-bottom:1rem;cursor:pointer;" onclick="verDiaCalendario(\'' + hoyStr + '\')">';
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:' + (evHoy.foco?'8px':'0') + ';">';
       html += '<span style="font-size:20px;">' + tc.ico + '</span>';
       html += '<div><div style="font-size:13px;font-weight:700;">Hoy — ' + tc.label + '</div>';
@@ -2567,7 +2567,7 @@ window.renderCalJugador = function() {
         var tc = TIPOS[ev.tipo] || TIPOS.entreno;
         var dLabel = d.toLocaleDateString('es-ES',{weekday:'short',day:'numeric'});
         dLabel = dLabel.charAt(0).toUpperCase() + dLabel.slice(1);
-        html += '<div onclick="verDiaCalendario('' + fecha + '')" style="display:flex;align-items:center;gap:12px;padding:.75rem;background:var(--card);border:0.5px solid var(--border);border-left:3px solid ' + tc.color + ';border-radius:var(--radius);margin-bottom:6px;cursor:pointer;">';
+        html += '<div onclick="verDiaCalendario(\'' + fecha + '\')" style="display:flex;align-items:center;gap:12px;padding:.75rem;background:var(--card);border:0.5px solid var(--border);border-left:3px solid ' + tc.color + ';border-radius:var(--radius);margin-bottom:6px;cursor:pointer;">';
         html += '<div style="font-size:20px;">' + tc.ico + '</div>';
         html += '<div style="flex:1;"><div style="font-size:12px;font-weight:700;">' + dLabel + '</div>';
         html += '<div style="font-size:11px;color:var(--text2);">' + tc.label + (ev.foco ? ' · ' + ev.foco.slice(0,40) + (ev.foco.length>40?'...':'') : '') + '</div></div>';
@@ -2616,7 +2616,7 @@ window.verDiaCalendario = function(fecha) {
   html += '<div><div style="font-size:16px;font-weight:800;">' + dLabel + '</div>';
   if(tc) html += '<div style="font-size:11px;color:' + tc.color + ';font-weight:700;margin-top:2px;">' + tc.ico + ' ' + tc.label + (ev.hora ? ' · ' + ev.hora : '') + '</div>';
   html += '</div>';
-  html += '<button onclick="this.closest('div[style*=fixed]').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
+  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
   html += '</div>';
 
   if(!ev && !tareas.length && !notasDia.length) {
@@ -2756,7 +2756,7 @@ window.addEventListener('load', function() {
       if (!sec) return;
       var btn = document.createElement('div');
       btn.style.cssText = 'text-align:center;padding:1.5rem 0 .5rem;';
-      btn.innerHTML = '<button onclick="goSec('inicio', document.getElementById('nb-inicio'))" style="background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px 28px;font-size:13px;color:var(--text2);cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:8px;">← Volver al inicio</button>';
+      btn.innerHTML = '<button onclick="goSec(\'inicio\', document.getElementById(\'nb-inicio\'))" style="background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px 28px;font-size:13px;color:var(--text2);cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:8px;">← Volver al inicio</button>';
       sec.appendChild(btn);
     });
 
@@ -3204,12 +3204,12 @@ window.addEventListener('load', function() {
     selectorDiv.innerHTML = 
       '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:6px;">Modo nutricional</label>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-        '<button onclick="setModoNut('estandar',this)" id="modo-estandar" ' +
+        '<button onclick="setModoNut(\'estandar\',this)" id="modo-estandar" ' +
           'style="padding:10px 8px;border-radius:var(--radius-sm);background:rgba(210,153,34,0.15);border:1.5px solid rgba(210,153,34,0.5);cursor:pointer;font-family:inherit;text-align:left;">' +
           '<div style="font-size:12px;font-weight:700;color:#d29922;">⚽ Estándar</div>' +
           '<div style="font-size:10px;color:var(--text2);margin-top:2px;">UEFA · Pasta, arroz, pan</div>' +
         '</button>' +
-        '<button onclick="setModoNut('funcional',this)" id="modo-funcional" ' +
+        '<button onclick="setModoNut(\'funcional\',this)" id="modo-funcional" ' +
           'style="padding:10px 8px;border-radius:var(--radius-sm);background:none;border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;text-align:left;">' +
           '<div style="font-size:12px;font-weight:700;color:var(--text2);">🦁 Funcional</div>' +
           '<div style="font-size:10px;color:var(--text3);margin-top:2px;">Paleo · Sin harinas · Comida real</div>' +
@@ -3471,7 +3471,7 @@ window.renderCalJugador = function() {
                 html += '<div style="font-size:11px;font-weight:600;color:var(--text);">' + titulo + '</div>';
                 html += '</div>';
               });
-              html += '<div style="text-align:right;margin-top:3px;"><a onclick="goSec('tareas',document.getElementById('nb-tareas'))" style="font-size:10px;color:#7C6FF0;cursor:pointer;text-decoration:none;">Ver todas →</a></div>';
+              html += '<div style="text-align:right;margin-top:3px;"><a onclick="goSec(\'tareas\',document.getElementById(\'nb-tareas\'))" style="font-size:10px;color:#7C6FF0;cursor:pointer;text-decoration:none;">Ver todas →</a></div>';
               inj.innerHTML = html;
               div.appendChild(inj);
             }
@@ -3532,8 +3532,8 @@ window.verInformeDetalle = function(el) {
   h+='<div style="width:40px;height:4px;background:var(--border2);border-radius:99px;margin:0 auto 1.25rem;"></div>';
   h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><div><div style="font-size:16px;font-weight:800;">'+(inf.partido||'Partido')+'</div><div style="font-size:11px;color:var(--text2);">'+fecha+(inf.rival?' vs '+inf.rival:'')+(inf.resultado?' '+inf.resultado:'')+'</div></div>';
   h+='<div style="display:flex;gap:8px;">';
-  h+='<button onclick="window.generarInformeVisualJugador(window._informesCache.find(function(x){return String(x.id)===''+String(inf.id)+''}))" style="background:rgba(88,166,255,0.15);border:0.5px solid rgba(88,166,255,0.4);cursor:pointer;color:#58a6ff;font-size:11px;font-weight:700;height:32px;padding:0 12px;border-radius:99px;font-family:inherit;">↓ PDF</button>';
-  h+='<button onclick="document.getElementById('modal-informe-detalle').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;">x</button>';
+  h+='<button onclick="window.generarInformeVisualJugador(window._informesCache.find(function(x){return String(x.id)===\''+String(inf.id)+'\'}))" style="background:rgba(88,166,255,0.15);border:0.5px solid rgba(88,166,255,0.4);cursor:pointer;color:#58a6ff;font-size:11px;font-weight:700;height:32px;padding:0 12px;border-radius:99px;font-family:inherit;">↓ PDF</button>';
+  h+='<button onclick="document.getElementById(\'modal-informe-detalle\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;">x</button>';
   h+='</div></div>';
   if(nota) { h+='<div style="display:flex;align-items:center;gap:12px;background:'+nc+'10;border-radius:12px;padding:1rem;margin-bottom:1rem;"><div style="width:56px;height:56px;border-radius:50%;background:'+nc+'20;color:'+nc+';border:2px solid '+nc+'50;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:20px;font-weight:800;line-height:1;">'+nota.toFixed(1)+'</span><span style="font-size:9px;">/10</span></div><div><div style="font-size:13px;font-weight:700;color:'+nc+';">'+(nota>=8?'Sobresaliente':nota>=6?'Bueno':nota>=5?'Correcto':nota>=3?'En progreso':'A mejorar')+'</div></div></div>'; }
   FASES.forEach(function(f) {
@@ -3814,7 +3814,7 @@ window.renderAnalisisSemanal = function() {
     } else {
       items.forEach(function(item) {
         var fecha = new Date((item.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'});
-        html += '<div class="card" style="cursor:pointer;border-left:3px solid var(--gold);" onclick="verAnalisisDetalle('' + item.id + '')">'; 
+        html += '<div class="card" style="cursor:pointer;border-left:3px solid var(--gold);" onclick="verAnalisisDetalle(\'' + item.id + '\')">'; 
         html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
         html += '<div>';
         html += '<div style="font-size:14px;font-weight:700;">'+(item.titulo||'Análisis semanal')+'</div>';
@@ -3848,7 +3848,7 @@ window.verAnalisisDetalle = function(id) {
   h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;">';
   h += '<div><div style="font-size:17px;font-weight:800;">'+(item.titulo||'Análisis semanal')+'</div>';
   h += '<div style="font-size:11px;color:var(--text3);margin-top:3px;">'+fecha+'</div></div>';
-  h += '<button onclick="this.closest('div[style*=fixed]').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;flex-shrink:0;">×</button>';
+  h += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;flex-shrink:0;">×</button>';
   h += '</div>';
 
   // Contenido del análisis
