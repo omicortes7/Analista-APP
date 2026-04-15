@@ -1220,68 +1220,70 @@ async function renderMicrosEv(jugId){
   const FLABEL={OF:'Ofensivo',DE:'Defensivo',TO:'T.Of.',TD:'T.Def.',GEN:'General'};
 
   const porFase={};
-  (superados||[]).forEach(o=>{const f=o.fase||'GEN';porFase[f]=(porFase[f]||0)+1;});
+  (superados||[]).forEach(function(o){var f=o.fase||'GEN';porFase[f]=(porFase[f]||0)+1;});
   const porMes={};
-  (superados||[]).forEach(o=>{const m=(o.fecha_superado||'').slice(0,7);if(!m)return;if(!porMes[m])porMes[m]=[];porMes[m].push(o);});
+  (superados||[]).forEach(function(o){var m=(o.fecha_superado||'').slice(0,7);if(!m)return;if(!porMes[m])porMes[m]=[];porMes[m].push(o);});
   const meses=Object.keys(porMes).sort();
 
-  const grafDiv=document.createElement('div');
+  var html='<div style="font-size:12px;font-weight:500;margin-bottom:1rem;">📈 Evolución de microconceptos</div>';
+
+  // KPIs
+  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">';
+  html+='<div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#3fb950;">'+(superados?.length||0)+'</div><div style="font-size:10px;color:var(--text3);">Superados</div></div>';
+  html+='<div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#58a6ff;">'+activos.length+'</div><div style="font-size:10px;color:var(--text3);">En progreso</div></div>';
+  html+='<div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#d29922;">'+pct+'%</div><div style="font-size:10px;color:var(--text3);">Completado</div></div>';
+  html+='</div>';
+
+  // Barra progreso
+  html+='<div style="margin-bottom:1rem;">';
+  html+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Progreso global</span><span>'+(superados?.length||0)+' de '+total+'</span></div>';
+  html+='<div style="height:8px;background:var(--bg2);border-radius:99px;overflow:hidden;">';
+  html+='<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#1D9E75,#3fb950);border-radius:99px;"></div>';
+  html+='</div></div>';
+
+  // Por fase
+  if(Object.keys(porFase).length){
+    html+='<div style="margin-bottom:1rem;"><div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Por fase</div>';
+    var mx=Math.max.apply(null,Object.values(porFase));
+    Object.keys(porFase).forEach(function(f){
+      var n=porFase[f];
+      var w=Math.round((n/mx)*100);
+      html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">';
+      html+='<div style="font-size:10px;color:var(--text2);width:55px;">'+(FLABEL[f]||f)+'</div>';
+      html+='<div style="flex:1;height:16px;background:var(--bg2);border-radius:4px;overflow:hidden;">';
+      html+='<div style="height:100%;width:'+w+'%;background:'+(FCOLOR[f]||'#888')+';border-radius:4px;display:flex;align-items:center;padding-left:5px;">';
+      html+='<span style="font-size:10px;font-weight:700;color:#fff;">'+n+'</span></div></div></div>';
+    });
+    html+='</div>';
+  }
+
+  // Timeline por mes
+  if(meses.length){
+    html+='<div><div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Timeline</div>';
+    meses.forEach(function(mes){
+      var items=porMes[mes];
+      var parts=mes.split('-');
+      var lbl=new Date(parts[0],parseInt(parts[1])-1).toLocaleDateString('es',{month:'short',year:'numeric'});
+      html+='<div style="margin-bottom:10px;">';
+      html+='<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:4px;">'+lbl+' · '+items.length+' micro'+(items.length!==1?'s':'')+'</div>';
+      html+='<div style="display:flex;flex-wrap:wrap;gap:4px;">';
+      items.forEach(function(o){
+        var c=FCOLOR[o.fase]||'#888';
+        html+='<div style="font-size:11px;background:'+c+'20;border:0.5px solid '+c+'60;color:'+c+';border-radius:6px;padding:3px 8px;">✓ '+o.texto+'</div>';
+      });
+      html+='</div></div>';
+    });
+    html+='</div>';
+  }
+
+  if(!total){
+    html+='<div style="font-size:12px;color:var(--text3);text-align:center;padding:1rem;">Sin microconceptos todavía. Usa ✓ Superado en los objetivos del jugador.</div>';
+  }
+
+  var grafDiv=document.createElement('div');
   grafDiv.style.cssText='background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;';
-  grafDiv.innerHTML=`
-    <div style="font-size:12px;font-weight:500;margin-bottom:1rem;">📈 Evolución de microconceptos</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">
-      <div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;">
-        <div style="font-size:22px;font-weight:700;color:#3fb950;">${superados?.length||0}</div>
-        <div style="font-size:10px;color:var(--text3);">Superados</div>
-      </div>
-      <div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;">
-        <div style="font-size:22px;font-weight:700;color:#58a6ff;">${activos.length}</div>
-        <div style="font-size:10px;color:var(--text3);">En progreso</div>
-      </div>
-      <div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;">
-        <div style="font-size:22px;font-weight:700;color:#d29922;">${pct}%</div>
-        <div style="font-size:10px;color:var(--text3);">Completado</div>
-      </div>
-    </div>
-    <div style="margin-bottom:1rem;">
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Progreso global</span><span>${superados?.length||0} de ${total}</span></div>
-      <div style="height:8px;background:var(--bg2);border-radius:99px;overflow:hidden;">
-        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#1D9E75,#3fb950);border-radius:99px;"></div>
-      </div>
-    </div>
-    ${Object.keys(porFase).length?`
-    <div style="margin-bottom:1rem;">
-      <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Por fase</div>
-      ${Object.entries(porFase).map(([f,n])=>{
-        const mx=Math.max(...Object.values(porFase));
-        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-          <div style="font-size:10px;color:var(--text2);width:55px;">${FLABEL[f]||f}</div>
-          <div style="flex:1;height:16px;background:var(--bg2);border-radius:4px;overflow:hidden;">
-            <div style="height:100%;width:${Math.round((n/mx)*100)}%;background:${FCOLOR[f]||'#888'};border-radius:4px;display:flex;align-items:center;padding-left:5px;">
-              <span style="font-size:10px;font-weight:700;color:#fff;">${n}</span>
-            </div>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`:''}
-    ${meses.length?`
-    <div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Timeline</div>
-      ${meses.map(mes=>{
-        const items=porMes[mes];
-        const [y,m]=mes.split('-');
-        const lbl=new Date(y,parseInt(m)-1).toLocaleDateString('es',{month:'short',year:'numeric'});
-        return `<div style="margin-bottom:10px;">
-          <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:4px;">${lbl} · ${items.length} micro${items.length!==1?'s':''}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:4px;">
-            ${items.map(o=>`<div style="font-size:11px;background:${FCOLOR[o.fase]||'#888'}20;border:0.5px solid ${FCOLOR[o.fase]||'#888'}60;color:${FCOLOR[o.fase]||'#888'};border-radius:6px;padding:3px 8px;">✓ ${o.texto}</div>`).join('')}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`:''}
-    ${!total?'<div style="font-size:12px;color:var(--text3);text-align:center;padding:1rem;">Sin microconceptos todavía. Usa ✓ Superado en los objetivos del jugador.</div>':''}
-  `;
-  const last=cont.lastElementChild;
+  grafDiv.innerHTML=html;
+  var last=cont.lastElementChild;
   if(last) cont.insertBefore(grafDiv,last);
   else cont.appendChild(grafDiv);
 }
