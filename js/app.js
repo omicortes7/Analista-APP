@@ -292,7 +292,10 @@ function renderDT(tab){
       return '<div style="background:var(--bg);border:0.5px solid '+fc.dot+'30;border-left:3px solid '+fc.dot+';border-radius:var(--radius-sm);padding:.875rem;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;">'+
         '<div style="flex:1;"><div style="font-size:13px;margin-bottom:5px;line-height:1.4;">'+o.texto+'</div>'+
         '<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:'+fc.bg+';color:'+fc.color+';">'+(o.fase==='OF'?'Fase ofensiva':o.fase==='DE'?'Fase defensiva':o.fase==='TO'?'T. ofensiva':o.fase==='TD'?'T. defensiva':'General')+'</span></div>'+
-        '<button onclick="delObj(\"'+o.id+'\")" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;line-height:1;">×</button></div>';
+        '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">'+
+        '<button onclick="superarObj(\"'+o.id+'\",\"'+o.texto.replace(/"/g,\'&quot;\')+'\")" style="background:rgba(63,185,80,0.12);border:0.5px solid rgba(63,185,80,0.4);border-radius:6px;cursor:pointer;color:#3fb950;font-size:10px;font-weight:700;padding:3px 8px;white-space:nowrap;">✓ Superado</button>'+
+        '<button onclick="delObj(\"'+o.id+'\")" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;line-height:1;">×</button>'+
+        '</div></div>';
     }).join('') :
     '<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px;">Sin objetivos todavía.<br><span style="font-size:11px;">Añade el primero arriba.</span></div>';
 
@@ -748,7 +751,14 @@ function genSesJug(jugId) {
 
 
 async function addObj(){const txt=document.getElementById('obt')?.value.trim();if(!txt)return;const{data,error}=await DB.from('objetivos').insert({jugador_id:state.currentJugador,texto:txt,fase:document.getElementById('obf').value}).select();if(error){showToast('Error');return;}state.objetivos.unshift(data[0]);document.getElementById('obt').value='';renderDT('obj');renderInicio();}
-async function delObj(oid){await DB.from('objetivos').delete().eq('id',oid);state.objetivos=state.objetivos.filter(o=>o.id!==oid);renderDT('obj');}
+async async function delObj(oid){await DB.from('objetivos').delete().eq('id',oid);state.objetivos=state.objetivos.filter(o=>o.id!==oid);renderDT('obj');}
+async function superarObj(oid, texto){
+  const fecha = new Date().toISOString().slice(0,10);
+  await DB.from('objetivos').update({superado:true, fecha_superado:fecha}).eq('id',oid);
+  state.objetivos = state.objetivos.map(o=>o.id===oid?{...o,superado:true,fecha_superado:fecha}:o);
+  showToast('✅ Microconcepto superado: '+texto);
+  renderDT('obj');
+}
 async function addObs(){const txt=document.getElementById('obta')?.value.trim();if(!txt)return;const{data,error}=await DB.from('observaciones').insert({jugador_id:state.currentJugador,partido:document.getElementById('obpa').value.trim()||'Partido',fecha:new Date().toISOString().slice(0,10),texto:txt}).select();if(error){showToast('Error');return;}state.observaciones.unshift(data[0]);document.getElementById('obta').value='';document.getElementById('obpa').value='';renderDT('obs');renderInicio();}
 async function setSes(){const fecha=document.getElementById('vidf')?.value;await DB.from('jugadores').update({sesion_fecha:fecha||null}).eq('id',state.currentJugador);const j=state.jugadores.find(x=>x.id===state.currentJugador);if(j)j.sesion_fecha=fecha||null;renderInicio();showToast('Fecha guardada');}
 async function addNota(){const txt=document.getElementById('nota')?.value.trim();if(!txt)return;const{data,error}=await DB.from('notas_video').insert({jugador_id:state.currentJugador,fecha:new Date().toISOString().slice(0,10),texto:txt}).select();if(error){showToast('Error');return;}state.notasVideo.unshift(data[0]);document.getElementById('nota').value='';renderDT('vid');}
@@ -1190,6 +1200,142 @@ function rEv(){
       <div style="font-size:12px;font-weight:500;margin-bottom:.875rem;">Línea de tiempo</div>
       <div class="timeline">${obs.length?obs.map(o=>{const s=sc(o.texto);const dc=s.p>s.n?'#1D9E75':'#E07B00';return`<div class="tl-item"><div class="tl-dot" style="background:${dc};"></div><div><div class="tl-fecha">${fmtDate(o.fecha)}</div><div class="tl-partido">${o.partido}</div><div class="tl-texto">${o.texto}</div></div></div>`;}).join(''):'<div style="font-size:12px;color:var(--text3);">Sin observaciones.</div>'}</div>
     </div>`;
+  // Cargar gráfica de microconceptos superados
+  renderMicrosEv(id);
+}
+
+// ─── GRÁFICA MICROCONCEPTOS SUPERADOS ───
+async function renderMicrosEv(jugId) {
+  const cont = document.getElementById('evcont');
+  if(!cont) return;
+
+  // Cargar objetivos superados de Supabase
+  const {data: superados} = await DB.from('objetivos')
+    .select('*')
+    .eq('jugador_id', jugId)
+    .eq('superado', true)
+    .order('fecha_superado', {ascending: true});
+
+  // También los activos (en progreso)
+  const activos = getObjJugador(jugId).filter(o => !o.superado);
+
+  // Crear bloque de gráfica
+  const grafDiv = document.createElement('div');
+  grafDiv.id = 'ev-micros-graf';
+  grafDiv.style.cssText = 'background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;';
+
+  if(!superados || (!superados.length && !activos.length)) {
+    grafDiv.innerHTML = `
+      <div style="font-size:12px;font-weight:500;margin-bottom:.75rem;">📈 Evolución de microconceptos</div>
+      <div style="font-size:12px;color:var(--text3);text-align:center;padding:1.5rem;">
+        Sin microconceptos registrados todavía.<br>
+        <span style="font-size:11px;">Usa el botón "✓ Superado" en los objetivos del jugador para registrar su progreso.</span>
+      </div>`;
+    cont.appendChild(grafDiv);
+    return;
+  }
+
+  const FASE_COLOR = {OF:'#1D9E75', DE:'#378ADD', TO:'#E07B00', TD:'#D85A30', GEN:'#7C6FF0'};
+  const FASE_LABEL = {OF:'Ofensivo', DE:'Defensivo', TO:'T.Of.', TD:'T.Def.', GEN:'General'};
+
+  // Agrupar superados por mes
+  const porMes = {};
+  (superados||[]).forEach(o => {
+    const mes = (o.fecha_superado||'').slice(0,7);
+    if(!mes) return;
+    if(!porMes[mes]) porMes[mes] = [];
+    porMes[mes].push(o);
+  });
+
+  const meses = Object.keys(porMes).sort();
+  const totalSuperados = superados?.length || 0;
+  const totalActivos = activos.length;
+  const pct = totalSuperados + totalActivos > 0 ?
+    Math.round((totalSuperados / (totalSuperados + totalActivos)) * 100) : 0;
+
+  // Colores por fase para los superados
+  const superadosPorFase = {};
+  (superados||[]).forEach(o => {
+    const f = o.fase || 'GEN';
+    superadosPorFase[f] = (superadosPorFase[f]||0) + 1;
+  });
+
+  let html = `
+    <div style="font-size:12px;font-weight:500;margin-bottom:1rem;">📈 Evolución de microconceptos</div>
+
+    <!-- KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem;">
+      <div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:#3fb950;">${totalSuperados}</div>
+        <div style="font-size:10px;color:var(--text3);">Superados</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:#58a6ff;">${totalActivos}</div>
+        <div style="font-size:10px;color:var(--text3);">En progreso</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:#d29922;">${pct}%</div>
+        <div style="font-size:10px;color:var(--text3);">Completado</div>
+      </div>
+    </div>
+
+    <!-- BARRA PROGRESO GLOBAL -->
+    <div style="margin-bottom:1.25rem;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;">
+        <span>Progreso global</span><span>${totalSuperados} de ${totalSuperados+totalActivos}</span>
+      </div>
+      <div style="height:8px;background:var(--bg2);border-radius:99px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#1D9E75,#3fb950);border-radius:99px;transition:width 0.5s;"></div>
+      </div>
+    </div>
+
+    <!-- BARRAS POR FASE -->
+    ${Object.keys(superadosPorFase).length ? `
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Por fase del juego</div>
+      ${Object.entries(superadosPorFase).map(([fase, n]) => {
+        const max = Math.max(...Object.values(superadosPorFase));
+        const w = Math.round((n/max)*100);
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div style="font-size:10px;color:var(--text2);width:55px;flex-shrink:0;">${FASE_LABEL[fase]||fase}</div>
+          <div style="flex:1;height:18px;background:var(--bg2);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${w}%;background:${FASE_COLOR[fase]||'#888'};border-radius:4px;display:flex;align-items:center;padding-left:6px;">
+              <span style="font-size:10px;font-weight:700;color:#fff;">${n}</span>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+
+    <!-- TIMELINE POR MES -->
+    ${meses.length ? `
+    <div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;">Timeline de superados</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${meses.map(mes => {
+          const items = porMes[mes];
+          const [y,m] = mes.split('-');
+          const mesLabel = new Date(y,parseInt(m)-1).toLocaleDateString('es',{month:'short',year:'numeric'});
+          return `<div>
+            <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:5px;">${mesLabel} · ${items.length} micro${items.length!==1?'s':''}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+              ${items.map(o=>`
+                <div style="font-size:11px;background:${FASE_COLOR[o.fase]||'#888'}20;border:0.5px solid ${FASE_COLOR[o.fase]||'#888'}60;color:${FASE_COLOR[o.fase]||'#888'};border-radius:6px;padding:3px 8px;line-height:1.3;">
+                  ✓ ${o.texto}
+                </div>`).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
+  `;
+
+  grafDiv.innerHTML = html;
+
+  // Insertar ANTES de la sección de observaciones (que es el último div del cont)
+  const lastChild = cont.lastElementChild;
+  if(lastChild) cont.insertBefore(grafDiv, lastChild);
+  else cont.appendChild(grafDiv);
 }
 
 // ─── SESIÓN VÍDEO ───
