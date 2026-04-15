@@ -122,6 +122,8 @@ body {
   display: grid;
   grid-template-rows: auto 1fr auto;
   overflow: hidden;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 /* HEADER */
@@ -144,6 +146,7 @@ body {
   padding-bottom: 100px;
   -webkit-overflow-scrolling: touch;
   min-height: 0;
+  height: 0; /* fuerza al grid a respetar 1fr */
 }
 .sec { display: none; }
 .sec.active { display: block; }
