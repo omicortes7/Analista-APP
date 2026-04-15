@@ -760,19 +760,48 @@ async function superarObj(oid){
   state.objetivos=state.objetivos.map(function(o){return o.id===oid?Object.assign({},o,{superado:true,fecha_superado:fecha}):o;});
   showToast('✅ Superado: '+obj.texto);
   renderDT('obj');
-  // Refrescar progreso por objetivo en el modal sin cerrar
-  setTimeout(function(){renderDT('obj');},100);
-  // Recargar gráfica de evolución si está visible
   var evSel=document.getElementById('evsel');
-  if(evSel && evSel.value) renderMicrosEv(evSel.value);
+  if(evSel&&evSel.value) renderMicrosEv(evSel.value);
 }
-// Event listener global para botones data-superar-id y data-deshacer-id
+// Event listener global
 document.addEventListener('click',function(e){
   var btn=e.target.closest('[data-superar-id]');
   if(btn){superarObj(btn.getAttribute('data-superar-id'));return;}
   var btn2=e.target.closest('[data-deshacer-id]');
-  if(btn2){deshacerSuperado(btn2.getAttribute('data-deshacer-id'));}
+  if(btn2){deshacerSuperado(btn2.getAttribute('data-deshacer-id'));return;}
+  var btn3=e.target.closest('[data-cerrar-mes]');
+  if(btn3){
+    var jugId=btn3.getAttribute('data-cerrar-mes');
+    var titulo=document.getElementById('ev-mes-titulo')?.value.trim()||new Date().toLocaleDateString('es',{month:'long',year:'numeric'});
+    cerrarMesEv(jugId,titulo);
+  }
 });
+
+async function cerrarMesEv(jugId, titulo){
+  var superados=[];
+  var r=await DB.from('objetivos').select('*').eq('jugador_id',jugId).eq('superado',true);
+  superados=r.data||[];
+  var mesKey=new Date().toISOString().slice(0,7);
+  var snapshot={
+    superados:superados.map(function(o){return {id:o.id,texto:o.texto,fase:o.fase,fecha_superado:o.fecha_superado};}),
+    total:superados.length,
+    titulo:titulo,
+    fecha:new Date().toISOString().slice(0,10)
+  };
+  var {error}=await DB.from('ev_observaciones').upsert({
+    jugador_id:jugId,
+    mes:mesKey,
+    texto:'',
+    titulo:titulo,
+    snapshot:JSON.stringify(snapshot),
+    updated_at:new Date().toISOString()
+  },{onConflict:'jugador_id,mes'});
+  if(error){showToast('Error: '+error.message);return;}
+  showToast('✅ Snapshot guardado: '+titulo);
+  // Cambiar al tab historial
+  var btnHist=document.getElementById('evtab-historial');
+  if(btnHist) switchEvTab('historial',btnHist);
+}
 async function deshacerSuperado(oid){
   var obj=state.objetivos.find(function(o){return o.id===oid;});
   if(!obj)return;
@@ -1329,14 +1358,33 @@ async function renderEvHistorial(jugId){
   h+='<div style="background:var(--bg2);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:700;color:#d29922;">'+ritmo+'</div><div style="font-size:10px;color:var(--text3);">Micros/mes</div></div>';
   h+='</div>';
 
+  // Incluir meses de snapshots que no tengan superados en ese mes
+  evObs.forEach(function(o){
+    if(o.snapshot && !porMes[o.mes]){
+      var snap=null;
+      try{snap=JSON.parse(o.snapshot);}catch(e){}
+      if(snap){
+        porMes[o.mes]={superados:snap.superados||[],obs:o,notas:[]};
+        meses=Object.keys(porMes).sort().reverse();
+      }
+    }
+  });
+  meses=Object.keys(porMes).sort().reverse();
+
   // Tarjetas por mes
   meses.forEach(function(mes){
     var data=porMes[mes];
-    var parts=mes.split('-');
-    var mesLabel=new Date(parts[0],parseInt(parts[1])-1).toLocaleDateString('es',{month:'long',year:'numeric'});
-    mesLabel=mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1);
-    var notaMedia=data.notas&&data.notas.length?(data.notas.reduce(function(a,b){return a+b;},0)/data.notas.length).toFixed(1):null;
     var obsData=data.obs;
+    // Usar título del snapshot si existe
+    var snap=null;
+    if(obsData&&obsData.snapshot){try{snap=JSON.parse(obsData.snapshot);}catch(e){}}
+    var mesLabel=snap&&snap.titulo?snap.titulo:(function(){
+      var parts=mes.split('-');
+      var l=new Date(parts[0],parseInt(parts[1])-1).toLocaleDateString('es',{month:'long',year:'numeric'});
+      return l.charAt(0).toUpperCase()+l.slice(1);
+    })();
+    var notaMedia=data.notas&&data.notas.length?(data.notas.reduce(function(a,b){return a+b;},0)/data.notas.length).toFixed(1):null;
+    var superadosMes=snap?snap.superados:data.superados;
 
     h+='<div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;">';
 
@@ -1345,12 +1393,13 @@ async function renderEvHistorial(jugId){
     h+='<div style="font-size:14px;font-weight:700;">'+mesLabel+'</div>';
     h+='<div style="display:flex;gap:8px;align-items:center;">';
     if(notaMedia){h+='<span style="font-size:11px;background:rgba(29,158,117,0.1);color:#1D9E75;padding:3px 10px;border-radius:6px;">⭐ '+notaMedia+' media</span>';}
-    h+='<span style="font-size:11px;background:rgba(63,185,80,0.1);color:#3fb950;padding:3px 10px;border-radius:6px;">'+data.superados.length+' superados</span>';
+    h+='<span style="font-size:11px;background:rgba(63,185,80,0.1);color:#3fb950;padding:3px 10px;border-radius:6px;">'+(superadosMes.length)+' superados</span>';
+    if(snap){h+='<span style="font-size:10px;color:var(--text3);">📦 Snapshot</span>';}
     h+='</div></div>';
 
     // Microconceptos superados ese mes
     h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:1rem;">';
-    data.superados.forEach(function(o){
+    superadosMes.forEach(function(o){
       var c=FCOLOR[o.fase]||'#888';
       h+='<div style="font-size:11px;background:'+c+'20;border:0.5px solid '+c+'60;color:'+c+';border-radius:6px;padding:3px 10px;">✓ '+o.texto+'</div>';
     });
@@ -1444,6 +1493,18 @@ async function renderMicrosEv(jugId){
   g.style.cssText='background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;';
   g.innerHTML=h;
   var last=cont.lastElementChild;if(last)cont.insertBefore(g,last);else cont.appendChild(g);
+
+  // ── BOTÓN CERRAR MES ──
+  var mesActual=new Date().toLocaleDateString('es',{month:'long',year:'numeric'});
+  mesActual=mesActual.charAt(0).toUpperCase()+mesActual.slice(1);
+  var cerrarDiv=document.createElement('div');
+  cerrarDiv.style.cssText='background:var(--bg);border:0.5px solid rgba(29,158,117,0.3);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;';
+  cerrarDiv.innerHTML=
+    '<div style="font-size:12px;font-weight:700;color:#1D9E75;margin-bottom:10px;">📦 Guardar snapshot del mes</div>'+
+    '<div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Guarda el estado actual de microconceptos en el historial mensual. Ponle un título para identificarlo.</div>'+
+    '<input id="ev-mes-titulo" type="text" value="'+mesActual+'" style="width:100%;height:38px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:8px;padding:0 12px;font-size:13px;color:var(--text);outline:none;margin-bottom:10px;box-sizing:border-box;">'+
+    '<button data-cerrar-mes="'+jugId+'" style="width:100%;height:40px;background:rgba(29,158,117,0.15);border:0.5px solid rgba(29,158,117,0.4);border-radius:8px;color:#1D9E75;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">📦 Guardar snapshot</button>';
+  cont.appendChild(cerrarDiv);
 }
 
 // ─── SESIÓN VÍDEO ───
