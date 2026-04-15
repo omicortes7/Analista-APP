@@ -536,7 +536,7 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
 
     <a class="nav-item" data-page="sesion" onclick="goTo('sesion')" style="--nav-accent:#58a6ff;">
       <span class="nav-icon-box" style="background:linear-gradient(135deg,#58a6ff,#1a6fc4);">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
       </span>
       <span>Reuniones</span>
     </a>
@@ -678,29 +678,24 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
         <div class="page-sub">Seguimiento mensual con IA integrada</div>
       </div>
 
-      <!-- SELECTOR JUGADOR -->
       <div style="background:var(--bg2);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.5rem;">
-        <div class="field">
-          <label>Jugador</label>
-          <select id="reun-jug" onchange="onReunJugChange()">
-            <option value="">Selecciona jugador...</option>
-          </select>
+        <div class="field"><label>Jugador</label>
+          <select id="reun-jug" onchange="onReunJugChange()"><option value="">Selecciona jugador...</option></select>
         </div>
       </div>
 
-      <!-- TABS -->
       <div style="display:flex;gap:6px;margin-bottom:1.5rem;">
         <button onclick="switchReunTab('cuestionario',this)" id="reuntab-cuestionario" style="flex:1;padding:9px 4px;border-radius:8px;font-size:12px;font-weight:700;background:rgba(88,166,255,0.15);color:#58a6ff;border:0.5px solid rgba(88,166,255,0.3);cursor:pointer;font-family:inherit;">📋 Cuestionario</button>
-        <button onclick="switchReunTab('conclusiones',this)" id="reunTab-conclusiones" style="flex:1;padding:9px 4px;border-radius:8px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">📝 Conclusiones</button>
-        <button onclick="switchReunTab('historial',this)" id="reunTab-historial" style="flex:1;padding:9px 4px;border-radius:8px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">📅 Historial</button>
+        <button onclick="switchReunTab('conclusiones',this)" id="reuntab-conclusiones" style="flex:1;padding:9px 4px;border-radius:8px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">📝 Conclusiones</button>
+        <button onclick="switchReunTab('historial',this)" id="reuntab-historial" style="flex:1;padding:9px 4px;border-radius:8px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">📅 Historial</button>
       </div>
 
       <!-- TAB CUESTIONARIO -->
       <div id="reun-tab-cuestionario">
         <div style="background:var(--bg2);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;border:0.5px solid rgba(88,166,255,0.2);">
-          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#58a6ff;margin-bottom:8px;">🤖 Cuestionario pre-reunión generado por IA</div>
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#58a6ff;margin-bottom:8px;">🤖 Cuestionario pre-reunión con IA</div>
           <div style="font-size:12px;color:var(--text3);margin-bottom:16px;">La IA analiza todo lo registrado por el jugador este mes (bienestar, nutrición, informes, cuestionario mensual) y genera preguntas personalizadas para la reunión.</div>
-          <button onclick="generarCuestionarioAnalistaIA()" style="width:100%;height:40px;background:linear-gradient(135deg,rgba(88,166,255,0.2),rgba(88,166,255,0.1));border:0.5px solid rgba(88,166,255,0.4);border-radius:8px;color:#58a6ff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">✨ Generar cuestionario con IA</button>
+          <button onclick="generarCuestionarioAnalistaIA()" id="btn-gen-cues" style="width:100%;height:40px;background:linear-gradient(135deg,rgba(88,166,255,0.2),rgba(88,166,255,0.1));border:0.5px solid rgba(88,166,255,0.4);border-radius:8px;color:#58a6ff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">✨ Generar cuestionario con IA</button>
         </div>
         <div id="reun-cuestionario-result" style="display:none;">
           <div style="background:var(--bg2);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;">
@@ -714,21 +709,17 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
 
       <!-- TAB CONCLUSIONES -->
       <div id="reun-tab-conclusiones" style="display:none;">
-        <!-- Bloque 1: Subir conclusiones -->
         <div style="background:var(--bg2);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;border:0.5px solid rgba(163,113,247,0.2);">
           <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#a371f7;margin-bottom:8px;">📝 Tus conclusiones de la reunión</div>
-          <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Escribe lo que has sacado de la reunión. Queda guardado con fecha en el historial del jugador.</div>
           <input type="text" id="reun-titulo" placeholder="Título (ej: Reunión Mayo 2026)" style="width:100%;height:38px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;padding:0 12px;font-size:13px;color:var(--text);outline:none;margin-bottom:10px;box-sizing:border-box;">
-          <textarea id="reun-conclusiones-texto" rows="6" placeholder="Escribe tus conclusiones de la reunión..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);resize:vertical;font-family:inherit;outline:none;margin-bottom:10px;box-sizing:border-box;"></textarea>
+          <textarea id="reun-conclusiones-texto" rows="6" placeholder="Escribe tus conclusiones..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);resize:vertical;font-family:inherit;outline:none;margin-bottom:10px;box-sizing:border-box;"></textarea>
           <button onclick="guardarConclusionesReunion()" style="width:100%;height:40px;background:rgba(163,113,247,0.15);border:0.5px solid rgba(163,113,247,0.4);border-radius:8px;color:#a371f7;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar conclusiones</button>
           <div id="reun-conc-msg" style="display:none;text-align:center;margin-top:8px;font-size:12px;color:#3fb950;font-weight:600;">✅ Conclusiones guardadas</div>
         </div>
-
-        <!-- Bloque 2: Resumen IA post-reunión -->
-        <div style="background:var(--bg2);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;border:0.5px solid rgba(210,153,34,0.2);">
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:1.25rem;border:0.5px solid rgba(210,153,34,0.2);">
           <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#d29922;margin-bottom:8px;">🧠 Resumen IA post-reunión</div>
           <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">La IA consolida el estado del jugador y genera una nota de lo que vigilar el próximo mes.</div>
-          <button onclick="generarResumenPostReunion()" style="width:100%;height:40px;background:linear-gradient(135deg,rgba(210,153,34,0.2),rgba(210,153,34,0.1));border:0.5px solid rgba(210,153,34,0.4);border-radius:8px;color:#d29922;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🧠 Generar resumen con IA</button>
+          <button onclick="generarResumenPostReunion()" id="btn-gen-res" style="width:100%;height:40px;background:linear-gradient(135deg,rgba(210,153,34,0.2),rgba(210,153,34,0.1));border:0.5px solid rgba(210,153,34,0.4);border-radius:8px;color:#d29922;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🧠 Generar resumen con IA</button>
           <div id="reun-resumen-result" style="display:none;margin-top:12px;">
             <div id="reun-resumen-texto" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;background:var(--bg3);border-radius:8px;padding:12px;"></div>
             <button onclick="guardarResumenReunion()" style="width:100%;height:38px;margin-top:10px;background:rgba(63,185,80,0.1);border:0.5px solid rgba(63,185,80,0.3);border-radius:8px;color:#3fb950;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar resumen</button>
@@ -740,13 +731,14 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
       <div id="reun-tab-historial" style="display:none;">
         <div style="background:var(--bg2);border-radius:var(--radius);padding:1.25rem;">
           <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:12px;">Historial de reuniones</div>
-          <div id="reun-historial-lista">
-            <div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px;">Sin reuniones registradas todavía.</div>
-          </div>
+          <div id="reun-historial-lista"><div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px;">Sin reuniones todavía.</div></div>
         </div>
       </div>
 
-    id="page-plantillas">
+    </div>
+
+    <!-- PLANTILLAS POR CATEGORÍA -->
+    <div class="page" id="page-plantillas">
       <div class="page-header">
         <div class="page-title">Plantillas por categoría</div>
         <div class="page-sub">Tareas y preguntas adaptadas por edad · Base neurocientífica</div>
