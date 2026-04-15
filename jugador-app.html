@@ -52,14 +52,24 @@ body {
 
 /* PC — permitir scroll normal */
 @media (min-width: 768px) {
+  html, body {
+    height: auto !important;
+    overflow: auto !important;
+  }
   #app-screen {
-    height: auto;
+    height: auto !important;
     min-height: 100vh;
-    overflow: visible;
+    overflow: visible !important;
+    display: block !important;
   }
   .secs {
-    overflow-y: visible;
-    height: auto;
+    overflow-y: visible !important;
+    height: auto !important;
+    padding-bottom: 80px;
+  }
+  .bnav {
+    position: fixed;
+    bottom: 0;
   }
 }
 
