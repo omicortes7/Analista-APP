@@ -761,11 +761,22 @@ async function superarObj(oid){
   showToast('✅ Superado: '+obj.texto);
   renderDT('obj');
 }
-// Event listener global para botones data-superar-id
+// Event listener global para botones data-superar-id y data-deshacer-id
 document.addEventListener('click',function(e){
   var btn=e.target.closest('[data-superar-id]');
-  if(btn){superarObj(btn.getAttribute('data-superar-id'));}
+  if(btn){superarObj(btn.getAttribute('data-superar-id'));return;}
+  var btn2=e.target.closest('[data-deshacer-id]');
+  if(btn2){deshacerSuperado(btn2.getAttribute('data-deshacer-id'));}
 });
+async function deshacerSuperado(oid){
+  var obj=state.objetivos.find(function(o){return o.id===oid;});
+  if(!obj)return;
+  var res=await DB.from('objetivos').update({superado:false,fecha_superado:null}).eq('id',oid);
+  if(res.error){showToast('Error: '+res.error.message);return;}
+  state.objetivos=state.objetivos.map(function(o){return o.id===oid?Object.assign({},o,{superado:false,fecha_superado:null}):o;});
+  showToast('↩ Deshecho: '+obj.texto);
+  renderDT('obj');
+}
 async function addObs(){const txt=document.getElementById('obta')?.value.trim();if(!txt)return;const{data,error}=await DB.from('observaciones').insert({jugador_id:state.currentJugador,partido:document.getElementById('obpa').value.trim()||'Partido',fecha:new Date().toISOString().slice(0,10),texto:txt}).select();if(error){showToast('Error');return;}state.observaciones.unshift(data[0]);document.getElementById('obta').value='';document.getElementById('obpa').value='';renderDT('obs');renderInicio();}
 async function setSes(){const fecha=document.getElementById('vidf')?.value;await DB.from('jugadores').update({sesion_fecha:fecha||null}).eq('id',state.currentJugador);const j=state.jugadores.find(x=>x.id===state.currentJugador);if(j)j.sesion_fecha=fecha||null;renderInicio();showToast('Fecha guardada');}
 async function addNota(){const txt=document.getElementById('nota')?.value.trim();if(!txt)return;const{data,error}=await DB.from('notas_video').insert({jugador_id:state.currentJugador,fecha:new Date().toISOString().slice(0,10),texto:txt}).select();if(error){showToast('Error');return;}state.notasVideo.unshift(data[0]);document.getElementById('nota').value='';renderDT('vid');}
@@ -1201,7 +1212,7 @@ function rEv(){
     </div>`:''}
     <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
       <div style="font-size:12px;font-weight:500;margin-bottom:.875rem;">Progreso por objetivo</div>
-      ${objs.length?objs.map((o,i)=>{const pct=Math.max(10,Math.min(100,Math.round((obs.length/(obs.length+2))*100))-i*12);const fc=FASES.find(f=>f.id===o.fase);const col=fc?fc.dot:'#888';return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-size:11px;flex:1;line-height:1.4;">${o.texto} ${getFaseBadge(o.fase)}</div><div style="width:80px;height:5px;background:var(--bg2);border-radius:99px;flex-shrink:0;"><div style="width:${pct}%;height:5px;border-radius:99px;background:${col};"></div></div><div style="font-size:10px;color:var(--text2);min-width:26px;text-align:right;">${pct}%</div></div>`;}).join(''):'<div style="font-size:12px;color:var(--text3);">Sin objetivos.</div>'}
+      ${objs.length?objs.map((o,i)=>{const pct=o.superado?100:Math.max(10,Math.min(90,Math.round((obs.length/(obs.length+2))*100))-i*12);const fc=FASES.find(f=>f.id===o.fase);const col=fc?fc.dot:'#888';return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-size:11px;flex:1;line-height:1.4;">${o.texto} ${getFaseBadge(o.fase)}</div><div style="width:80px;height:5px;background:var(--bg2);border-radius:99px;flex-shrink:0;"><div style="width:${pct}%;height:5px;border-radius:99px;background:${col};"></div></div><div style="font-size:10px;color:var(--text2);min-width:26px;text-align:right;">${pct}%</div></div>`;}).join(''):'<div style="font-size:12px;color:var(--text3);">Sin objetivos.</div>'}
     </div>
     <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;">
       <div style="font-size:12px;font-weight:500;margin-bottom:.875rem;">Línea de tiempo</div>
@@ -1240,7 +1251,7 @@ async function renderMicrosEv(jugId){
     meses.forEach(function(mes){var items=porMes[mes],p=mes.split('-');
       var lbl=new Date(p[0],parseInt(p[1])-1).toLocaleDateString('es',{month:'short',year:'numeric'});
       h+='<div style="margin-bottom:10px;"><div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:4px;">'+lbl+' · '+items.length+' micro'+(items.length!==1?'s':'')+'</div><div style="display:flex;flex-wrap:wrap;gap:4px;">';
-      items.forEach(function(o){var c=FCOLOR[o.fase]||'#888';h+='<div style="font-size:11px;background:'+c+'20;border:0.5px solid '+c+'60;color:'+c+';border-radius:6px;padding:3px 8px;">✓ '+o.texto+'</div>';});
+      items.forEach(function(o){var c=FCOLOR[o.fase]||'#888';h+='<div style="display:flex;align-items:center;gap:4px;font-size:11px;background:'+c+'20;border:0.5px solid '+c+'60;color:'+c+';border-radius:6px;padding:3px 8px;">✓ '+o.texto+'<button data-deshacer-id="'+o.id+'" title="Deshacer" style="background:none;border:none;cursor:pointer;color:'+c+';font-size:10px;padding:0;margin-left:2px;opacity:0.7;">↩</button></div>';});
       h+='</div></div>';});
     h+='</div>';}
   if(!total)h+='<div style="font-size:12px;color:var(--text3);text-align:center;padding:1rem;">Sin microconceptos todavía. Usa ✓ en los objetivos del jugador.</div>';
