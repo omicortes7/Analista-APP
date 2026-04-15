@@ -1249,22 +1249,19 @@ NUTRICIÓN: ${nutricion.data?.length || 0} días registrados de los últimos 7
   `.trim();
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        system:`Eres un asistente para Omar Cortés Ferrero, analista individual de fútbol. 
-Genera exactamente 8 preguntas profundas y personalizadas para una reunión mensual de seguimiento con el jugador.
-Las preguntas deben basarse en los datos reales proporcionados — detecta patrones, contradicciones o áreas de atención.
-Responde SOLO con un JSON: {"preguntas": ["pregunta1","pregunta2",...]}
-Sin texto adicional, sin markdown.`,
-        messages:[{role:'user', content:`Datos del jugador:
+    const prompt1 = `Eres un asistente para Omar Cortés Ferrero, analista individual de fútbol.
+Datos del jugador:
 ${ctx}
 
-Genera 8 preguntas personalizadas para la reunión.`}]
-      })
+Genera exactamente 8 preguntas profundas y personalizadas para una reunión mensual de seguimiento.
+Las preguntas deben basarse en los datos reales — detecta patrones, contradicciones o áreas de atención.
+Responde SOLO con un JSON: {"preguntas": ["pregunta1","pregunta2",...]}
+Sin texto adicional, sin markdown.`;
+
+    const res = await fetch('https://ghxwdauwrzupjmrujcns.supabase.co/functions/v1/smart-api', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U'},
+      body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:prompt1}]})
     });
     const data = await res.json();
     const txt = data.content?.[0]?.text || '{}';
@@ -1370,23 +1367,22 @@ Mood medio últimas 2 semanas: ${moodMedio}/5
   `.trim();
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:800,
-        system:`Eres el asistente de Omar Cortés Ferrero, analista de fútbol. 
+    const prompt2 = `Eres el asistente de Omar Cortés Ferrero, analista de fútbol.
 Genera un resumen post-reunión conciso (máx 300 palabras) con:
 1. Estado actual del jugador en 2-3 líneas
 2. Puntos clave trabajados en la reunión (3-4 bullets)
 3. Lo que vigilar el próximo mes (2-3 puntos concretos)
-Sé directo y práctico. Sin florituras.`,
-        messages:[{role:'user', content:ctx}]
-      })
+Sé directo y práctico. Sin florituras.
+
+${ctx}`;
+
+    const res = await fetch('https://ghxwdauwrzupjmrujcns.supabase.co/functions/v1/smart-api', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U'},
+      body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,messages:[{role:'user',content:prompt2}]})
     });
     const data = await res.json();
-    const txt = data.content?.[0]?.text || 'Error al generar';
+    const txt = data.content?.[0]?.text || 'Error al generar'
     document.getElementById('reun-resumen-texto').textContent = txt;
     document.getElementById('reun-resumen-result').style.display='block';
     window._reunResumenTexto = txt;
