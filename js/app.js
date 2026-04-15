@@ -1201,258 +1201,201 @@ function fillReunSel(){
 }
 
 function onReunJugChange(){
-  const jugId = document.getElementById('reun-jug')?.value;
+  const jugId=document.getElementById('reun-jug')?.value;
   if(!jugId) return;
   loadReunHistorial(jugId);
-  loadReunConclusiones(jugId);
 }
 
-function switchReunTab(tab, btn){
+function switchReunTab(tab,btn){
   ['cuestionario','conclusiones','historial'].forEach(t=>{
     const el=document.getElementById('reun-tab-'+t);
-    if(el) el.style.display = t===tab?'block':'none';
-    const b=document.getElementById('reuntab-'+t) || document.getElementById('reunTab-'+t);
+    if(el) el.style.display=t===tab?'block':'none';
+    const b=document.getElementById('reuntab-'+t);
     if(b){
-      b.style.background = t===tab?'rgba(88,166,255,0.15)':'none';
-      b.style.color = t===tab?'#58a6ff':'var(--text3)';
-      b.style.borderColor = t===tab?'rgba(88,166,255,0.3)':'var(--border2)';
+      b.style.background=t===tab?'rgba(88,166,255,0.15)':'none';
+      b.style.color=t===tab?'#58a6ff':'var(--text3)';
+      b.style.borderColor=t===tab?'rgba(88,166,255,0.3)':'var(--border2)';
     }
   });
-  const jugId = document.getElementById('reun-jug')?.value;
-  if(tab==='historial' && jugId) loadReunHistorial(jugId);
-  if(tab==='conclusiones' && jugId) loadReunConclusiones(jugId);
+  const jugId=document.getElementById('reun-jug')?.value;
+  if(tab==='historial'&&jugId) loadReunHistorial(jugId);
 }
 
-// ─── BLOQUE 1: CUESTIONARIO IA PRE-REUNIÓN ───
 async function generarCuestionarioAnalistaIA(){
-  const jugId = document.getElementById('reun-jug')?.value;
+  const jugId=document.getElementById('reun-jug')?.value;
   if(!jugId){ showToast('Selecciona un jugador primero'); return; }
-  const jug = state.jugadores.find(x=>x.id===jugId);
-
-  const btn = document.querySelector('[onclick="generarCuestionarioAnalistaIA()"]');
+  const jug=state.jugadores.find(x=>x.id===jugId);
+  const btn=document.getElementById('btn-gen-cues');
   if(btn){ btn.textContent='⏳ Generando...'; btn.disabled=true; }
 
-  // Recoger datos del jugador
-  const [mensuales, bienestar, informes, nutricion] = await Promise.all([
-    window.DB.from('psico_mensual').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(2),
-    window.DB.from('psico_diario').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(14),
-    window.DB.from('informes_partido').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(4),
-    window.DB.from('nutricion_log').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(7)
+  const [r1,r2,r3,r4]=await Promise.all([
+    DB.from('psico_mensual').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(1),
+    DB.from('psico_diario').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(14),
+    DB.from('informes_partido').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(4),
+    DB.from('nutricion_log').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(7)
   ]);
 
-  const ctx = `
-Jugador: ${jug.nombre} · ${jug.posicion}
-CUESTIONARIO MENSUAL (último): ${JSON.stringify(mensuales.data?.[0] || {})}
-BIENESTAR ÚLTIMAS 2 SEMANAS: mood medio ${bienestar.data?.length ? (bienestar.data.reduce((a,b)=>a+(b.mood||0),0)/bienestar.data.length).toFixed(1) : 'N/A'}, energía media ${bienestar.data?.length ? (bienestar.data.reduce((a,b)=>a+(b.energia||0),0)/bienestar.data.length).toFixed(1) : 'N/A'}
-ÚLTIMOS INFORMES: ${informes.data?.map(i=>`[${i.fecha}] nota:${i.nota_global}`).join(', ') || 'Sin informes'}
-NUTRICIÓN: ${nutricion.data?.length || 0} días registrados de los últimos 7
-  `.trim();
+  const moodMed=r2.data?.length?(r2.data.reduce((a,b)=>a+(b.mood||0),0)/r2.data.length).toFixed(1):'N/A';
+  const ctx=`Jugador: ${jug.nombre} · ${jug.posicion}
+Cuestionario mensual: ${JSON.stringify(r1.data?.[0]||{})}
+Bienestar: mood medio ${moodMed}/5, ${r2.data?.length||0} registros
+Informes: ${r3.data?.map(i=>`[${i.fecha}] nota:${i.nota_global}`).join(', ')||'Sin informes'}
+Nutrición: ${r4.data?.length||0} días registrados`;
 
-  try {
-    const prompt1 = `Eres un asistente para Omar Cortés Ferrero, analista individual de fútbol.
-Datos del jugador:
+  try{
+    const prompt=`Eres el asistente de Omar Cortés Ferrero, analista de fútbol.
+Datos del jugador este mes:
 ${ctx}
 
-Genera exactamente 8 preguntas profundas y personalizadas para una reunión mensual de seguimiento.
-Las preguntas deben basarse en los datos reales — detecta patrones, contradicciones o áreas de atención.
-Responde SOLO con un JSON: {"preguntas": ["pregunta1","pregunta2",...]}
-Sin texto adicional, sin markdown.`;
+Genera exactamente 8 preguntas profundas y personalizadas para la reunión mensual.
+Detecta patrones, contradicciones o señales de alerta en los datos.
+Responde SOLO con JSON: {"preguntas":["pregunta1","pregunta2",...]}`;
 
-    const res = await fetch('https://ghxwdauwrzupjmrujcns.supabase.co/functions/v1/smart-api', {
+    const res=await fetch('https://ghxwdauwrzupjmrujcns.supabase.co/functions/v1/smart-api',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U'},
-      body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:prompt1}]})
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:prompt}]})
     });
-    const data = await res.json();
-    const txt = data.content?.[0]?.text || '{}';
-    const clean = txt.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(clean);
-    const preguntas = parsed.preguntas || [];
+    const data=await res.json();
+    const txt=data.content?.[0]?.text||'{}';
+    const clean=txt.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    const preguntas=parsed.preguntas||[];
 
-    const lista = document.getElementById('reun-preguntas-lista');
+    const lista=document.getElementById('reun-preguntas-lista');
     if(lista){
-      lista.innerHTML = preguntas.map((p,i)=>`
+      lista.innerHTML=preguntas.map((p,i)=>`
         <div style="margin-bottom:14px;">
           <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px;">${i+1}. ${p}</div>
-          <textarea rows="2" id="reun-resp-${i}" placeholder="Anota aquí tu observación..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;box-sizing:border-box;"></textarea>
-        </div>
-      `).join('');
+          <textarea rows="2" id="reun-resp-${i}" placeholder="Tu observación..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;box-sizing:border-box;"></textarea>
+        </div>`).join('');
       document.getElementById('reun-cuestionario-result').style.display='block';
-      window._reunPreguntas = preguntas;
+      window._reunPreguntas=preguntas;
     }
-  } catch(e){
-    showToast('Error al generar: '+e.message);
-  }
+  }catch(e){ showToast('Error IA: '+e.message); }
   if(btn){ btn.textContent='✨ Generar cuestionario con IA'; btn.disabled=false; }
 }
 
 async function guardarCuestionarioReunion(){
-  const jugId = document.getElementById('reun-jug')?.value;
-  if(!jugId){ showToast('Selecciona un jugador'); return; }
-  const preguntas = window._reunPreguntas || [];
-  const respuestas = preguntas.map((_,i)=>({
-    pregunta: preguntas[i],
-    respuesta: document.getElementById(`reun-resp-${i}`)?.value.trim() || ''
+  const jugId=document.getElementById('reun-jug')?.value;
+  if(!jugId){ showToast('Selecciona jugador'); return; }
+  const preguntas=window._reunPreguntas||[];
+  const respuestas=preguntas.map((_,i)=>({
+    pregunta:preguntas[i],
+    respuesta:document.getElementById(`reun-resp-${i}`)?.value.trim()||''
   }));
-
-  const { error } = await window.DB.from('reuniones').insert({
-    jugador_id: jugId,
-    fecha: new Date().toISOString().slice(0,10),
-    tipo: 'cuestionario',
-    contenido: JSON.stringify(respuestas)
+  const {error}=await DB.from('reuniones').insert({
+    jugador_id:jugId,fecha:new Date().toISOString().slice(0,10),
+    tipo:'cuestionario',contenido:JSON.stringify(respuestas)
   });
-
   if(error){ showToast('Error: '+error.message); return; }
   document.getElementById('reun-cues-msg').style.display='block';
-  setTimeout(()=>{ document.getElementById('reun-cues-msg').style.display='none'; },3000);
+  setTimeout(()=>document.getElementById('reun-cues-msg').style.display='none',3000);
   showToast('✅ Cuestionario guardado');
 }
 
-// ─── BLOQUE 2: CONCLUSIONES ───
 async function guardarConclusionesReunion(){
-  const jugId = document.getElementById('reun-jug')?.value;
-  const titulo = document.getElementById('reun-titulo')?.value.trim();
-  const texto = document.getElementById('reun-conclusiones-texto')?.value.trim();
-  if(!jugId){ showToast('Selecciona un jugador'); return; }
+  const jugId=document.getElementById('reun-jug')?.value;
+  const titulo=document.getElementById('reun-titulo')?.value.trim();
+  const texto=document.getElementById('reun-conclusiones-texto')?.value.trim();
+  if(!jugId){ showToast('Selecciona jugador'); return; }
   if(!texto){ showToast('Escribe las conclusiones'); return; }
-
-  const { error } = await window.DB.from('reuniones').insert({
-    jugador_id: jugId,
-    fecha: new Date().toISOString().slice(0,10),
-    tipo: 'conclusiones',
-    titulo: titulo || 'Reunión '+new Date().toISOString().slice(0,7),
-    contenido: texto
+  const {error}=await DB.from('reuniones').insert({
+    jugador_id:jugId,fecha:new Date().toISOString().slice(0,10),
+    tipo:'conclusiones',titulo:titulo||'Reunión '+new Date().toISOString().slice(0,7),contenido:texto
   });
-
   if(error){ showToast('Error: '+error.message); return; }
   document.getElementById('reun-titulo').value='';
   document.getElementById('reun-conclusiones-texto').value='';
   document.getElementById('reun-conc-msg').style.display='block';
-  setTimeout(()=>{ document.getElementById('reun-conc-msg').style.display='none'; },3000);
+  setTimeout(()=>document.getElementById('reun-conc-msg').style.display='none',3000);
   showToast('✅ Conclusiones guardadas');
-  loadReunConclusiones(jugId);
+  loadReunHistorial(jugId);
 }
 
-async function loadReunConclusiones(jugId){
-  const { data } = await window.DB.from('reuniones')
-    .select('*').eq('jugador_id',jugId).eq('tipo','conclusiones')
-    .order('fecha',{ascending:false}).limit(6);
-
-  const el = document.getElementById('reun-historial-lista');
-  // también mostramos en tab conclusiones si hay
-}
-
-// ─── BLOQUE 3: RESUMEN IA POST-REUNIÓN ───
 async function generarResumenPostReunion(){
-  const jugId = document.getElementById('reun-jug')?.value;
-  if(!jugId){ showToast('Selecciona un jugador primero'); return; }
-  const jug = state.jugadores.find(x=>x.id===jugId);
-
-  const btn = document.querySelector('[onclick="generarResumenPostReunion()"]');
+  const jugId=document.getElementById('reun-jug')?.value;
+  if(!jugId){ showToast('Selecciona jugador primero'); return; }
+  const jug=state.jugadores.find(x=>x.id===jugId);
+  const btn=document.getElementById('btn-gen-res');
   if(btn){ btn.textContent='⏳ Generando...'; btn.disabled=true; }
 
-  const [conclusiones, mensuales, bienestar] = await Promise.all([
-    window.DB.from('reuniones').select('*').eq('jugador_id',jugId).eq('tipo','conclusiones').order('fecha',{ascending:false}).limit(1),
-    window.DB.from('psico_mensual').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(1),
-    window.DB.from('psico_diario').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(14)
+  const [r1,r2,r3]=await Promise.all([
+    DB.from('reuniones').select('*').eq('jugador_id',jugId).eq('tipo','conclusiones').order('fecha',{ascending:false}).limit(1),
+    DB.from('psico_mensual').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(1),
+    DB.from('psico_diario').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(14)
   ]);
+  const moodMed=r3.data?.length?(r3.data.reduce((a,b)=>a+(b.mood||0),0)/r3.data.length).toFixed(1):'N/A';
+  const ctx=`Jugador: ${jug.nombre} · ${jug.posicion}
+Conclusiones reunión: ${r1.data?.[0]?.contenido||'Sin conclusiones'}
+Cuestionario mensual: ${JSON.stringify(r2.data?.[0]||{})}
+Mood medio 2 semanas: ${moodMed}/5`;
 
-  const moodMedio = bienestar.data?.length ? (bienestar.data.reduce((a,b)=>a+(b.mood||0),0)/bienestar.data.length).toFixed(1) : 'N/A';
-
-  const ctx = `
-Jugador: ${jug.nombre} · ${jug.posicion}
-Conclusiones de la reunión: ${conclusiones.data?.[0]?.contenido || 'Sin conclusiones escritas'}
-Cuestionario mensual: ${JSON.stringify(mensuales.data?.[0] || {})}
-Mood medio últimas 2 semanas: ${moodMedio}/5
-  `.trim();
-
-  try {
-    const prompt2 = `Eres el asistente de Omar Cortés Ferrero, analista de fútbol.
-Genera un resumen post-reunión conciso (máx 300 palabras) con:
-1. Estado actual del jugador en 2-3 líneas
-2. Puntos clave trabajados en la reunión (3-4 bullets)
-3. Lo que vigilar el próximo mes (2-3 puntos concretos)
-Sé directo y práctico. Sin florituras.
+  try{
+    const prompt=`Eres el asistente de Omar Cortés Ferrero, analista de fútbol.
+Genera un resumen post-reunión conciso (máx 250 palabras):
+1. Estado actual del jugador (2-3 líneas)
+2. Puntos clave trabajados (3-4 bullets)
+3. Qué vigilar el próximo mes (2-3 puntos)
+Sé directo. Sin florituras.
 
 ${ctx}`;
-
-    const res = await fetch('https://ghxwdauwrzupjmrujcns.supabase.co/functions/v1/smart-api', {
+    const res=await fetch('https://ghxwdauwrzupjmrujcns.supabase.co/functions/v1/smart-api',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U'},
-      body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,messages:[{role:'user',content:prompt2}]})
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,messages:[{role:'user',content:prompt}]})
     });
-    const data = await res.json();
-    const txt = data.content?.[0]?.text || 'Error al generar'
-    document.getElementById('reun-resumen-texto').textContent = txt;
+    const data=await res.json();
+    const txt=data.content?.[0]?.text||'Error';
+    document.getElementById('reun-resumen-texto').textContent=txt;
     document.getElementById('reun-resumen-result').style.display='block';
-    window._reunResumenTexto = txt;
-  } catch(e){
-    showToast('Error: '+e.message);
-  }
+    window._reunResumenTexto=txt;
+  }catch(e){ showToast('Error IA: '+e.message); }
   if(btn){ btn.textContent='🧠 Generar resumen con IA'; btn.disabled=false; }
 }
 
 async function guardarResumenReunion(){
-  const jugId = document.getElementById('reun-jug')?.value;
-  if(!jugId || !window._reunResumenTexto){ showToast('Genera el resumen primero'); return; }
-
-  const { error } = await window.DB.from('reuniones').insert({
-    jugador_id: jugId,
-    fecha: new Date().toISOString().slice(0,10),
-    tipo: 'resumen_ia',
-    contenido: window._reunResumenTexto
+  const jugId=document.getElementById('reun-jug')?.value;
+  if(!jugId||!window._reunResumenTexto){ showToast('Genera el resumen primero'); return; }
+  const {error}=await DB.from('reuniones').insert({
+    jugador_id:jugId,fecha:new Date().toISOString().slice(0,10),
+    tipo:'resumen_ia',contenido:window._reunResumenTexto
   });
-
   if(error){ showToast('Error: '+error.message); return; }
   showToast('✅ Resumen guardado');
   loadReunHistorial(jugId);
 }
 
-// ─── HISTORIAL ───
 async function loadReunHistorial(jugId){
   if(!jugId) return;
-  const { data } = await window.DB.from('reuniones')
-    .select('*').eq('jugador_id',jugId)
-    .order('fecha',{ascending:false}).limit(20);
-
-  const el = document.getElementById('reun-historial-lista');
+  const {data}=await DB.from('reuniones').select('*').eq('jugador_id',jugId).order('fecha',{ascending:false}).limit(20);
+  const el=document.getElementById('reun-historial-lista');
   if(!el) return;
-  if(!data||!data.length){
-    el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px;">Sin reuniones registradas todavía.</div>';
-    return;
-  }
-
-  // Agrupar por fecha
-  const porFecha = {};
-  data.forEach(r=>{
-    if(!porFecha[r.fecha]) porFecha[r.fecha]=[];
-    porFecha[r.fecha].push(r);
-  });
-
-  el.innerHTML = Object.keys(porFecha).sort((a,b)=>b.localeCompare(a)).map(fecha=>{
-    const items = porFecha[fecha];
-    const tipos = items.map(i=>i.tipo);
+  if(!data||!data.length){ el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px;">Sin reuniones todavía.</div>'; return; }
+  const porFecha={};
+  data.forEach(r=>{ if(!porFecha[r.fecha]) porFecha[r.fecha]=[]; porFecha[r.fecha].push(r); });
+  el.innerHTML=Object.keys(porFecha).sort((a,b)=>b.localeCompare(a)).map(fecha=>{
+    const items=porFecha[fecha];
+    const tipos=items.map(i=>i.tipo);
     return `<div style="border:0.5px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:12px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <span style="font-size:13px;font-weight:700;">${fecha}</span>
-        <div style="display:flex;gap:6px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${tipos.includes('cuestionario')?'<span style="font-size:10px;background:rgba(88,166,255,0.15);color:#58a6ff;padding:2px 8px;border-radius:4px;">📋 Cuestionario</span>':''}
           ${tipos.includes('conclusiones')?'<span style="font-size:10px;background:rgba(163,113,247,0.15);color:#a371f7;padding:2px 8px;border-radius:4px;">📝 Conclusiones</span>':''}
           ${tipos.includes('resumen_ia')?'<span style="font-size:10px;background:rgba(210,153,34,0.15);color:#d29922;padding:2px 8px;border-radius:4px;">🧠 Resumen IA</span>':''}
         </div>
       </div>
       ${items.filter(i=>i.tipo==='conclusiones').map(i=>`
-        <div style="font-size:12px;color:var(--text2);margin-bottom:6px;background:var(--bg3);padding:10px;border-radius:8px;">
-          ${i.titulo ? '<div style="font-size:11px;font-weight:700;margin-bottom:4px;">'+i.titulo+'</div>' : ''}
-          <div style="font-size:12px;color:var(--text3);">${(i.contenido||'').substring(0,200)}${(i.contenido||'').length>200?'...':''}</div>
-        </div>
-      `).join('')}
+        <div style="font-size:12px;background:var(--bg3);padding:10px;border-radius:8px;margin-bottom:6px;">
+          ${i.titulo?`<div style="font-size:11px;font-weight:700;margin-bottom:4px;">${i.titulo}</div>`:''}
+          <div style="color:var(--text3);">${(i.contenido||'').substring(0,200)}${(i.contenido||'').length>200?'...':''}</div>
+        </div>`).join('')}
       ${items.filter(i=>i.tipo==='resumen_ia').map(i=>`
         <div style="font-size:12px;background:rgba(210,153,34,0.05);border:0.5px solid rgba(210,153,34,0.2);padding:10px;border-radius:8px;">
           <div style="font-size:11px;font-weight:700;color:#d29922;margin-bottom:4px;">Resumen IA</div>
           <div style="color:var(--text3);">${(i.contenido||'').substring(0,300)}${(i.contenido||'').length>300?'...':''}</div>
-        </div>
-      `).join('')}
+        </div>`).join('')}
     </div>`;
   }).join('');
 }
