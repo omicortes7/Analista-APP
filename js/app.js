@@ -292,10 +292,8 @@ function renderDT(tab){
       return '<div style="background:var(--bg);border:0.5px solid '+fc.dot+'30;border-left:3px solid '+fc.dot+';border-radius:var(--radius-sm);padding:.875rem;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;">'+
         '<div style="flex:1;"><div style="font-size:13px;margin-bottom:5px;line-height:1.4;">'+o.texto+'</div>'+
         '<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:'+fc.bg+';color:'+fc.color+';">'+(o.fase==='OF'?'Fase ofensiva':o.fase==='DE'?'Fase defensiva':o.fase==='TO'?'T. ofensiva':o.fase==='TD'?'T. defensiva':'General')+'</span></div>'+
-        '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">'+
-        '<button onclick="superarObj(\''+o.id+'\')" style="background:rgba(63,185,80,0.12);border:0.5px solid rgba(63,185,80,0.4);border-radius:6px;cursor:pointer;color:#3fb950;font-size:10px;font-weight:700;padding:3px 8px;">✓ Superado</button>'+
-        '<button onclick="delObj(\''+o.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;line-height:1;">×</button>'+
-        '</div></div>';
+        '<button onclick="delObj(\"'+o.id+'\")" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;line-height:1;">×</button>'+
+        '<button onclick="superarObj(\\"'+o.id+'\\")" style="background:rgba(63,185,80,0.12);border:0.5px solid rgba(63,185,80,0.4);border-radius:6px;color:#3fb950;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;">✓ Superado</button></div>';
     }).join('') :
     '<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px;">Sin objetivos todavía.<br><span style="font-size:11px;">Añade el primero arriba.</span></div>';
 
@@ -751,17 +749,13 @@ function genSesJug(jugId) {
 
 
 async function addObj(){const txt=document.getElementById('obt')?.value.trim();if(!txt)return;const{data,error}=await DB.from('objetivos').insert({jugador_id:state.currentJugador,texto:txt,fase:document.getElementById('obf').value}).select();if(error){showToast('Error');return;}state.objetivos.unshift(data[0]);document.getElementById('obt').value='';renderDT('obj');renderInicio();}
-async function delObj(oid){
-  await DB.from('objetivos').delete().eq('id',oid);
-  state.objetivos=state.objetivos.filter(o=>o.id!==oid);
-  renderDT('obj');
-}
+async function delObj(oid){await DB.from('objetivos').delete().eq('id',oid);state.objetivos=state.objetivos.filter(o=>o.id!==oid);renderDT('obj');}
 async function superarObj(oid){
-  const obj = state.objetivos.find(o=>o.id===oid);
-  if(!obj) return;
-  const fecha = new Date().toISOString().slice(0,10);
-  await DB.from('objetivos').update({superado:true, fecha_superado:fecha}).eq('id',oid);
-  state.objetivos = state.objetivos.map(o=>o.id===oid?{...o,superado:true,fecha_superado:fecha}:o);
+  var obj=state.objetivos.find(function(o){return o.id===oid;});
+  if(!obj)return;
+  var fecha=new Date().toISOString().slice(0,10);
+  await DB.from('objetivos').update({superado:true,fecha_superado:fecha}).eq('id',oid);
+  state.objetivos=state.objetivos.map(function(o){return o.id===oid?Object.assign({},o,{superado:true,fecha_superado:fecha}):o;});
   showToast('✅ Superado: '+obj.texto);
   renderDT('obj');
 }
@@ -1210,82 +1204,54 @@ function rEv(){
 }
 
 async function renderMicrosEv(jugId){
-  const cont=document.getElementById('evcont');
-  if(!cont) return;
-  const {data:superados}=await DB.from('objetivos').select('*').eq('jugador_id',jugId).eq('superado',true).order('fecha_superado',{ascending:true});
-  const activos=getObjJugador(jugId).filter(o=>!o.superado);
-  const total=(superados?.length||0)+activos.length;
-  const pct=total?Math.round(((superados?.length||0)/total)*100):0;
-  const FCOLOR={OF:'#1D9E75',DE:'#378ADD',TO:'#E07B00',TD:'#D85A30',GEN:'#7C6FF0'};
-  const FLABEL={OF:'Ofensivo',DE:'Defensivo',TO:'T.Of.',TD:'T.Def.',GEN:'General'};
-
-  const porFase={};
-  (superados||[]).forEach(function(o){var f=o.fase||'GEN';porFase[f]=(porFase[f]||0)+1;});
-  const porMes={};
-  (superados||[]).forEach(function(o){var m=(o.fecha_superado||'').slice(0,7);if(!m)return;if(!porMes[m])porMes[m]=[];porMes[m].push(o);});
-  const meses=Object.keys(porMes).sort();
-
-  var html='<div style="font-size:12px;font-weight:500;margin-bottom:1rem;">📈 Evolución de microconceptos</div>';
-
-  // KPIs
-  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">';
-  html+='<div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#3fb950;">'+(superados?.length||0)+'</div><div style="font-size:10px;color:var(--text3);">Superados</div></div>';
-  html+='<div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#58a6ff;">'+activos.length+'</div><div style="font-size:10px;color:var(--text3);">En progreso</div></div>';
-  html+='<div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#d29922;">'+pct+'%</div><div style="font-size:10px;color:var(--text3);">Completado</div></div>';
-  html+='</div>';
-
-  // Barra progreso
-  html+='<div style="margin-bottom:1rem;">';
-  html+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Progreso global</span><span>'+(superados?.length||0)+' de '+total+'</span></div>';
-  html+='<div style="height:8px;background:var(--bg2);border-radius:99px;overflow:hidden;">';
-  html+='<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#1D9E75,#3fb950);border-radius:99px;"></div>';
-  html+='</div></div>';
-
-  // Por fase
+  var cont=document.getElementById('evcont');
+  if(!cont)return;
+  var r=await DB.from('objetivos').select('*').eq('jugador_id',jugId).eq('superado',true).order('fecha_superado',{ascending:true});
+  var superados=r.data||[];
+  var activos=getObjJugador(jugId).filter(function(o){return !o.superado;});
+  var total=superados.length+activos.length;
+  var pct=total?Math.round((superados.length/total)*100):0;
+  var FCOLOR={OF:'#1D9E75',DE:'#378ADD',TO:'#E07B00',TD:'#D85A30',GEN:'#7C6FF0'};
+  var FLABEL={OF:'Ofensivo',DE:'Defensivo',TO:'T.Of.',TD:'T.Def.',GEN:'General'};
+  var porFase={};
+  superados.forEach(function(o){var f=o.fase||'GEN';porFase[f]=(porFase[f]||0)+1;});
+  var porMes={};
+  superados.forEach(function(o){var m=(o.fecha_superado||'').slice(0,7);if(!m)return;if(!porMes[m])porMes[m]=[];porMes[m].push(o);});
+  var meses=Object.keys(porMes).sort();
+  var h='<div style="font-size:12px;font-weight:500;margin-bottom:1rem;">📈 Evolución de microconceptos</div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">';
+  h+='<div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#3fb950;">'+superados.length+'</div><div style="font-size:10px;color:var(--text3);">Superados</div></div>';
+  h+='<div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#58a6ff;">'+activos.length+'</div><div style="font-size:10px;color:var(--text3);">En progreso</div></div>';
+  h+='<div style="background:var(--bg2);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#d29922;">'+pct+'%</div><div style="font-size:10px;color:var(--text3);">Completado</div></div>';
+  h+='</div>';
+  h+='<div style="margin-bottom:1rem;"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Progreso global</span><span>'+superados.length+' de '+total+'</span></div>';
+  h+='<div style="height:8px;background:var(--bg2);border-radius:99px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#1D9E75,#3fb950);border-radius:99px;"></div></div></div>';
   if(Object.keys(porFase).length){
-    html+='<div style="margin-bottom:1rem;"><div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Por fase</div>';
+    h+='<div style="margin-bottom:1rem;"><div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Por fase</div>';
     var mx=Math.max.apply(null,Object.values(porFase));
     Object.keys(porFase).forEach(function(f){
-      var n=porFase[f];
-      var w=Math.round((n/mx)*100);
-      html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">';
-      html+='<div style="font-size:10px;color:var(--text2);width:55px;">'+(FLABEL[f]||f)+'</div>';
-      html+='<div style="flex:1;height:16px;background:var(--bg2);border-radius:4px;overflow:hidden;">';
-      html+='<div style="height:100%;width:'+w+'%;background:'+(FCOLOR[f]||'#888')+';border-radius:4px;display:flex;align-items:center;padding-left:5px;">';
-      html+='<span style="font-size:10px;font-weight:700;color:#fff;">'+n+'</span></div></div></div>';
+      var n=porFase[f],w=Math.round((n/mx)*100);
+      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="font-size:10px;color:var(--text2);width:55px;">'+(FLABEL[f]||f)+'</div><div style="flex:1;height:16px;background:var(--bg2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:'+w+'%;background:'+(FCOLOR[f]||'#888')+';border-radius:4px;display:flex;align-items:center;padding-left:5px;"><span style="font-size:10px;font-weight:700;color:#fff;">'+n+'</span></div></div></div>';
     });
-    html+='</div>';
+    h+='</div>';
   }
-
-  // Timeline por mes
   if(meses.length){
-    html+='<div><div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Timeline</div>';
+    h+='<div><div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Timeline</div>';
     meses.forEach(function(mes){
-      var items=porMes[mes];
-      var parts=mes.split('-');
-      var lbl=new Date(parts[0],parseInt(parts[1])-1).toLocaleDateString('es',{month:'short',year:'numeric'});
-      html+='<div style="margin-bottom:10px;">';
-      html+='<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:4px;">'+lbl+' · '+items.length+' micro'+(items.length!==1?'s':'')+'</div>';
-      html+='<div style="display:flex;flex-wrap:wrap;gap:4px;">';
-      items.forEach(function(o){
-        var c=FCOLOR[o.fase]||'#888';
-        html+='<div style="font-size:11px;background:'+c+'20;border:0.5px solid '+c+'60;color:'+c+';border-radius:6px;padding:3px 8px;">✓ '+o.texto+'</div>';
-      });
-      html+='</div></div>';
+      var items=porMes[mes],p=mes.split('-');
+      var lbl=new Date(p[0],parseInt(p[1])-1).toLocaleDateString('es',{month:'short',year:'numeric'});
+      h+='<div style="margin-bottom:10px;"><div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:4px;">'+lbl+' · '+items.length+' micro'+(items.length!==1?'s':'')+'</div><div style="display:flex;flex-wrap:wrap;gap:4px;">';
+      items.forEach(function(o){var c=FCOLOR[o.fase]||'#888';h+='<div style="font-size:11px;background:'+c+'20;border:0.5px solid '+c+'60;color:'+c+';border-radius:6px;padding:3px 8px;">✓ '+o.texto+'</div>';});
+      h+='</div></div>';
     });
-    html+='</div>';
+    h+='</div>';
   }
-
-  if(!total){
-    html+='<div style="font-size:12px;color:var(--text3);text-align:center;padding:1rem;">Sin microconceptos todavía. Usa ✓ Superado en los objetivos del jugador.</div>';
-  }
-
-  var grafDiv=document.createElement('div');
-  grafDiv.style.cssText='background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;';
-  grafDiv.innerHTML=html;
+  if(!total)h+='<div style="font-size:12px;color:var(--text3);text-align:center;padding:1rem;">Sin microconceptos todavía. Usa ✓ en los objetivos del jugador.</div>';
+  var g=document.createElement('div');
+  g.style.cssText='background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;';
+  g.innerHTML=h;
   var last=cont.lastElementChild;
-  if(last) cont.insertBefore(grafDiv,last);
-  else cont.appendChild(grafDiv);
+  if(last)cont.insertBefore(g,last);else cont.appendChild(g);
 }
 
 // ─── SESIÓN VÍDEO ───
