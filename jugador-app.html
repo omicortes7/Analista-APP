@@ -468,6 +468,7 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
         <button onclick="switchPsicoTab('diario',this)" id="ptab-diario" style="flex:1;padding:8px 4px;border-radius:8px;font-size:11px;font-weight:700;background:rgba(163,113,247,0.15);color:#a371f7;border:0.5px solid rgba(163,113,247,0.3);cursor:pointer;font-family:inherit;">📅 Diario</button>
         <button onclick="switchPsicoTab('partido',this)" id="ptab-partido" style="flex:1;padding:8px 4px;border-radius:8px;font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">⚽ Partido</button>
         <button onclick="switchPsicoTab('temporada',this)" id="ptab-temporada" style="flex:1;padding:8px 4px;border-radius:8px;font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">🏆 Temporada</button>
+        <button onclick="switchPsicoTab('mensual',this)" id="ptab-mensual" style="flex:1;padding:8px 4px;border-radius:8px;font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;">📋 Mensual</button>
       </div>
 
       <!-- DIARIO -->
@@ -568,6 +569,199 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
           <textarea id="sem-reto" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;"></textarea>
           <button id="btn-save-semanal" style="width:100%;height:40px;background:rgba(163,113,247,0.15);border:0.5px solid rgba(163,113,247,0.4);border-radius:var(--radius-sm);color:#a371f7;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Guardar check-in</button>
         </div>
+
+      <!-- CUESTIONARIO MENSUAL -->
+      <div id="psico-tab-mensual" style="display:none;">
+
+        <div class="card" style="border:0.5px solid rgba(88,166,255,0.3);background:rgba(88,166,255,0.04);">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#58a6ff;margin-bottom:4px;">Cuestionario Mensual Profundo</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:.5rem;">10 bloques · Rellénalo una vez al mes antes de tu reunión</div>
+          <div id="mens-progreso-bar" style="height:4px;border-radius:99px;background:var(--border2);margin-bottom:.875rem;">
+            <div id="mens-progreso-fill" style="height:100%;border-radius:99px;background:#58a6ff;width:0%;transition:width 0.3s;"></div>
+          </div>
+          <div id="mens-progreso-txt" style="font-size:10px;color:var(--text3);text-align:right;margin-top:-8px;margin-bottom:.5rem;">Bloque 1 de 10</div>
+        </div>
+
+        <!-- BLOQUE 1 — SUEÑO -->
+        <div class="card mens-bloque" id="mens-b1">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#58a6ff;margin-bottom:.875rem;">💤 Bloque 1 — Sueño y recuperación</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:4px;">Horas dormidas de media esta semana</div>
+          <input type="number" id="mens-sueno-horas" min="3" max="12" placeholder="ej: 7" style="width:100%;height:38px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;color:var(--text);outline:none;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Calidad del sueño</span><span id="mens-sueno-cal-val">5</span></div>
+          <input type="range" min="1" max="10" value="5" id="mens-sueno-cal" oninput="document.getElementById('mens-sueno-cal-val').textContent=this.value;mensActualizarProgreso()" style="width:100%;height:5px;border-radius:99px;appearance:none;background:var(--border2);outline:none;cursor:pointer;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Cómo te sientes al despertar?</div>
+          <textarea id="mens-sueno-despertar" rows="2" placeholder="Descansado, cansado, pesado..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Tienes dificultad para dormir o te despiertas por la noche?</div>
+          <textarea id="mens-sueno-dificultad" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Necesitas siesta para funcionar bien?</div>
+          <div style="display:flex;gap:8px;margin-bottom:4px;">
+            <button onclick="mensSel('mens-sueno-siesta','si',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;">Sí</button>
+            <button onclick="mensSel('mens-sueno-siesta','no',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;">No</button>
+            <button onclick="mensSel('mens-sueno-siesta','aveces',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;">A veces</button>
+          </div>
+          <input type="hidden" id="mens-sueno-siesta" value="">
+        </div>
+
+        <!-- BLOQUE 2 — CARGA FÍSICA -->
+        <div class="card mens-bloque" id="mens-b2">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#f85149;margin-bottom:.875rem;">💪 Bloque 2 — Carga física y sensaciones corporales</div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Nivel de fatiga general</span><span id="mens-fatiga-val">5</span></div>
+          <input type="range" min="1" max="10" value="5" id="mens-fatiga" oninput="document.getElementById('mens-fatiga-val').textContent=this.value;mensActualizarProgreso()" style="width:100%;height:5px;border-radius:99px;appearance:none;background:var(--border2);outline:none;cursor:pointer;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Tienes pesadez o dolor muscular persistente?</div>
+          <textarea id="mens-fatiga-dolor" rows="2" placeholder="Dónde, cuándo, intensidad..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Hay molestias físicas que no has comunicado?</div>
+          <textarea id="mens-fatiga-molestias" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Sientes que tu cuerpo responde o va por detrás?</div>
+          <div style="display:flex;gap:8px;">
+            <button onclick="mensSel('mens-cuerpo-resp','responde',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Responde bien</button>
+            <button onclick="mensSel('mens-cuerpo-resp','regular',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Regular</button>
+            <button onclick="mensSel('mens-cuerpo-resp','detras',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Va por detrás</button>
+          </div>
+          <input type="hidden" id="mens-cuerpo-resp" value="">
+        </div>
+
+        <!-- BLOQUE 3 — ESTADO EMOCIONAL -->
+        <div class="card mens-bloque" id="mens-b3">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#d29922;margin-bottom:.875rem;">🧠 Bloque 3 — Estado emocional y bienestar general</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">Una palabra que defina este mes</div>
+          <input type="text" id="mens-emoc-palabra" placeholder="ej: intenso, tranquilo, caótico..." style="width:100%;height:38px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;color:var(--text);outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">Estado de ánimo general este mes</div>
+          <div style="display:flex;gap:6px;margin-bottom:10px;">
+            <button onclick="mensSel('mens-emoc-estado','estable',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Estable</button>
+            <button onclick="mensSel('mens-emoc-estado','altibajos',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Altibajos</button>
+            <button onclick="mensSel('mens-emoc-estado','bajo',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Bajo</button>
+          </div>
+          <input type="hidden" id="mens-emoc-estado" value="">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Hubo momentos de desbordamiento emocional?</div>
+          <textarea id="mens-emoc-desborde" rows="2" placeholder="Qué pasó, cuándo..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Momentos de soledad o aislamiento?</div>
+          <textarea id="mens-emoc-soledad" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+        </div>
+
+        <!-- BLOQUE 4 — RENDIMIENTO -->
+        <div class="card mens-bloque" id="mens-b4">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#3fb950;margin-bottom:.875rem;">⚽ Bloque 4 — Rendimiento percibido y autoeficacia</div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Valoración entrenamientos este mes</span><span id="mens-rend-ent-val">5</span></div>
+          <input type="range" min="1" max="10" value="5" id="mens-rend-ent" oninput="document.getElementById('mens-rend-ent-val').textContent=this.value" style="width:100%;height:5px;border-radius:99px;appearance:none;background:var(--border2);outline:none;cursor:pointer;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Valoración partidos este mes</span><span id="mens-rend-par-val">5</span></div>
+          <input type="range" min="1" max="10" value="5" id="mens-rend-par" oninput="document.getElementById('mens-rend-par-val').textContent=this.value" style="width:100%;height:5px;border-radius:99px;appearance:none;background:var(--border2);outline:none;cursor:pointer;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Sientes retroceso en algún aspecto concreto?</div>
+          <textarea id="mens-rend-retroceso" rows="2" placeholder="Qué aspecto, por qué crees que es..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Hay acciones tuyas que no se han reconocido y merecían serlo?</div>
+          <textarea id="mens-rend-reconoc" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+        </div>
+
+        <!-- BLOQUE 5 — MOTIVACIÓN -->
+        <div class="card mens-bloque" id="mens-b5">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#a371f7;margin-bottom:.875rem;">🔥 Bloque 5 — Motivación, propósito y disfrute</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Cómo describes tu disfrute del fútbol ahora mismo?</div>
+          <div style="display:flex;gap:6px;margin-bottom:10px;">
+            <button onclick="mensSel('mens-mot-disfrute','ilusion',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Ilusión</button>
+            <button onclick="mensSel('mens-mot-disfrute','rutina',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Rutina</button>
+            <button onclick="mensSel('mens-mot-disfrute','obligacion',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Obligación</button>
+          </div>
+          <input type="hidden" id="mens-mot-disfrute" value="">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Sientes progreso o estancamiento este mes?</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button onclick="mensSel('mens-mot-progreso','progreso',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;">Progreso</button>
+            <button onclick="mensSel('mens-mot-progreso','estancado',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;">Estancado</button>
+          </div>
+          <input type="hidden" id="mens-mot-progreso" value="">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Algo del fútbol que te genere ilusión ahora mismo?</div>
+          <textarea id="mens-mot-ilusion" rows="2" placeholder="Un objetivo, un rival, una situación..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;" oninput="mensActualizarProgreso()"></textarea>
+        </div>
+
+        <!-- BLOQUE 6 — CONFIANZA -->
+        <div class="card mens-bloque" id="mens-b6">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#58a6ff;margin-bottom:.875rem;">🎯 Bloque 6 — Confianza y diálogo interno</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Cómo ha sido tu voz interna este mes?</div>
+          <div style="display:flex;gap:6px;margin-bottom:10px;">
+            <button onclick="mensSel('mens-conf-voz','afavor',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">A favor</button>
+            <button onclick="mensSel('mens-conf-voz','mixta',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Mixta</button>
+            <button onclick="mensSel('mens-conf-voz','encontra',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">En contra</button>
+          </div>
+          <input type="hidden" id="mens-conf-voz" value="">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Cómo reaccionas al error? ¿Cuánto tardas en soltarlo?</div>
+          <textarea id="mens-conf-error" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Situaciones de juego que te generan miedo o inseguridad?</div>
+          <textarea id="mens-conf-miedo" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;"></textarea>
+        </div>
+
+        <!-- BLOQUE 7 — RELACIONES -->
+        <div class="card mens-bloque" id="mens-b7">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#3fb950;margin-bottom:.875rem;">🤝 Bloque 7 — Relaciones en el equipo</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Cómo es tu relación con los compañeros este mes?</div>
+          <div style="display:flex;gap:6px;margin-bottom:10px;">
+            <button onclick="mensSel('mens-rel-comp','bien',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Bien</button>
+            <button onclick="mensSel('mens-rel-comp','regular',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Regular</button>
+            <button onclick="mensSel('mens-rel-comp','tension',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Con tensión</button>
+          </div>
+          <input type="hidden" id="mens-rel-comp" value="">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Sientes que el entrenador te ve y confía en ti?</div>
+          <textarea id="mens-rel-entren" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Algo que no te hayas atrevido a decirle al entrenador?</div>
+          <textarea id="mens-rel-nodijo" rows="2" placeholder="Esto queda solo entre nosotros..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;"></textarea>
+        </div>
+
+        <!-- BLOQUE 8 — VIDA FUERA -->
+        <div class="card mens-bloque" id="mens-b8">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#d29922;margin-bottom:.875rem;">🏠 Bloque 8 — Vida fuera del campo</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Cómo ha sido la semana fuera del fútbol?</div>
+          <textarea id="mens-vida-general" rows="2" placeholder="Estudios, trabajo, familia..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Nivel de estrés académico o laboral?</div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Estrés externo</span><span id="mens-vida-estres-val">5</span></div>
+          <input type="range" min="1" max="10" value="5" id="mens-vida-estres" oninput="document.getElementById('mens-vida-estres-val').textContent=this.value" style="width:100%;height:5px;border-radius:99px;appearance:none;background:var(--border2);outline:none;cursor:pointer;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Hay algo que te esté pesando fuera del campo?</div>
+          <textarea id="mens-vida-peso" rows="2" placeholder="Puedes ser tan específico como quieras..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;"></textarea>
+        </div>
+
+        <!-- BLOQUE 9 — IDENTIDAD -->
+        <div class="card mens-bloque" id="mens-b9">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#a371f7;margin-bottom:.875rem;">🏅 Bloque 9 — Identidad y presión externa</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Sientes que juegas para ti o para otros?</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button onclick="mensSel('mens-id-paraquien','parami',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Para mí</button>
+            <button onclick="mensSel('mens-id-paraquien','mixto',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Mixto</button>
+            <button onclick="mensSel('mens-id-paraquien','paraotros',this)" class="mens-opt-btn" style="flex:1;padding:8px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;">Para otros</button>
+          </div>
+          <input type="hidden" id="mens-id-paraquien" value="">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Cuánta presión sientes del entorno sobre tu rendimiento?</div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Presión externa</span><span id="mens-id-presion-val">5</span></div>
+          <input type="range" min="1" max="10" value="5" id="mens-id-presion" oninput="document.getElementById('mens-id-presion-val').textContent=this.value" style="width:100%;height:5px;border-radius:99px;appearance:none;background:var(--border2);outline:none;cursor:pointer;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Tu objetivo en el fútbol sigue siendo tuyo y realista?</div>
+          <textarea id="mens-id-objetivo" rows="2" placeholder="Cuéntame cómo lo ves ahora..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;"></textarea>
+        </div>
+
+        <!-- BLOQUE 10 — SEÑALES + REFLEXIÓN LIBRE -->
+        <div class="card mens-bloque" id="mens-b10">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#f85149;margin-bottom:.875rem;">🚨 Bloque 10 — Señales de alerta y reflexión libre</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">Mejor momento del mes (dentro o fuera del campo)</div>
+          <textarea id="mens-alert-mejor" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">Peor momento del mes</div>
+          <textarea id="mens-alert-peor" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿De qué te sientes más orgulloso este mes?</div>
+          <textarea id="mens-alert-orgullo" rows="2" placeholder="Escribe aquí..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Algo que te esté pesando y no hayas podido contar?</div>
+          <textarea id="mens-alert-pesa" rows="2" placeholder="Esto es confidencial..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Algo que quieras que sepa antes de nuestra reunión?</div>
+          <textarea id="mens-alert-reunion" rows="3" placeholder="Cuéntame lo que necesites..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:10px;" oninput="mensActualizarProgreso()"></textarea>
+        </div>
+
+        <!-- BOTÓN GUARDAR -->
+        <div class="card" style="border:0.5px solid rgba(88,166,255,0.3);">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:12px;text-align:center;">Cuestionario completado · Se enviará a tu analista</div>
+          <button id="btn-save-mensual" onclick="saveMensual()" style="width:100%;height:44px;background:rgba(88,166,255,0.15);border:0.5px solid rgba(88,166,255,0.4);border-radius:var(--radius-sm);color:#58a6ff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">📋 Enviar cuestionario mensual</button>
+          <div id="mens-save-msg" style="display:none;text-align:center;margin-top:10px;font-size:12px;color:#3fb950;font-weight:600;">✅ Cuestionario guardado correctamente</div>
+        </div>
+
+        <!-- HISTORIAL -->
+        <div class="card">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.5rem;">Historial de cuestionarios</div>
+          <div id="mens-hist"><div style="font-size:12px;color:var(--text3);">Sin cuestionarios todavía.</div></div>
+        </div>
+
+      </div>
+
       </div>
     </div>
 
@@ -1923,7 +2117,7 @@ var PP_ITEMS = [
 var ppStarsVal = {};
 
 window.switchPsicoTab = function(tab, btn) {
-  ['diario','partido','temporada'].forEach(function(t) {
+  ['diario','partido','temporada','mensual'].forEach(function(t) {
     var el = document.getElementById('psico-tab-' + t);
     if (el) el.style.display = t === tab ? 'block' : 'none';
     var b = document.getElementById('ptab-' + t);
@@ -2706,6 +2900,7 @@ window.selMood = function(val) {
 // ── FIX 2: renderPsico — carga historial diario al abrir sección ──
 window.renderPsico = function() {
   loadPsicoDiarioHist();
+  if (window.loadMensualHist) window.loadMensualHist();
 };
 
 function loadPsicoDiarioHist() {
@@ -3754,5 +3949,158 @@ window.renderObjetivosJugador = function() {
     cont.innerHTML = html;
   });
 };
+
+// ═══════════════════════════════════════════════════
+// MÓDULO CUESTIONARIO MENSUAL
+// ═══════════════════════════════════════════════════
+
+// Selección de opciones tipo botón
+window.mensSel = function(fieldId, val, btn) {
+  document.getElementById(fieldId).value = val;
+  var parent = btn.parentNode;
+  parent.querySelectorAll('.mens-opt-btn').forEach(function(b) {
+    b.style.background = 'var(--bg3)';
+    b.style.color = 'var(--text2)';
+    b.style.borderColor = 'var(--border2)';
+  });
+  btn.style.background = 'rgba(88,166,255,0.15)';
+  btn.style.color = '#58a6ff';
+  btn.style.borderColor = 'rgba(88,166,255,0.4)';
+  mensActualizarProgreso();
+};
+
+// Barra de progreso
+window.mensActualizarProgreso = function() {
+  var campos = [
+    'mens-sueno-despertar','mens-sueno-siesta',
+    'mens-fatiga-dolor','mens-cuerpo-resp',
+    'mens-emoc-palabra','mens-emoc-estado',
+    'mens-rend-retroceso',
+    'mens-mot-disfrute','mens-mot-ilusion',
+    'mens-conf-voz','mens-conf-error',
+    'mens-rel-comp','mens-rel-entren',
+    'mens-vida-general',
+    'mens-id-paraquien',
+    'mens-alert-mejor','mens-alert-peor','mens-alert-reunion'
+  ];
+  var rellenos = campos.filter(function(id) {
+    var el = document.getElementById(id);
+    return el && el.value && el.value.trim() !== '';
+  }).length;
+  var pct = Math.round((rellenos / campos.length) * 100);
+  var fill = document.getElementById('mens-progreso-fill');
+  var txt = document.getElementById('mens-progreso-txt');
+  if (fill) fill.style.width = pct + '%';
+  // Calcular bloque actual (aprox)
+  var bloque = Math.min(10, Math.floor((rellenos / campos.length) * 10) + 1);
+  if (txt) txt.textContent = pct + '% completado · Bloque ' + bloque + ' de 10';
+};
+
+// Guardar cuestionario mensual
+window.saveMensual = function() {
+  var jugId = window._jugId;
+  var db    = window.DB_REF;
+  if (!jugId || !db) { showToast('Error de conexión'); return; }
+
+  var datos = {
+    jugador_id: jugId,
+    fecha: new Date().toISOString().slice(0,10),
+    // Bloque 1
+    sueno_horas: parseInt(document.getElementById('mens-sueno-horas').value) || null,
+    sueno_calidad: parseInt(document.getElementById('mens-sueno-cal').value),
+    sueno_despertar: document.getElementById('mens-sueno-despertar').value.trim(),
+    sueno_dificultad: document.getElementById('mens-sueno-dificultad').value.trim(),
+    sueno_siesta: document.getElementById('mens-sueno-siesta').value,
+    // Bloque 2
+    fatiga_nivel: parseInt(document.getElementById('mens-fatiga').value),
+    fatiga_dolor: document.getElementById('mens-fatiga-dolor').value.trim(),
+    fatiga_molestias: document.getElementById('mens-fatiga-molestias').value.trim(),
+    cuerpo_responde: document.getElementById('mens-cuerpo-resp').value,
+    // Bloque 3
+    emoc_palabra: document.getElementById('mens-emoc-palabra').value.trim(),
+    emoc_estado: document.getElementById('mens-emoc-estado').value,
+    emoc_desborde: document.getElementById('mens-emoc-desborde').value.trim(),
+    emoc_soledad: document.getElementById('mens-emoc-soledad').value.trim(),
+    // Bloque 4
+    rend_entrenamientos: parseInt(document.getElementById('mens-rend-ent').value),
+    rend_partidos: parseInt(document.getElementById('mens-rend-par').value),
+    rend_retroceso: document.getElementById('mens-rend-retroceso').value.trim(),
+    rend_reconoc: document.getElementById('mens-rend-reconoc').value.trim(),
+    // Bloque 5
+    mot_disfrute: document.getElementById('mens-mot-disfrute').value,
+    mot_progreso: document.getElementById('mens-mot-progreso').value,
+    mot_ilusion: document.getElementById('mens-mot-ilusion').value.trim(),
+    // Bloque 6
+    conf_voz: document.getElementById('mens-conf-voz').value,
+    conf_error: document.getElementById('mens-conf-error').value.trim(),
+    conf_miedo: document.getElementById('mens-conf-miedo').value.trim(),
+    // Bloque 7
+    rel_companyeros: document.getElementById('mens-rel-comp').value,
+    rel_entrenador: document.getElementById('mens-rel-entren').value.trim(),
+    rel_nodijo: document.getElementById('mens-rel-nodijo').value.trim(),
+    // Bloque 8
+    vida_general: document.getElementById('mens-vida-general').value.trim(),
+    vida_estres: parseInt(document.getElementById('mens-vida-estres').value),
+    vida_peso: document.getElementById('mens-vida-peso').value.trim(),
+    // Bloque 9
+    id_paraquien: document.getElementById('mens-id-paraquien').value,
+    id_presion: parseInt(document.getElementById('mens-id-presion').value),
+    id_objetivo: document.getElementById('mens-id-objetivo').value.trim(),
+    // Bloque 10
+    alert_mejor: document.getElementById('mens-alert-mejor').value.trim(),
+    alert_peor: document.getElementById('mens-alert-peor').value.trim(),
+    alert_orgullo: document.getElementById('mens-alert-orgullo').value.trim(),
+    alert_pesa: document.getElementById('mens-alert-pesa').value.trim(),
+    alert_reunion: document.getElementById('mens-alert-reunion').value.trim()
+  };
+
+  db.from('psico_mensual').insert(datos).then(function(res) {
+    if (res.error) {
+      showToast('Error al guardar: ' + res.error.message);
+    } else {
+      document.getElementById('mens-save-msg').style.display = 'block';
+      showToast('✅ Cuestionario mensual guardado');
+      loadMensualHist();
+      setTimeout(function() {
+        document.getElementById('mens-save-msg').style.display = 'none';
+      }, 4000);
+    }
+  });
+};
+
+// Cargar historial de cuestionarios
+window.loadMensualHist = function() {
+  var jugId = window._jugId;
+  var db    = window.DB_REF;
+  if (!jugId || !db) return;
+  db.from('psico_mensual')
+    .select('fecha, emoc_palabra, emoc_estado, rend_entrenamientos, rend_partidos, mot_disfrute, sueno_calidad, fatiga_nivel')
+    .eq('jugador_id', jugId)
+    .order('fecha', { ascending: false })
+    .limit(6)
+    .then(function(res) {
+      var el = document.getElementById('mens-hist');
+      if (!el) return;
+      if (!res.data || !res.data.length) {
+        el.innerHTML = '<div style="font-size:12px;color:var(--text3);">Sin cuestionarios todavía.</div>';
+        return;
+      }
+      el.innerHTML = res.data.map(function(r) {
+        var color = r.emoc_estado === 'estable' ? '#3fb950' : r.emoc_estado === 'bajo' ? '#f85149' : '#d29922';
+        return '<div style="padding:12px 0;border-bottom:0.5px solid var(--border2);">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+          '<span style="font-size:12px;font-weight:700;">' + r.fecha + '</span>' +
+          '<span style="font-size:11px;background:rgba(88,166,255,0.1);color:#58a6ff;padding:2px 8px;border-radius:99px;">' + (r.emoc_palabra || '—') + '</span>' +
+          '</div>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<span style="font-size:10px;background:var(--bg3);padding:2px 8px;border-radius:4px;color:var(--text2);">😴 Sueño ' + (r.sueno_calidad||'—') + '/10</span>' +
+          '<span style="font-size:10px;background:var(--bg3);padding:2px 8px;border-radius:4px;color:var(--text2);">💪 Fatiga ' + (r.fatiga_nivel||'—') + '/10</span>' +
+          '<span style="font-size:10px;background:var(--bg3);padding:2px 8px;border-radius:4px;color:var(--text2);">⚽ Partidos ' + (r.rend_partidos||'—') + '/10</span>' +
+          '<span style="font-size:10px;padding:2px 8px;border-radius:4px;color:' + color + ';background:' + color + '22;">' + (r.emoc_estado||'—') + '</span>' +
+          '</div></div>';
+      }).join('');
+    });
+};
+
 </script>
 </html>
