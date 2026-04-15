@@ -751,7 +751,7 @@ function genSesJug(jugId) {
 
 
 async function addObj(){const txt=document.getElementById('obt')?.value.trim();if(!txt)return;const{data,error}=await DB.from('objetivos').insert({jugador_id:state.currentJugador,texto:txt,fase:document.getElementById('obf').value}).select();if(error){showToast('Error');return;}state.objetivos.unshift(data[0]);document.getElementById('obt').value='';renderDT('obj');renderInicio();}
-async async function delObj(oid){
+async function delObj(oid){
   await DB.from('objetivos').delete().eq('id',oid);
   state.objetivos=state.objetivos.filter(o=>o.id!==oid);
   renderDT('obj');
