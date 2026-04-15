@@ -760,6 +760,16 @@ async function superarObj(oid){
   state.objetivos=state.objetivos.map(function(o){return o.id===oid?Object.assign({},o,{superado:true,fecha_superado:fecha}):o;});
   showToast('✅ Superado: '+obj.texto);
   renderDT('obj');
+  // Recargar gráfica de evolución si está visible
+  var evCont=document.getElementById('evcont');
+  if(evCont && evCont.innerHTML){
+    var evSel=document.getElementById('evsel');
+    if(evSel && evSel.value){
+      var grafDiv=evCont.querySelector('[style*="Evolución de microconceptos"]');
+      if(grafDiv) grafDiv.remove();
+      renderMicrosEv(evSel.value);
+    }
+  }
 }
 // Event listener global para botones data-superar-id y data-deshacer-id
 document.addEventListener('click',function(e){
@@ -776,6 +786,17 @@ async function deshacerSuperado(oid){
   state.objetivos=state.objetivos.map(function(o){return o.id===oid?Object.assign({},o,{superado:false,fecha_superado:null}):o;});
   showToast('↩ Deshecho: '+obj.texto);
   renderDT('obj');
+  // Recargar gráfica de evolución si está visible
+  var evCont=document.getElementById('evcont');
+  if(evCont && evCont.innerHTML){
+    var evSel=document.getElementById('evsel');
+    if(evSel && evSel.value){
+      // Limpiar el bloque de micros y recargarlo
+      var grafDiv=evCont.querySelector('[style*="Evolución de microconceptos"]');
+      if(grafDiv) grafDiv.remove();
+      renderMicrosEv(evSel.value);
+    }
+  }
 }
 async function addObs(){const txt=document.getElementById('obta')?.value.trim();if(!txt)return;const{data,error}=await DB.from('observaciones').insert({jugador_id:state.currentJugador,partido:document.getElementById('obpa').value.trim()||'Partido',fecha:new Date().toISOString().slice(0,10),texto:txt}).select();if(error){showToast('Error');return;}state.observaciones.unshift(data[0]);document.getElementById('obta').value='';document.getElementById('obpa').value='';renderDT('obs');renderInicio();}
 async function setSes(){const fecha=document.getElementById('vidf')?.value;await DB.from('jugadores').update({sesion_fecha:fecha||null}).eq('id',state.currentJugador);const j=state.jugadores.find(x=>x.id===state.currentJugador);if(j)j.sesion_fecha=fecha||null;renderInicio();showToast('Fecha guardada');}
