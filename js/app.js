@@ -772,6 +772,8 @@ document.addEventListener('click',function(e){
   if(btn){superarObj(btn.getAttribute('data-superar-id'));return;}
   var btn2=e.target.closest('[data-deshacer-id]');
   if(btn2){deshacerSuperado(btn2.getAttribute('data-deshacer-id'));return;}
+  var btnToggle=e.target.closest('[data-toggle-card]');
+  if(btnToggle){toggleEvCard(btnToggle.getAttribute('data-toggle-card'));return;}
   var btn3=e.target.closest('[data-cerrar-mes]');
   if(btn3){
     var jugId3=btn3.getAttribute('data-cerrar-mes');
@@ -1292,122 +1294,187 @@ async function renderEvHistorial(jugId){
   var jug=state.jugadores.find(function(x){return x.id===jugId;});
   if(!jug)return;
 
-  // Cargar superados, observaciones e informes
-  var [rSup, rObs] = await Promise.all([
-    DB.from('objetivos').select('*').eq('jugador_id',jugId).eq('superado',true).order('fecha_superado',{ascending:true}),
-    DB.from('ev_observaciones').select('*').eq('jugador_id',jugId).order('mes',{ascending:false})
+  var [rSnap, rSuperados] = await Promise.all([
+    DB.from('ev_observaciones').select('*').eq('jugador_id',jugId).order('mes',{ascending:false}),
+    DB.from('objetivos').select('*').eq('jugador_id',jugId).eq('superado',true).order('fecha_superado',{ascending:true})
   ]);
 
-  var superados=rSup.data||[];
-  var evObs=rObs.data||[];
-  var informes=getInformesJugador(jugId);
+  var snapshots = rSnap.data||[];
+  var todosSuperados = rSuperados.data||[];
+  var informes = getInformesJugador(jugId);
 
-  // Agrupar superados por mes
-  var porMes={};
-  superados.forEach(function(o){
-    var m=(o.fecha_superado||'').slice(0,7);
-    if(!m)return;
-    if(!porMes[m])porMes[m]={superados:[],obs:null,informe:null};
-    porMes[m].superados.push(o);
-  });
-
-  // Asociar observaciones del analista por mes
-  evObs.forEach(function(o){if(porMes[o.mes])porMes[o.mes].obs=o;});
-
-  // Asociar informe (nota media) por mes
-  informes.forEach(function(inf){
-    var m=(inf.fecha||'').slice(0,7);
-    if(porMes[m] && inf.nota_decimal){
-      if(!porMes[m].notas)porMes[m].notas=[];
-      porMes[m].notas.push(parseFloat(inf.nota_decimal));
-    }
-  });
-
-  var meses=Object.keys(porMes).sort().reverse();
-  var totalSuperados=superados.length;
-  var FCOLOR={OF:'#1D9E75',DE:'#378ADD',TO:'#E07B00',TD:'#D85A30',GEN:'#7C6FF0'};
-
-  if(!meses.length){
-    cont.innerHTML='<div style="text-align:center;padding:3rem;color:var(--text3);"><div style="font-size:32px;margin-bottom:10px;">📅</div><div style="font-size:13px;">Sin historial todavía.<br><small>Marca microconceptos como superados para generar el historial.</small></div></div>';
+  if(!snapshots.length){
+    cont.innerHTML='<div style="text-align:center;padding:3rem;color:var(--text3);"><div style="font-size:40px;margin-bottom:12px;">📂</div><div style="font-size:13px;font-weight:600;margin-bottom:6px;">Sin snapshots todavía</div><div style="font-size:12px;">Usa el botón "📦 Guardar snapshot" en la pestaña Actual para crear el primer registro mensual.</div></div>';
     return;
   }
 
-  var h='';
+  var FCOLOR={OF:'#1D9E75',DE:'#378ADD',TO:'#E07B00',TD:'#D85A30',GEN:'#7C6FF0'};
 
-  // KPI global
-  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.5rem;">';
-  h+='<div style="background:var(--bg2);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:700;color:#3fb950;">'+totalSuperados+'</div><div style="font-size:10px;color:var(--text3);">Total superados</div></div>';
-  h+='<div style="background:var(--bg2);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:700;color:#58a6ff;">'+meses.length+'</div><div style="font-size:10px;color:var(--text3);">Meses activos</div></div>';
-  var ritmo=meses.length?Math.round(totalSuperados/meses.length*10)/10:0;
-  h+='<div style="background:var(--bg2);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:700;color:#d29922;">'+ritmo+'</div><div style="font-size:10px;color:var(--text3);">Micros/mes</div></div>';
+  // KPIs globales
+  var totalSuperadosGlobal = todosSuperados.length;
+  var h='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.5rem;">';
+  h+='<div style="background:var(--bg2);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#3fb950;">'+totalSuperadosGlobal+'</div><div style="font-size:10px;color:var(--text3);">Total superados</div></div>';
+  h+='<div style="background:var(--bg2);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#58a6ff;">'+snapshots.length+'</div><div style="font-size:10px;color:var(--text3);">Snapshots</div></div>';
+  var ritmo=snapshots.length?Math.round(totalSuperadosGlobal/snapshots.length*10)/10:0;
+  h+='<div style="background:var(--bg2);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#d29922;">'+ritmo+'</div><div style="font-size:10px;color:var(--text3);">Micros/mes</div></div>';
   h+='</div>';
 
-  // Tarjetas por mes
-  meses.forEach(function(mes){
-    var data=porMes[mes];
-    var parts=mes.split('-');
-    var mesLabel=new Date(parts[0],parseInt(parts[1])-1).toLocaleDateString('es',{month:'long',year:'numeric'});
-    mesLabel=mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1);
-    var notaMedia=data.notas&&data.notas.length?(data.notas.reduce(function(a,b){return a+b;},0)/data.notas.length).toFixed(1):null;
-    var obsData=data.obs;
+  h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">📂 Historial de snapshots</div>';
 
-    h+='<div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;">';
+  // Carpetas por snapshot
+  snapshots.forEach(function(snap, si){
+    var snap_data = null;
+    try{ snap_data = JSON.parse(snap.snapshot||'{}'); }catch(e){}
 
-    // Header mes
-    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">';
-    h+='<div style="font-size:14px;font-weight:700;">'+mesLabel+'</div>';
-    h+='<div style="display:flex;gap:8px;align-items:center;">';
-    if(notaMedia){h+='<span style="font-size:11px;background:rgba(29,158,117,0.1);color:#1D9E75;padding:3px 10px;border-radius:6px;">⭐ '+notaMedia+' media</span>';}
-    h+='<span style="font-size:11px;background:rgba(63,185,80,0.1);color:#3fb950;padding:3px 10px;border-radius:6px;">'+data.superados.length+' superados</span>';
-    h+='</div></div>';
+    var titulo = snap.titulo || snap.mes || 'Sin título';
+    var superadosMes = snap_data&&snap_data.superados ? snap_data.superados : [];
+    var fechaSnap = snap_data&&snap_data.fecha ? snap_data.fecha : snap.updated_at ? snap.updated_at.slice(0,10) : snap.mes;
 
-    // Microconceptos superados ese mes
-    h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:1rem;">';
-    data.superados.forEach(function(o){
-      var c=FCOLOR[o.fase]||'#888';
-      h+='<div style="font-size:11px;background:'+c+'20;border:0.5px solid '+c+'60;color:'+c+';border-radius:6px;padding:3px 10px;">✓ '+o.texto+'</div>';
+    // Informes de ese mes
+    var mesKey = snap.mes;
+    var informesMes = informes.filter(function(inf){
+      return (inf.fecha||'').slice(0,7) === mesKey;
     });
+    var notasMes = informesMes.filter(function(i){return i.nota_decimal;}).map(function(i){return parseFloat(i.nota_decimal);});
+    var notaMedia = notasMes.length ? (notasMes.reduce(function(a,b){return a+b;},0)/notasMes.length).toFixed(1) : null;
+
+    // Agrupar superados por fase para barras
+    var porFase = {};
+    superadosMes.forEach(function(o){
+      var f=o.fase||'GEN';
+      if(!porFase[f])porFase[f]=[];
+      porFase[f].push(o);
+    });
+    var totalMes = superadosMes.length;
+
+    var cardId = 'ev-card-'+si;
+
+    // CARPETA — header clickable
+    h+='<div style="border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;">';
+
+    // Header carpeta
+    h+='<div data-toggle-card="'+cardId+'" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg2);cursor:pointer;user-select:none;">';
+    h+='<span style="font-size:20px;">📁</span>';
+    h+='<div style="flex:1;">';
+    h+='<div style="font-size:14px;font-weight:700;">'+titulo+'</div>';
+    h+='<div style="font-size:11px;color:var(--text3);margin-top:2px;">'+fechaSnap+' · '+totalMes+' microconcepto'+(totalMes!==1?'s':'')+(notaMedia?' · ⭐ '+notaMedia+' media':'')+'</div>';
+    h+='</div>';
+    h+='<div style="display:flex;gap:6px;align-items:center;">';
+    if(totalMes){ h+='<span style="font-size:10px;background:rgba(63,185,80,0.15);color:#3fb950;padding:2px 8px;border-radius:4px;">'+totalMes+' ✓</span>'; }
+    h+='<span id="ev-arrow-'+si+'" style="font-size:14px;color:var(--text3);transition:transform 0.2s;">▶</span>';
+    h+='</div>';
     h+='</div>';
 
-    // Observaciones del analista
-    h+='<div style="border-top:0.5px solid var(--border2);padding-top:.875rem;">';
-    h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">📝 Observación del analista</div>';
-    if(obsData){
-      h+='<div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:8px;">'+obsData.texto+'</div>';
-      h+='<button data-ev-edit="'+mes+'" data-ev-jugid="'+jugId+'" style="font-size:11px;background:none;border:0.5px solid var(--border2);border-radius:6px;color:var(--text3);padding:4px 10px;cursor:pointer;">✏️ Editar</button>';
+    // CONTENIDO EXPANDIBLE
+    h+='<div id="'+cardId+'" style="display:none;padding:16px;background:var(--bg);">';
+
+    // 1. GRÁFICA NOTAS DE PARTIDO
+    if(informesMes.length){
+      h+='<div style="margin-bottom:1.25rem;">';
+      h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">📊 Notas de partido</div>';
+      informesMes.slice(0,6).forEach(function(inf){
+        var n=parseFloat(inf.nota_decimal)||0;
+        var nc=n>=8?'#1D9E75':n>=6?'#E07B00':'#D85A30';
+        h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">';
+        h+='<div style="font-size:11px;color:var(--text2);min-width:80px;">'+fmtDate(inf.fecha)+'</div>';
+        h+='<div style="flex:1;height:8px;background:var(--bg2);border-radius:99px;"><div style="width:'+(n*10)+'%;height:8px;background:'+nc+';border-radius:99px;"></div></div>';
+        h+='<div style="font-size:12px;font-weight:700;color:'+nc+';min-width:32px;">'+n.toFixed(1)+'</div>';
+        h+='</div>';
+      });
+      if(notaMedia){
+        h+='<div style="font-size:11px;color:var(--text3);margin-top:4px;">Media del mes: <strong style="color:#1D9E75;">'+notaMedia+'</strong></div>';
+      }
+      h+='</div>';
+    }
+
+    // 2. MICROCONCEPTOS SUPERADOS CON BARRAS 100%
+    if(superadosMes.length){
+      h+='<div style="margin-bottom:1.25rem;">';
+      h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">✓ Microconceptos superados</div>';
+      superadosMes.forEach(function(o){
+        var c=FCOLOR[o.fase]||'#888';
+        var FLABEL={OF:'Ofensivo',DE:'Defensivo',TO:'T.Of.',TD:'T.Def.',GEN:'General'};
+        h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
+        h+='<div style="font-size:11px;flex:1;line-height:1.3;">'+o.texto+'<span style="font-size:9px;background:'+c+'20;color:'+c+';border-radius:4px;padding:1px 5px;margin-left:5px;">'+( FLABEL[o.fase]||o.fase)+'</span></div>';
+        h+='<div style="width:120px;height:8px;background:var(--bg2);border-radius:99px;flex-shrink:0;">';
+        h+='<div style="width:100%;height:8px;background:'+c+';border-radius:99px;"></div>';
+        h+='</div>';
+        h+='<div style="font-size:11px;font-weight:700;color:'+c+';min-width:36px;text-align:right;">100%</div>';
+        h+='</div>';
+      });
+      // Agrupo por fase
+      if(Object.keys(porFase).length > 1){
+        h+='<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border2);">';
+        h+='<div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Por fase</div>';
+        Object.keys(porFase).forEach(function(f){
+          var n=porFase[f].length;
+          var c=FCOLOR[f]||'#888';
+          var FLABEL={OF:'Ofensivo',DE:'Defensivo',TO:'T.Of.',TD:'T.Def.',GEN:'General'};
+          h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">';
+          h+='<div style="font-size:10px;color:var(--text2);width:55px;">'+(FLABEL[f]||f)+'</div>';
+          h+='<span style="font-size:11px;font-weight:700;color:'+c+';">'+n+'</span>';
+          h+='</div>';
+        });
+        h+='</div>';
+      }
+      h+='</div>';
     } else {
-      h+='<textarea id="ev-obs-'+mes+'" placeholder="Escribe tu observación de este mes..." style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:8px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:8px;" rows="3"></textarea>';
-      h+='<button data-ev-save="'+mes+'" data-ev-jugid="'+jugId+'" style="font-size:12px;background:rgba(29,158,117,0.15);border:0.5px solid rgba(29,158,117,0.4);border-radius:6px;color:#1D9E75;padding:6px 16px;cursor:pointer;font-weight:700;">💾 Guardar observación</button>';
+      h+='<div style="font-size:12px;color:var(--text3);margin-bottom:1rem;">Sin microconceptos en este snapshot.</div>';
+    }
+
+    // 3. NOTA DEL ANALISTA
+    h+='<div style="border-top:0.5px solid var(--border2);padding-top:.875rem;">';
+    h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">📝 Nota del analista</div>';
+    if(snap.texto && snap.texto.trim()){
+      h+='<div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:8px;background:var(--bg2);border-radius:8px;padding:10px;">'+snap.texto+'</div>';
+      h+='<button data-ev-edit="'+snap.mes+'" data-ev-jugid="'+jugId+'" style="font-size:11px;background:none;border:0.5px solid var(--border2);border-radius:6px;color:var(--text3);padding:4px 10px;cursor:pointer;">✏️ Editar nota</button>';
+    } else {
+      h+='<textarea id="ev-obs-'+snap.mes+'" placeholder="Añade tu valoración de este mes..." style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:8px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:8px;" rows="3"></textarea>';
+      h+='<button data-ev-save="'+snap.mes+'" data-ev-jugid="'+jugId+'" style="font-size:12px;background:rgba(29,158,117,0.15);border:0.5px solid rgba(29,158,117,0.4);border-radius:6px;color:#1D9E75;padding:6px 16px;cursor:pointer;font-weight:700;">💾 Guardar nota</button>';
     }
     h+='</div>';
-    h+='</div>';
+
+    h+='</div>'; // cierre contenido
+    h+='</div>'; // cierre carpeta
   });
 
   cont.innerHTML=h;
 
-  // Event listeners para guardar/editar observaciones
+  // Event listeners guardar/editar notas
   cont.addEventListener('click',function(e){
     var saveBtn=e.target.closest('[data-ev-save]');
     if(saveBtn){
       var mes=saveBtn.getAttribute('data-ev-save');
-      var jugId2=saveBtn.getAttribute('data-ev-jugid');
+      var jid=saveBtn.getAttribute('data-ev-jugid');
       var ta=document.getElementById('ev-obs-'+mes);
-      if(ta&&ta.value.trim()) guardarEvObs(jugId2,mes,ta.value.trim());
+      if(ta&&ta.value.trim()) guardarEvObs(jid,mes,ta.value.trim());
       return;
     }
     var editBtn=e.target.closest('[data-ev-edit]');
     if(editBtn){
       var mes2=editBtn.getAttribute('data-ev-edit');
-      var jugId3=editBtn.getAttribute('data-ev-jugid');
-      var obsTexto=editBtn.previousElementSibling?editBtn.previousElementSibling.textContent:'';
-      // Reemplazar con textarea
+      var jid2=editBtn.getAttribute('data-ev-jugid');
+      var prev=editBtn.previousElementSibling;
+      var txt=prev?prev.textContent:'';
       var container=editBtn.parentElement;
-      container.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">📝 Observación del analista</div>'+
-        '<textarea id="ev-obs-'+mes2+'" style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:8px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:8px;" rows="3">'+obsTexto+'</textarea>'+
-        '<button data-ev-save="'+mes2+'" data-ev-jugid="'+jugId3+'" style="font-size:12px;background:rgba(29,158,117,0.15);border:0.5px solid rgba(29,158,117,0.4);border-radius:6px;color:#1D9E75;padding:6px 16px;cursor:pointer;font-weight:700;">💾 Guardar</button>';
+      container.innerHTML=
+        '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">📝 Nota del analista</div>'+
+        '<textarea id="ev-obs-'+mes2+'" style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:8px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:8px;" rows="3">'+txt+'</textarea>'+
+        '<button data-ev-save="'+mes2+'" data-ev-jugid="'+jid2+'" style="font-size:12px;background:rgba(29,158,117,0.15);border:0.5px solid rgba(29,158,117,0.4);border-radius:6px;color:#1D9E75;padding:6px 16px;cursor:pointer;font-weight:700;">💾 Guardar</button>';
     }
   });
 }
+
+// Abrir/cerrar carpeta del historial
+window.toggleEvCard = function(id){
+  var el=document.getElementById(id);
+  if(!el)return;
+  var idx=id.split('-').pop();
+  var arrow=document.getElementById('ev-arrow-'+idx);
+  var open=el.style.display==='none';
+  el.style.display=open?'block':'none';
+  if(arrow) arrow.style.transform=open?'rotate(90deg)':'';
+};
 
 async function guardarEvObs(jugId, mes, texto){
   var {data, error}=await DB.from('ev_observaciones').upsert({
