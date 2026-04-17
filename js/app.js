@@ -563,7 +563,7 @@ function renderDT(tab){
         <div style="${SEC_TITLE}color:#58a6ff;">📎 Observaciones del informe</div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">El jugador también las verá. Añade texto e imágenes para explicar situaciones tácticas.</div>
         <div id="obs-bloques"></div>
-        <button onclick="addObsBloque()" style="width:100%;height:36px;background:rgba(88,166,255,0.1);border:0.5px solid rgba(88,166,255,0.3);border-radius:var(--radius-sm);color:#58a6ff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;">+ Añadir observación</button>
+        <button onclick="window.addObsBloque()" style="width:100%;height:36px;background:rgba(88,166,255,0.1);border:0.5px solid rgba(88,166,255,0.3);border-radius:var(--radius-sm);color:#58a6ff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;">+ Añadir observación</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.5rem;">
         <button class="btn" style="height:44px;font-size:13px;" onclick="saveInforme()">Guardar informe</button>
@@ -1813,11 +1813,11 @@ window.addObsBloque = function() {
   div.id = 'obs-bloque-'+idx;
   div.style.cssText = 'background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:8px;position:relative;';
   div.innerHTML =
-    '<button onclick="removeObsBloque('+idx+')" style="position:absolute;top:6px;right:6px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;">×</button>'+
+    '<button onclick="window.removeObsBloque('+idx+')" style="position:absolute;top:6px;right:6px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;">×</button>'+
     '<textarea id="obs-txt-'+idx+'" placeholder="Describe la situación táctica..." rows="2" style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:8px;box-sizing:border-box;" oninput="window._obsImagenes['+idx+'].texto=this.value"></textarea>'+
     '<div id="obs-img-preview-'+idx+'" style="margin-bottom:8px;"></div>'+
     '<label style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:11px;color:var(--text2);">'+
-    '📷 Subir imagen<input type="file" accept="image/*" style="display:none" onchange="loadObsImagen('+idx+',this)"></label>';
+    '📷 Subir imagen<input type="file" accept="image/*" style="display:none" onchange="window.loadObsImagen('+idx+',this)"></label>';
   cont.appendChild(div);
 };
 
