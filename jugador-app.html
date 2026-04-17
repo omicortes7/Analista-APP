@@ -4152,13 +4152,15 @@ window.renderEvolucionJugador = async function() {
   var db = window.DB_REF;
   if(!db) return;
 
-  var [rSnap, rObj] = await Promise.all([
+  var [rSnap, rObj, rInf] = await Promise.all([
     db.from('ev_observaciones').select('*').eq('jugador_id', jugId).order('mes', {ascending: false}),
-    db.from('objetivos').select('*').eq('jugador_id', jugId).eq('superado', true).order('fecha_superado', {ascending: true})
+    db.from('objetivos').select('*').eq('jugador_id', jugId).eq('superado', true).order('fecha_superado', {ascending: true}),
+    db.from('informes_partido').select('fecha,nota_decimal').eq('jugador_id', jugId).order('fecha', {ascending: true})
   ]);
 
   var snapshots = rSnap.data || [];
   var todosSuperados = rObj.data || [];
+  var informesTodos = rInf.data || [];
 
   var FCOLOR = {OF:'#1D9E75', DE:'#378ADD', TO:'#E07B00', TD:'#D85A30', GEN:'#7C6FF0'};
   var FLABEL = {OF:'Ofensivo', DE:'Defensivo', TO:'T.Of.', TD:'T.Def.', GEN:'General'};
@@ -4202,6 +4204,33 @@ window.renderEvolucionJugador = async function() {
 
     // Contenido expandible
     h += '<div id="'+cardId+'" style="display:none;padding:16px;background:var(--bg2);">';
+
+    // Notas de partido de ese mes
+    var informesMes = informesTodos.filter(function(inf){
+      return (inf.fecha||'').slice(0,7) === snap.mes;
+    });
+    var notasMes = informesMes.filter(function(i){return i.nota_decimal;}).map(function(i){return parseFloat(i.nota_decimal);});
+    var notaMedia = notasMes.length ? (notasMes.reduce(function(a,b){return a+b;},0)/notasMes.length).toFixed(1) : null;
+
+    if(informesMes.length) {
+      h += '<div style="margin-bottom:1.25rem;">';
+      h += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px;">📊 Notas de partido</div>';
+      informesMes.forEach(function(inf){
+        var n = parseFloat(inf.nota_decimal)||0;
+        var nc = n>=8?'#1D9E75':n>=6?'#E07B00':'#D85A30';
+        h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">';
+        h += '<div style="font-size:11px;color:var(--text3);min-width:80px;">'+inf.fecha+'</div>';
+        h += '<div style="flex:1;height:8px;background:var(--border2);border-radius:99px;">';
+        h += '<div style="width:'+(n*10)+'%;height:8px;background:'+nc+';border-radius:99px;"></div>';
+        h += '</div>';
+        h += '<div style="font-size:12px;font-weight:700;color:'+nc+';min-width:32px;">'+n.toFixed(1)+'</div>';
+        h += '</div>';
+      });
+      if(notaMedia){
+        h += '<div style="font-size:11px;color:var(--text3);margin-top:4px;">Media del mes: <strong style="color:#1D9E75;">'+notaMedia+'</strong></div>';
+      }
+      h += '</div>';
+    }
 
     // Microconceptos con barra 100%
     if(superadosMes.length) {
