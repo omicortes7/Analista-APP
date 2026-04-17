@@ -563,7 +563,7 @@ function renderDT(tab){
         <div style="${SEC_TITLE}color:#58a6ff;">📎 Observaciones del informe</div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">El jugador también las verá. Añade texto e imágenes para explicar situaciones tácticas.</div>
         <div id="obs-bloques"></div>
-        <button onclick="window.addObsBloque()" style="width:100%;height:36px;background:rgba(88,166,255,0.1);border:0.5px solid rgba(88,166,255,0.3);border-radius:var(--radius-sm);color:#58a6ff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;">+ Añadir observación</button>
+        <button data-action="add-obs" style="width:100%;height:36px;background:rgba(88,166,255,0.1);border:0.5px solid rgba(88,166,255,0.3);border-radius:var(--radius-sm);color:#58a6ff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;">+ Añadir observación</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.5rem;">
         <button class="btn" style="height:44px;font-size:13px;" onclick="saveInforme()">Guardar informe</button>
@@ -775,6 +775,11 @@ async function superarObj(oid){
 }
 // Event listener global
 document.addEventListener('click',function(e){
+  // Observaciones del informe
+  if(e.target.closest('[data-action="add-obs"]')){
+    window.addObsBloque && window.addObsBloque();
+    return;
+  }
   var btn=e.target.closest('[data-superar-id]');
   if(btn){superarObj(btn.getAttribute('data-superar-id'));return;}
   var btn2=e.target.closest('[data-deshacer-id]');
