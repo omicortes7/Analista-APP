@@ -367,6 +367,7 @@ function renderDT(tab){
             </div>
           </div>
           ${p.mcb?`<div style="font-size:11px;color:var(--text2);margin-top:7px;padding-top:7px;border-top:0.5px solid var(--border);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.mcb}</div>`:''}
+          ${(()=>{let obs=[];try{obs=JSON.parse(p.obs_imagenes||'[]');}catch(e){}if(!obs||!obs.length)return '';return '<div style="margin-top:7px;padding-top:7px;border-top:0.5px solid var(--border);"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#58a6ff;margin-bottom:6px;">📎 '+obs.length+' observaci'+(obs.length===1?'ón':'ones')+'</div>'+obs.slice(0,1).map(function(o){return (o.imagen?'<img src="'+o.imagen+'" style="width:100%;max-height:120px;object-fit:contain;border-radius:6px;margin-bottom:4px;">':'')+(o.texto?'<div style="font-size:11px;color:var(--text2);line-height:1.5;">'+o.texto.substring(0,100)+(o.texto.length>100?'...':'')+'</div>':'');}).join('')+'</div>';})()}
         </div>`;
       }).join('') : `<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px;">Sin partidos todavía.</div>`}`;
   }
@@ -557,6 +558,12 @@ function renderDT(tab){
       <div style="${CARD}">
         <div style="${SEC_TITLE}">Notas privadas</div>
         <textarea id="inf-notas" placeholder="Contexto del partido, condiciones, observaciones extra..." style="${TA}height:70px;"></textarea>
+      </div>
+      <div style="${CARD}border:0.5px solid rgba(88,166,255,0.2);background:rgba(88,166,255,0.03);">
+        <div style="${SEC_TITLE}color:#58a6ff;">📎 Observaciones del informe</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">El jugador también las verá. Añade texto e imágenes para explicar situaciones tácticas.</div>
+        <div id="obs-bloques"></div>
+        <button onclick="addObsBloque()" style="width:100%;height:36px;background:rgba(88,166,255,0.1);border:0.5px solid rgba(88,166,255,0.3);border-radius:var(--radius-sm);color:#58a6ff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;">+ Añadir observación</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.5rem;">
         <button class="btn" style="height:44px;font-size:13px;" onclick="saveInforme()">Guardar informe</button>
@@ -2697,6 +2704,19 @@ async function exportarInformePDF(infId) {
     <div style="font-size:11px;line-height:1.7;font-style:italic;">${inf.notas}</div>
   </div>`:''}
 
+  ${(()=>{
+    let obs=[];
+    try{obs=JSON.parse(inf.obs_imagenes||'[]');}catch(e){}
+    if(!obs||!obs.length) return '';
+    return '<div style="border:1px solid #e8f0fe;border-radius:10px;padding:14px;margin-bottom:10px;background:#f8faff;">'+
+      '<div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#58a6ff;letter-spacing:.1em;margin-bottom:12px;">📎 Observaciones del informe</div>'+
+      obs.map(function(o,i){
+        return '<div style="margin-bottom:12px;'+(i<obs.length-1?'padding-bottom:12px;border-bottom:1px solid #eee;':'')+'">'+
+          (o.texto?'<div style="font-size:11px;line-height:1.7;color:#333;margin-bottom:8px;">'+o.texto+'</div>':'')+
+          (o.imagen?'<img src="'+o.imagen+'" style="width:100%;max-height:280px;object-fit:contain;border-radius:6px;border:1px solid #eee;">':'');
+      }).join('')+'</div>';
+  })()}
+
   <div class="footer">
     <span>Informe elaborado por <strong>Omar Cortés Ferrero</strong> · Areté Academy · Análisis Individual de Fútbol</span>
     <span>${new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'})}</span>
@@ -3846,6 +3866,54 @@ function generarInformeVisual(jugId, infId) {
 window.addEventListener('load', () => {
   setTimeout(() => window.print(), 800);
 });
+
+// ─── OBSERVACIONES DEL INFORME CON IMÁGENES ───
+window._obsImagenes = [];
+
+window.addObsBloque = function() {
+  var idx = window._obsImagenes.length;
+  window._obsImagenes.push({texto:'', imagen:''});
+  var cont = document.getElementById('obs-bloques');
+  if(!cont) return;
+  var div = document.createElement('div');
+  div.id = 'obs-bloque-'+idx;
+  div.style.cssText = 'background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:8px;position:relative;';
+  div.innerHTML =
+    '<button onclick="removeObsBloque('+idx+')" style="position:absolute;top:6px;right:6px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;">×</button>'+
+    '<textarea id="obs-txt-'+idx+'" placeholder="Describe la situación táctica..." rows="2" style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:8px;box-sizing:border-box;" oninput="window._obsImagenes['+idx+'].texto=this.value"></textarea>'+
+    '<div id="obs-img-preview-'+idx+'" style="margin-bottom:8px;"></div>'+
+    '<label style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:11px;color:var(--text2);">'+
+    '📷 Subir imagen<input type="file" accept="image/*" style="display:none" onchange="loadObsImagen('+idx+',this)"></label>';
+  cont.appendChild(div);
+};
+
+window.removeObsBloque = function(idx) {
+  window._obsImagenes[idx] = null;
+  var el = document.getElementById('obs-bloque-'+idx);
+  if(el) el.remove();
+};
+
+window.loadObsImagen = function(idx, input) {
+  if(!input.files||!input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    window._obsImagenes[idx].imagen = e.target.result;
+    var prev = document.getElementById('obs-img-preview-'+idx);
+    if(prev) prev.innerHTML = '<img src="'+e.target.result+'" style="width:100%;max-height:200px;object-fit:contain;border-radius:6px;">';
+  };
+  reader.readAsDataURL(input.files[0]);
+};
+
+window.getObsData = function() {
+  return (window._obsImagenes||[]).filter(function(o){return o && (o.texto||o.imagen);});
+};
+
+window.resetObs = function() {
+  window._obsImagenes = [];
+  var cont = document.getElementById('obs-bloques');
+  if(cont) cont.innerHTML = '';
+};
+
 </script>
 </body>
 </html>`;
@@ -3903,6 +3971,7 @@ async function saveInforme() {
     notas: document.getElementById('inf-notas')?.value.trim() || '',
     positivos: document.getElementById('inf-positivos')?.value.trim() || '',
     mejoras: document.getElementById('inf-mejoras')?.value.trim() || '',
+    obs_imagenes: JSON.stringify(window.getObsData ? window.getObsData() : []),
   };
 
   showToast('Guardando...');
@@ -3931,6 +4000,7 @@ async function saveInforme() {
     if(el) el.textContent = '';
   });
 
+  if(window.resetObs) window.resetObs();
   showToast('✓ Informe guardado');
   renderInicio();
 
