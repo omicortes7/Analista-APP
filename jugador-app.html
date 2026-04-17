@@ -472,6 +472,10 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
           style="flex:1;padding:10px 4px;border-radius:10px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:1px solid var(--border2);cursor:pointer;font-family:inherit;">
           📊 Análisis
         </button>
+        <button onclick="switchInformesTab('evolucion',this)" id="itab-evolucion"
+          style="flex:1;padding:10px 4px;border-radius:10px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:1px solid var(--border2);cursor:pointer;font-family:inherit;">
+          📈 Evolución
+        </button>
       </div>
       <!-- TAB INFORMES -->
       <div id="itab-content-partido">
@@ -480,6 +484,10 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
       <!-- TAB ANÁLISIS SEMANAL -->
       <div id="itab-content-analisis" style="display:none;">
         <div id="analisis-content"><div class="loading">Cargando...</div></div>
+      </div>
+      <!-- TAB EVOLUCIÓN -->
+      <div id="itab-content-evolucion" style="display:none;">
+        <div id="evolucion-jugador-content"><div class="loading">Cargando...</div></div>
       </div>
     </div>
 
@@ -3805,8 +3813,11 @@ window.subirFotoJugador = async function(input) {
 window.switchInformesTab = function(tab, btn) {
   document.getElementById('itab-content-partido').style.display = tab==='partido' ? 'block' : 'none';
   document.getElementById('itab-content-analisis').style.display = tab==='analisis' ? 'block' : 'none';
+  var evDiv = document.getElementById('itab-content-evolucion');
+  if(evDiv) evDiv.style.display = tab==='evolucion' ? 'block' : 'none';
+  if(tab==='evolucion') renderEvolucionJugador();
   // estilos tabs
-  ['partido','analisis'].forEach(function(t) {
+  ['partido','analisis','evolucion'].forEach(function(t) {
     var b = document.getElementById('itab-'+t);
     if(!b) return;
     var isActive = t===tab;
@@ -4124,6 +4135,116 @@ window.loadMensualHist = function() {
           '</div></div>';
       }).join('');
     });
+};
+
+
+// ═══════════════════════════════════════════════════
+// EVOLUCIÓN DEL JUGADOR — Historial de snapshots
+// ═══════════════════════════════════════════════════
+window.renderEvolucionJugador = async function() {
+  var cont = document.getElementById('evolucion-jugador-content');
+  if(!cont) return;
+  var jugId = window._jugId;
+  if(!jugId) { cont.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text3);">Cargando...</div>'; return; }
+
+  cont.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text3);">Cargando evolución...</div>';
+
+  var db = window.DB_REF;
+  if(!db) return;
+
+  var [rSnap, rObj] = await Promise.all([
+    db.from('ev_observaciones').select('*').eq('jugador_id', jugId).order('mes', {ascending: false}),
+    db.from('objetivos').select('*').eq('jugador_id', jugId).eq('superado', true).order('fecha_superado', {ascending: true})
+  ]);
+
+  var snapshots = rSnap.data || [];
+  var todosSuperados = rObj.data || [];
+
+  var FCOLOR = {OF:'#1D9E75', DE:'#378ADD', TO:'#E07B00', TD:'#D85A30', GEN:'#7C6FF0'};
+  var FLABEL = {OF:'Ofensivo', DE:'Defensivo', TO:'T.Of.', TD:'T.Def.', GEN:'General'};
+
+  if(!snapshots.length) {
+    cont.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text3);"><div style="font-size:36px;margin-bottom:12px;">📈</div><div style="font-size:13px;font-weight:600;margin-bottom:6px;">Sin historial todavía</div><div style="font-size:12px;">Tu analista irá publicando tu evolución mensual aquí.</div></div>';
+    return;
+  }
+
+  // KPIs globales
+  var h = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.5rem;">';
+  h += '<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:var(--green);">'+todosSuperados.length+'</div><div style="font-size:10px;color:var(--text3);">Superados</div></div>';
+  h += '<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:var(--blue);">'+snapshots.length+'</div><div style="font-size:10px;color:var(--text3);">Meses</div></div>';
+  var ritmo = snapshots.length ? Math.round(todosSuperados.length/snapshots.length*10)/10 : 0;
+  h += '<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:var(--gold);">'+ritmo+'</div><div style="font-size:10px;color:var(--text3);">Micros/mes</div></div>';
+  h += '</div>';
+
+  h += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:12px;">📂 Historial mensual</div>';
+
+  // Carpetas por snapshot
+  snapshots.forEach(function(snap, si) {
+    var snap_data = null;
+    try { snap_data = JSON.parse(snap.snapshot || '{}'); } catch(e) {}
+
+    var titulo = snap.titulo || snap.mes || 'Sin título';
+    var superadosMes = snap_data && snap_data.superados ? snap_data.superados : [];
+    var fechaSnap = snap_data && snap_data.fecha ? snap_data.fecha : snap.mes;
+    var cardId = 'ev-jug-card-' + si;
+
+    h += '<div style="border:0.5px solid var(--border2);border-radius:12px;margin-bottom:10px;overflow:hidden;">';
+
+    // Header carpeta
+    h += '<div data-jug-toggle="'+cardId+'" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg3);cursor:pointer;">';
+    h += '<span style="font-size:20px;">📁</span>';
+    h += '<div style="flex:1;">';
+    h += '<div style="font-size:13px;font-weight:700;">'+titulo+'</div>';
+    h += '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'+fechaSnap+' · '+superadosMes.length+' microconcepto'+(superadosMes.length!==1?'s superados':'superado')+'</div>';
+    h += '</div>';
+    h += '<span id="ev-jug-arrow-'+si+'" style="font-size:12px;color:var(--text3);">▶</span>';
+    h += '</div>';
+
+    // Contenido expandible
+    h += '<div id="'+cardId+'" style="display:none;padding:16px;background:var(--bg2);">';
+
+    // Microconceptos con barra 100%
+    if(superadosMes.length) {
+      h += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px;">✓ Microconceptos superados</div>';
+      superadosMes.forEach(function(o) {
+        var c = FCOLOR[o.fase] || '#888';
+        h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
+        h += '<div style="font-size:12px;flex:1;line-height:1.3;">'+o.texto+'<span style="font-size:9px;background:'+c+'20;color:'+c+';border-radius:4px;padding:1px 5px;margin-left:5px;">'+(FLABEL[o.fase]||o.fase)+'</span></div>';
+        h += '<div style="width:100px;height:8px;background:var(--border2);border-radius:99px;flex-shrink:0;">';
+        h += '<div style="width:100%;height:8px;background:'+c+';border-radius:99px;"></div>';
+        h += '</div>';
+        h += '<div style="font-size:11px;font-weight:800;color:'+c+';min-width:36px;text-align:right;">100%</div>';
+        h += '</div>';
+      });
+    }
+
+    // Nota del analista
+    if(snap.texto && snap.texto.trim()) {
+      h += '<div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border2);">';
+      h += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px;">📝 Nota del analista</div>';
+      h += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg3);border-radius:8px;padding:10px;">'+snap.texto+'</div>';
+      h += '</div>';
+    }
+
+    h += '</div>'; // cierre contenido
+    h += '</div>'; // cierre carpeta
+  });
+
+  cont.innerHTML = h;
+
+  // Event listeners para abrir/cerrar carpetas
+  cont.querySelectorAll('[data-jug-toggle]').forEach(function(el) {
+    el.addEventListener('click', function() {
+      var id = el.getAttribute('data-jug-toggle');
+      var idx = id.split('-').pop();
+      var card = document.getElementById(id);
+      var arrow = document.getElementById('ev-jug-arrow-' + idx);
+      if(!card) return;
+      var open = card.style.display === 'none';
+      card.style.display = open ? 'block' : 'none';
+      if(arrow) arrow.style.transform = open ? 'rotate(90deg)' : '';
+    });
+  });
 };
 
 </script>
