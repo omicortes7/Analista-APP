@@ -1844,7 +1844,18 @@ window.loadObsImagen = function(idx, input) {
 };
 
 window.getObsData = function() {
-  return (window._obsImagenes||[]).filter(function(o){return o && (o.texto||o.imagen);});
+  var result = [];
+  var cont = document.getElementById('obs-bloques');
+  if(!cont) return result;
+  var bloques = cont.querySelectorAll('[id^="obs-bloque-"]');
+  bloques.forEach(function(bloque, i) {
+    var idxStr = bloque.id.replace('obs-bloque-','');
+    var ta = bloque.querySelector('textarea');
+    var img = window._obsImagenes && window._obsImagenes[idxStr] ? window._obsImagenes[idxStr].imagen : '';
+    var texto = ta ? ta.value.trim() : '';
+    if(texto || img) result.push({texto: texto, imagen: img});
+  });
+  return result;
 };
 
 window.resetObs = function() {
