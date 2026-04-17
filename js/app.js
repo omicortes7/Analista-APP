@@ -2501,7 +2501,7 @@ async function exportarInformePDF(infId) {
 
   const nota = parseFloat(inf.nota_decimal) || parseInt(inf.valoracion) || 0;
   const nc = nota>=8?'#1D9E75':nota>=6?'#E07B00':'#D85A30';
-  const nl = nota>=8?'Muy bueno':nota>=6?'Correcto':nota>=4?'Regular':'A mejorar';
+  const nl = nota>=8?'Sobresaliente':nota>=6?'Correcto':nota>=4?'Regular':'A mejorar';
 
   let starsData = {};
   try { starsData = inf.estrellas_json ? JSON.parse(inf.estrellas_json) : {}; } catch(e) {}
@@ -2523,7 +2523,7 @@ async function exportarInformePDF(infId) {
     const pct = avg ? Math.round((parseFloat(avg)/5)*100) : 0;
     return `<div style="border:1px solid ${color}40;border-radius:8px;padding:12px;margin-bottom:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <div style="background:${color}20;color:${color};font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;">${key.replace('TDA','TD-A').replace('TAD','TA-D')}</div>
+        <div style="background:${color}20;color:${color};font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;">${key.replace('TDA','TD→A').replace('TAD','TA→D')}</div>
         <div style="font-size:11px;font-weight:500;">${label}</div>
         ${avg?`<div style="font-size:13px;font-weight:700;color:${color};">${avg}/5</div>`:''}
       </div>
@@ -2532,46 +2532,143 @@ async function exportarInformePDF(infId) {
     </div>`;
   }
 
-  const logoHtml = jug.logo_club
-    ? `<img src="${jug.logo_club}" style="width:50px;height:50px;object-fit:contain;border-radius:4px;">`
-    : `<div style="width:50px;height:50px;border:1px dashed #ccc;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#999;">Logo</div>`;
+  // Extraer color dominante del escudo usando Canvas
+  function extractColor(imgSrc) {
+    return new Promise(resolve => {
+      if(!imgSrc) { resolve('#1a1a1a'); return; }
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 50; canvas.height = 50;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, 50, 50);
+          const d = ctx.getImageData(0, 0, 50, 50).data;
+          let r=0,g=0,b=0,count=0;
+          for(let i=0;i<d.length;i+=4){
+            // Ignorar píxeles blancos/transparentes
+            if(d[i+3]<50) continue;
+            if(d[i]>240&&d[i+1]>240&&d[i+2]>240) continue;
+            r+=d[i];g+=d[i+1];b+=d[i+2];count++;
+          }
+          if(!count){resolve('#1a1a1a');return;}
+          r=Math.round(r/count);g=Math.round(g/count);b=Math.round(b/count);
+          // Oscurecer el color para usarlo como acento
+          r=Math.round(r*0.7);g=Math.round(g*0.7);b=Math.round(b*0.7);
+          resolve(`rgb(${r},${g},${b})`);
+        } catch(e) { resolve('#1a1a1a'); }
+      };
+      img.onerror = () => resolve('#1a1a1a');
+      img.src = imgSrc;
+    });
+  }
 
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  const fotoJugadorHtml = jug.foto_jugador
+    ? `<img src="${jug.foto_jugador}" style="width:100px;height:100px;object-fit:cover;object-position:top;border-radius:50%;border:3px solid rgba(255,255,255,0.3);">`
+    : `<div style="width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.1);border:2px dashed rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:28px;color:rgba(255,255,255,0.3);">${(jug.nombre||'?')[0]}</div>`;
+
+  const escudoBgHtml = jug.logo_club
+    ? `<img src="${jug.logo_club}" style="position:absolute;right:-30px;top:50%;transform:translateY(-50%);width:300px;height:300px;object-fit:contain;opacity:0.08;pointer-events:none;">`
+    : '';
+
+  extractColor(jug.logo_club).then(clubColor => {
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <title>Informe ${jug.nombre} · ${inf.partido}</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; background: #fff; padding: 32px; max-width: 700px; margin: 0 auto; }
-    .header { border-bottom: 2px solid #1a1a1a; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
-    .nota-box { display: flex; align-items: center; gap: 14px; background: #f7f7f5; border-radius: 10px; padding: 14px; margin-bottom: 16px; }
-    .nota-circle { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; flex-shrink: 0; }
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-    .box-pos { background: #E1F5EE; border-radius: 8px; padding: 10px; }
-    .box-neg { background: #FAECE7; border-radius: 8px; padding: 10px; }
-    .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; font-size: 10px; color: #999; }
-    @media print { body { padding: 20px; } }
-  </style></head><body>
-  <div class="header">
-    <div style="display:flex;align-items:center;gap:12px;">${logoHtml}
+    body { font-family: 'Barlow', -apple-system, sans-serif; color: #1a1a1a; background: #fff; max-width: 720px; margin: 0 auto; }
+    
+    /* PORTADA */
+    .portada {
+      position: relative;
+      background: #0D1117;
+      overflow: hidden;
+      padding: 48px 44px 36px;
+      min-height: 280px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-bottom: 5px solid ${clubColor};
+    }
+    .portada-bg-escudo { position:absolute;right:-20px;top:50%;transform:translateY(-50%);width:320px;height:320px;object-fit:contain;opacity:0.07;pointer-events:none; }
+    .portada-accent { position:absolute;top:0;left:0;right:0;height:4px;background:${clubColor}; }
+    .portada-top { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px; }
+    .portada-tipo { font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:12px; }
+    .portada-nombre { font-family:'Barlow Condensed',sans-serif;font-size:56px;font-weight:900;text-transform:uppercase;color:#fff;line-height:.9;letter-spacing:-.01em; }
+    .portada-posicion { font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-top:10px; }
+    .portada-right { display:flex;flex-direction:column;align-items:center;gap:12px; }
+    .portada-nota { font-family:'Barlow Condensed',sans-serif;font-size:56px;font-weight:900;color:${clubColor};line-height:1; }
+    .portada-nota-label { font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,0.4); }
+    .portada-bottom { display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px; }
+    .portada-partido { font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#fff; }
+    .portada-fecha { font-size:11px;color:rgba(255,255,255,0.4);margin-top:3px; }
+    .portada-firma { font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.25);text-align:right; }
+    
+    /* CUERPO */
+    .body-content { padding: 28px 44px; }
+    .nota-box { display:flex;align-items:center;gap:14px;background:#f7f7f5;border-radius:10px;padding:14px;margin-bottom:16px;border-left:4px solid ${clubColor}; }
+    .nota-circle { width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0; }
+    .grid2 { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px; }
+    .box-pos { background:#E1F5EE;border-radius:8px;padding:10px; }
+    .box-neg { background:#FAECE7;border-radius:8px;padding:10px; }
+    .footer { margin-top:24px;padding-top:12px;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:10px;color:#999; }
+    
+    /* BOTÓN DESCARGA */
+    .download-bar { background:#f0f0f0;padding:10px 44px;display:flex;gap:10px;border-bottom:1px solid #ddd; }
+    .btn-dl { background:${clubColor};color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.05em; }
+    .btn-print { background:#fff;color:#333;border:1px solid #ddd;padding:8px 20px;border-radius:6px;font-size:12px;cursor:pointer; }
+    
+    @media print {
+      .download-bar { display:none!important; }
+      body { max-width:none; }
+    }
+  </style>
+</head><body>
+
+  <!-- BARRA DESCARGA -->
+  <div class="download-bar">
+    <button class="btn-dl" onclick="descargarPDF()">⬇ Descargar PDF</button>
+    <button class="btn-print" onclick="window.print()">🖨 Imprimir</button>
+  </div>
+
+  <!-- PORTADA -->
+  <div class="portada">
+    <div class="portada-accent"></div>
+    ${jug.logo_club?`<img src="${jug.logo_club}" class="portada-bg-escudo">`:''}
+    <div class="portada-top">
       <div>
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#666;">Informe Técnico Individual</div>
-        <div style="font-size:20px;font-weight:700;margin-top:2px;">${jug.nombre}</div>
-        <div style="font-size:11px;color:#666;margin-top:2px;">${jug.posicion} · ${jug.equipo||''} · ${jug.categoria||''}</div>
+        <div class="portada-tipo">Informe Técnico Individual · Areté Academy</div>
+        <div class="portada-nombre">${(jug.nombre||'').toUpperCase()}</div>
+        <div class="portada-posicion">${jug.posicion}${jug.equipo?' · '+jug.equipo:''}${jug.categoria?' · '+jug.categoria:''}</div>
+      </div>
+      <div class="portada-right">
+        ${jug.foto_jugador?`<img src="${jug.foto_jugador}" style="width:90px;height:90px;object-fit:cover;object-position:top;border-radius:50%;border:3px solid ${clubColor}40;">`:`<div style="width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,0.06);border:2px dashed rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:32px;color:rgba(255,255,255,0.2);">${(jug.nombre||'?')[0].toUpperCase()}</div>`}
+        ${jug.logo_club?`<img src="${jug.logo_club}" style="width:44px;height:44px;object-fit:contain;">`:''}
       </div>
     </div>
-    <div style="text-align:right;">
-      <div style="font-size:11px;color:#666;">${new Date(inf.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'})}</div>
-      <div style="font-size:13px;font-weight:600;margin-top:2px;">${inf.partido}</div>
-      ${inf.rival?`<div style="font-size:11px;color:#666;">vs ${inf.rival}</div>`:''}
-      ${inf.resultado?`<div style="font-size:13px;font-weight:600;color:#1a1a1a;">Resultado: ${inf.resultado}</div>`:''}
+    <div class="portada-bottom">
+      <div>
+        <div class="portada-partido">${inf.partido||''}${inf.rival?' · vs '+inf.rival:''}</div>
+        <div class="portada-fecha">${new Date(inf.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'})}${inf.resultado?' · '+inf.resultado:''}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:900;color:${clubColor};line-height:1;">${nota?nota.toFixed(1):'—'}</div>
+        <div style="font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,0.3);">${nota?nl:''}</div>
+      </div>
     </div>
   </div>
+
+  <!-- CUERPO -->
+  <div class="body-content">
 
   <div class="nota-box">
     <div class="nota-circle" style="background:${nc}20;color:${nc};border:2px solid ${nc}40;">${nota?nota.toFixed(1):'—'}</div>
     <div>
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#666;">Nota global</div>
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#666;">Nota global · Media ponderada de las 4 fases</div>
       <div style="font-size:16px;font-weight:600;color:${nc};margin-top:2px;">${nota?nl:'Sin valorar'}</div>
-      <div style="font-size:10px;color:#666;margin-top:2px;">Media ponderada de todas las fases · Temporada 2025/26</div>
+      <div style="font-size:10px;color:#666;margin-top:2px;">Temporada 2025/26</div>
     </div>
   </div>
 
@@ -2595,24 +2692,38 @@ async function exportarInformePDF(infId) {
     <div style="display:flex;flex-wrap:wrap;gap:5px;">${inf.microconceptos_obs.split(',').filter(Boolean).map(m=>`<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:#EEEDFE;color:#3C3489;">${m.trim()}</span>`).join('')}</div>
   </div>`:''}
 
-  ${inf.notas?`<div style="background:#f7f7f5;border-left:3px solid #1a1a1a;border-radius:0 8px 8px 0;padding:10px;margin-bottom:10px;">
+  ${inf.notas?`<div style="background:#f7f7f5;border-left:3px solid ${clubColor};border-radius:0 8px 8px 0;padding:10px;margin-bottom:10px;">
     <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#666;margin-bottom:5px;">Notas del analista</div>
     <div style="font-size:11px;line-height:1.7;font-style:italic;">${inf.notas}</div>
   </div>`:''}
 
   <div class="footer">
-    <span>Informe elaborado por <strong>Omar Cortés Ferrero</strong> · Analista Individual de Fútbol Base</span>
+    <span>Informe elaborado por <strong>Omar Cortés Ferrero</strong> · Areté Academy · Análisis Individual de Fútbol</span>
     <span>${new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'})}</span>
   </div>
-  </body></html>`;
+  </div>
 
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url, '_blank');
-  if(win) {
-    win.onload = () => { setTimeout(() => { win.print(); URL.revokeObjectURL(url); }, 500); };
-  }
-  showToast('PDF abierto. Usa Ctrl+P o el diálogo de impresión para guardar.');
+  <script>
+    function descargarPDF() {
+      var nombre = "${jug.nombre.replace(/[^a-zA-Z0-9]/g,'_')}";
+      var partido = "${(inf.partido||'').replace(/[^a-zA-Z0-9]/g,'_')}";
+      var fecha = "${inf.fecha}";
+      // Ocultar barra de descarga para el PDF
+      document.querySelector('.download-bar').style.display = 'none';
+      window.print();
+      setTimeout(function(){ document.querySelector('.download-bar').style.display = 'flex'; }, 1000);
+    }
+  </script>
+</body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if(win) {
+      win.onload = () => { setTimeout(() => { URL.revokeObjectURL(url); }, 2000); };
+    }
+    showToast('Informe abierto. Usa "Descargar PDF" o Ctrl+P para guardar.');
+  });
 }
 
 
