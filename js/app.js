@@ -1800,6 +1800,55 @@ function exportarDatos(){
   a.click();URL.revokeObjectURL(url);showToast('Datos exportados');
 }
 
+
+// ─── OBSERVACIONES DEL INFORME CON IMÁGENES ───
+window._obsImagenes = [];
+
+window.addObsBloque = function() {
+  var idx = window._obsImagenes.length;
+  window._obsImagenes.push({texto:'', imagen:''});
+  var cont = document.getElementById('obs-bloques');
+  if(!cont) return;
+  var div = document.createElement('div');
+  div.id = 'obs-bloque-'+idx;
+  div.style.cssText = 'background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:8px;position:relative;';
+  div.innerHTML =
+    '<button onclick="removeObsBloque('+idx+')" style="position:absolute;top:6px;right:6px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;">×</button>'+
+    '<textarea id="obs-txt-'+idx+'" placeholder="Describe la situación táctica..." rows="2" style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:8px;box-sizing:border-box;" oninput="window._obsImagenes['+idx+'].texto=this.value"></textarea>'+
+    '<div id="obs-img-preview-'+idx+'" style="margin-bottom:8px;"></div>'+
+    '<label style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:11px;color:var(--text2);">'+
+    '📷 Subir imagen<input type="file" accept="image/*" style="display:none" onchange="loadObsImagen('+idx+',this)"></label>';
+  cont.appendChild(div);
+};
+
+window.removeObsBloque = function(idx) {
+  window._obsImagenes[idx] = null;
+  var el = document.getElementById('obs-bloque-'+idx);
+  if(el) el.remove();
+};
+
+window.loadObsImagen = function(idx, input) {
+  if(!input.files||!input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    window._obsImagenes[idx].imagen = e.target.result;
+    var prev = document.getElementById('obs-img-preview-'+idx);
+    if(prev) prev.innerHTML = '<img src="'+e.target.result+'" style="width:100%;max-height:200px;object-fit:contain;border-radius:6px;">';
+  };
+  reader.readAsDataURL(input.files[0]);
+};
+
+window.getObsData = function() {
+  return (window._obsImagenes||[]).filter(function(o){return o && (o.texto||o.imagen);});
+};
+
+window.resetObs = function() {
+  window._obsImagenes = [];
+  var cont = document.getElementById('obs-bloques');
+  if(cont) cont.innerHTML = '';
+};
+
+
 window.addEventListener('load', () => {
   loadTareasCustom();
   init();
@@ -3866,53 +3915,6 @@ function generarInformeVisual(jugId, infId) {
 window.addEventListener('load', () => {
   setTimeout(() => window.print(), 800);
 });
-
-// ─── OBSERVACIONES DEL INFORME CON IMÁGENES ───
-window._obsImagenes = [];
-
-window.addObsBloque = function() {
-  var idx = window._obsImagenes.length;
-  window._obsImagenes.push({texto:'', imagen:''});
-  var cont = document.getElementById('obs-bloques');
-  if(!cont) return;
-  var div = document.createElement('div');
-  div.id = 'obs-bloque-'+idx;
-  div.style.cssText = 'background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:8px;position:relative;';
-  div.innerHTML =
-    '<button onclick="removeObsBloque('+idx+')" style="position:absolute;top:6px;right:6px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;">×</button>'+
-    '<textarea id="obs-txt-'+idx+'" placeholder="Describe la situación táctica..." rows="2" style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:8px;box-sizing:border-box;" oninput="window._obsImagenes['+idx+'].texto=this.value"></textarea>'+
-    '<div id="obs-img-preview-'+idx+'" style="margin-bottom:8px;"></div>'+
-    '<label style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:11px;color:var(--text2);">'+
-    '📷 Subir imagen<input type="file" accept="image/*" style="display:none" onchange="loadObsImagen('+idx+',this)"></label>';
-  cont.appendChild(div);
-};
-
-window.removeObsBloque = function(idx) {
-  window._obsImagenes[idx] = null;
-  var el = document.getElementById('obs-bloque-'+idx);
-  if(el) el.remove();
-};
-
-window.loadObsImagen = function(idx, input) {
-  if(!input.files||!input.files[0]) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    window._obsImagenes[idx].imagen = e.target.result;
-    var prev = document.getElementById('obs-img-preview-'+idx);
-    if(prev) prev.innerHTML = '<img src="'+e.target.result+'" style="width:100%;max-height:200px;object-fit:contain;border-radius:6px;">';
-  };
-  reader.readAsDataURL(input.files[0]);
-};
-
-window.getObsData = function() {
-  return (window._obsImagenes||[]).filter(function(o){return o && (o.texto||o.imagen);});
-};
-
-window.resetObs = function() {
-  window._obsImagenes = [];
-  var cont = document.getElementById('obs-bloques');
-  if(cont) cont.innerHTML = '';
-};
 
 </script>
 </body>
