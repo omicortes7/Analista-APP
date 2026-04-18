@@ -780,6 +780,13 @@ document.addEventListener('click',function(e){
     window.addObsBloque && window.addObsBloque();
     return;
   }
+  var removeObs = e.target.closest('[data-remove-obs]');
+  if(removeObs){
+    var bid = removeObs.getAttribute('data-remove-obs');
+    var el = document.getElementById(bid);
+    if(el) el.remove();
+    return;
+  }
   var btn=e.target.closest('[data-superar-id]');
   if(btn){superarObj(btn.getAttribute('data-superar-id'));return;}
   var btn2=e.target.closest('[data-deshacer-id]');
@@ -1807,63 +1814,59 @@ function exportarDatos(){
 
 
 // ─── OBSERVACIONES DEL INFORME CON IMÁGENES ───
-window._obsImagenes = [];
+window._obsCounter = 0;
 
 window.addObsBloque = function() {
-  var idx = window._obsImagenes.length;
-  window._obsImagenes.push({texto:'', imagen:''});
   var cont = document.getElementById('obs-bloques');
   if(!cont) return;
+  var id = 'obs-bloque-' + (window._obsCounter++);
   var div = document.createElement('div');
-  div.id = 'obs-bloque-'+idx;
+  div.id = id;
+  div.setAttribute('data-obs-block', '1');
   div.style.cssText = 'background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:8px;position:relative;';
   div.innerHTML =
-    '<button onclick="window.removeObsBloque('+idx+')" style="position:absolute;top:6px;right:6px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;">×</button>'+
-    '<textarea id="obs-txt-'+idx+'" placeholder="Describe la situación táctica..." rows="2" style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:8px;box-sizing:border-box;" oninput="window._obsImagenes['+idx+'].texto=this.value"></textarea>'+
-    '<div id="obs-img-preview-'+idx+'" style="margin-bottom:8px;"></div>'+
+    '<button data-remove-obs="'+id+'" style="position:absolute;top:6px;right:6px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;">×</button>'+
+    '<textarea data-obs-texto placeholder="Describe la situación táctica..." rows="2" style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:8px;box-sizing:border-box;"></textarea>'+
+    '<div data-obs-img-preview style="margin-bottom:8px;"></div>'+
     '<label style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:11px;color:var(--text2);">'+
-    '📷 Subir imagen<input type="file" accept="image/*" style="display:none" onchange="window.loadObsImagen('+idx+',this)"></label>';
+    '📷 Subir imagen<input type="file" accept="image/*" data-obs-file style="display:none"></label>';
   cont.appendChild(div);
-};
 
-window.removeObsBloque = function(idx) {
-  window._obsImagenes[idx] = null;
-  var el = document.getElementById('obs-bloque-'+idx);
-  if(el) el.remove();
-};
-
-window.loadObsImagen = function(idx, input) {
-  if(!input.files||!input.files[0]) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    window._obsImagenes[idx].imagen = e.target.result;
-    var prev = document.getElementById('obs-img-preview-'+idx);
-    if(prev) prev.innerHTML = '<img src="'+e.target.result+'" style="width:100%;max-height:200px;object-fit:contain;border-radius:6px;">';
-  };
-  reader.readAsDataURL(input.files[0]);
+  // File input listener
+  div.querySelector('[data-obs-file]').addEventListener('change', function() {
+    if(!this.files || !this.files[0]) return;
+    var reader = new FileReader();
+    var preview = div.querySelector('[data-obs-img-preview]');
+    reader.onload = function(e) {
+      div.setAttribute('data-obs-imagen', e.target.result);
+      preview.innerHTML = '<img src="'+e.target.result+'" style="width:100%;max-height:200px;object-fit:contain;border-radius:6px;">' +
+        '<button data-clear-img style="margin-top:4px;font-size:10px;background:none;border:0.5px solid var(--border2);border-radius:4px;color:var(--text3);padding:2px 8px;cursor:pointer;">× Quitar imagen</button>';
+      preview.querySelector('[data-clear-img]').addEventListener('click', function(){
+        div.removeAttribute('data-obs-imagen');
+        preview.innerHTML = '';
+      });
+    };
+    reader.readAsDataURL(this.files[0]);
+  });
 };
 
 window.getObsData = function() {
   var result = [];
-  var cont = document.getElementById('obs-bloques');
-  if(!cont) return result;
-  var bloques = cont.querySelectorAll('[id^="obs-bloque-"]');
+  var bloques = document.querySelectorAll('[data-obs-block]');
   bloques.forEach(function(bloque) {
-    var idxNum = parseInt(bloque.id.replace('obs-bloque-',''));
-    var ta = bloque.querySelector('textarea');
-    var img = (window._obsImagenes && window._obsImagenes[idxNum]) ? window._obsImagenes[idxNum].imagen : '';
+    var ta = bloque.querySelector('[data-obs-texto]');
     var texto = ta ? ta.value.trim() : '';
-    if(texto || img) result.push({texto: texto, imagen: img});
+    var imagen = bloque.getAttribute('data-obs-imagen') || '';
+    if(texto || imagen) result.push({texto: texto, imagen: imagen});
   });
   return result;
 };
 
 window.resetObs = function() {
-  window._obsImagenes = [];
+  window._obsCounter = 0;
   var cont = document.getElementById('obs-bloques');
   if(cont) cont.innerHTML = '';
 };
-
 
 window.addEventListener('load', () => {
   loadTareasCustom();
