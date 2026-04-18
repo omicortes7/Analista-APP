@@ -1848,10 +1848,10 @@ window.getObsData = function() {
   var cont = document.getElementById('obs-bloques');
   if(!cont) return result;
   var bloques = cont.querySelectorAll('[id^="obs-bloque-"]');
-  bloques.forEach(function(bloque, i) {
-    var idxStr = bloque.id.replace('obs-bloque-','');
+  bloques.forEach(function(bloque) {
+    var idxNum = parseInt(bloque.id.replace('obs-bloque-',''));
     var ta = bloque.querySelector('textarea');
-    var img = window._obsImagenes && window._obsImagenes[idxStr] ? window._obsImagenes[idxStr].imagen : '';
+    var img = (window._obsImagenes && window._obsImagenes[idxNum]) ? window._obsImagenes[idxNum].imagen : '';
     var texto = ta ? ta.value.trim() : '';
     if(texto || img) result.push({texto: texto, imagen: img});
   });
