@@ -2645,7 +2645,24 @@ async function exportarInformePDF(infId) {
     : '';
 
   extractColor(jug.logo_club).then(clubColor => {
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    // Pre-calcular bloque de observaciones
+  let obsHtml = '';
+  try {
+    const obsArr = JSON.parse(inf.obs_imagenes || '[]');
+    if(obsArr && obsArr.length) {
+      obsHtml = '<div style="border:1px solid #e8f0fe;border-radius:10px;padding:14px;margin:16px 0;background:#f8faff;">';
+      obsHtml += '<div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#58a6ff;letter-spacing:.1em;margin-bottom:12px;">📎 Observaciones del informe</div>';
+      obsArr.forEach(function(o, i) {
+        obsHtml += '<div style="margin-bottom:12px;' + (i < obsArr.length-1 ? 'padding-bottom:12px;border-bottom:1px solid #eee;' : '') + '">';
+        if(o.texto) obsHtml += '<div style="font-size:11px;line-height:1.7;color:#333;margin-bottom:8px;">' + o.texto + '</div>';
+        if(o.imagen) obsHtml += '<img src="' + o.imagen + '" style="width:100%;max-height:280px;object-fit:contain;border-radius:6px;border:1px solid #eee;">';
+        obsHtml += '</div>';
+      });
+      obsHtml += '</div>';
+    }
+  } catch(e) {}
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <title>Informe ${jug.nombre} · ${inf.partido}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
@@ -3918,21 +3935,10 @@ function generarInformeVisual(jugId, infId) {
 
   </div>
 
-  <!-- OBSERVACIONES -->
-  ${(()=>{
-    let obs=[];
-    try{obs=JSON.parse(inf.obs_imagenes||'[]');}catch(e){}
-    if(!obs||!obs.length) return '';
-    return '<div style="border:1px solid #e8f0fe;border-radius:10px;padding:14px;margin:16px 0;background:#f8faff;">'
-      +'<div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#58a6ff;letter-spacing:.1em;margin-bottom:12px;">📎 Observaciones del informe</div>'
-      +obs.map(function(o,i){
-        return '<div style="margin-bottom:12px;'+(i<obs.length-1?'padding-bottom:12px;border-bottom:1px solid #eee;':'')+'">'+
-          (o.texto?'<div style="font-size:11px;line-height:1.7;color:#333;margin-bottom:8px;">'+o.texto+'</div>':'')+
-          (o.imagen?'<img src="'+o.imagen+'" style="width:100%;max-height:280px;object-fit:contain;border-radius:6px;border:1px solid #eee;">':'');
-      }).join('')+'</div>';
-  })()}
 
-  <!-- FOOTER -->
+  ${obsHtml}
+
+    <!-- FOOTER -->
   <div class="footer">
     <div class="footer-analista">Informe elaborado por <strong>Omar Cortés Ferrero</strong> · Analista Individual de Fútbol Base</div>
     <div style="font-size:10px;color:#bbb;">${fechaFormateada}</div>
