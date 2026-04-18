@@ -2686,7 +2686,8 @@ function _abrirPDF(inf, jug, clubColor) {
   </style>
 </head><body>
   <div class="download-bar">
-    <button class="btn-dl" onclick="window.print()">⬇ Descargar / Imprimir PDF</button>
+    <button class="btn-dl" onclick="descargarPDF()">⬇ Descargar PDF</button>
+    <button class="btn-print" onclick="window.print()">🖨 Imprimir</button>
   </div>
   <div class="portada">
     <div class="portada-accent"></div>
@@ -2739,6 +2740,38 @@ function _abrirPDF(inf, jug, clubColor) {
     <span>${new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'})}</span>
   </div>
   </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+async function descargarPDF() {
+  var bar = document.querySelector('.download-bar');
+  if(bar) bar.style.display = 'none';
+  try {
+    var { jsPDF } = window.jspdf;
+    var canvas = await html2canvas(document.body, {
+      scale: 2, useCORS: true, allowTaint: true,
+      backgroundColor: '#ffffff', windowWidth: 720
+    });
+    var imgData = canvas.toDataURL('image/jpeg', 0.92);
+    var pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    var pW = pdf.internal.pageSize.getWidth();
+    var pH = pdf.internal.pageSize.getHeight();
+    var iW = pW;
+    var iH = canvas.height * (pW / canvas.width);
+    var pos = 0;
+    while(pos < iH) {
+      pdf.addImage(imgData, 'JPEG', 0, -pos, iW, iH);
+      pos += pH;
+      if(pos < iH) pdf.addPage();
+    }
+    pdf.save('Informe_' + (document.title||'jugador').replace(/[^a-zA-Z0-9]/g,'_') + '.pdf');
+  } catch(e) {
+    console.error('PDF error:', e);
+    window.print();
+  }
+  if(bar) bar.style.display = 'flex';
+}
+</script>
 </body></html>`;
 
   const blob = new Blob([html], { type: 'text/html' });
