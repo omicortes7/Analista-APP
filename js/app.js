@@ -3919,7 +3919,7 @@ function generarInformeVisual(jugId, infId) {
   </div>
 
   <!-- OBSERVACIONES -->
-  \${(()=>{
+  ${(()=>{
     let obs=[];
     try{obs=JSON.parse(inf.obs_imagenes||'[]');}catch(e){}
     if(!obs||!obs.length) return '';
