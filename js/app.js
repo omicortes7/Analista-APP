@@ -362,7 +362,8 @@ function renderDT(tab){
             <div style="display:flex;gap:5px;flex-wrap:wrap;">
               <button onclick="verInforme('${p.id}')" class="btn-outline" style="font-size:10px;height:26px;padding:0 8px;">Ver</button>
               <button onclick="abrirGestorClips('${p.id}','${id}')" style="background:rgba(124,111,240,.12);border:0.5px solid rgba(124,111,240,.3);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#7C6FF0;">▶${clips.length?' ('+clips.length+')':''}</button>
-              <button onclick="exportarInformePDF('${p.id}')" style="background:rgba(29,158,117,.12);border:0.5px solid rgba(29,158,117,.3);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#1D9E75;">PDF</button>
+              <button onclick="exportarInformePDF('${p.id}')" style="background:rgba(29,158,117,.12);border:0.5px solid rgba(29,158,117,.3);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#1D9E75;">Ver PDF</button>
+              <button onclick="exportarInformePDF('${p.id}');setTimeout(descargarUltimoPDF,2000)" style="background:rgba(29,158,117,.2);border:0.5px solid rgba(29,158,117,.4);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#1D9E75;font-weight:700;">⬇ PDF</button>
               <button onclick="deleteInforme('${p.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;">×</button>
             </div>
           </div>
@@ -2774,20 +2775,67 @@ async function descargarPDF() {
 </script>
 </body></html>`;
 
+  // Abrir para ver
   const blob = new Blob([html], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
   const win = window.open(url, '_blank');
   if(win) {
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
-  } else {
-    // Fallback si el navegador bloquea popups
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'Informe_' + (jug.nombre||'jugador').replace(/ /g,'_') + '.html';
-    a.click();
-    showToast('PDF descargado como archivo HTML');
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
   showToast('Informe abierto');
+
+  // Botón descarga PDF — genera desde la app principal
+  window._lastInformePDF = { html, nombre: (jug.nombre||'jugador'), partido: (inf.partido||'partido') };
+}
+
+async function descargarUltimoPDF() {
+  if(!window._lastInformePDF) { showToast('Abre el informe primero'); return; }
+  await _generarPDFDesdeHTML(window._lastInformePDF);
+}
+
+async function _generarPDFDesdeHTML({html, nombre, partido}) {
+  showToast('Generando PDF...');
+  try {
+    // Crear iframe oculto con el informe
+    var iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:720px;height:1px;border:none;';
+    document.body.appendChild(iframe);
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(html);
+    iframe.contentDocument.close();
+
+    await new Promise(r => setTimeout(r, 1500)); // esperar render
+
+    var canvas = await html2canvas(iframe.contentDocument.body, {
+      scale: 1.5,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      width: 720,
+      windowWidth: 720,
+      scrollY: 0
+    });
+
+    document.body.removeChild(iframe);
+
+    var { jsPDF } = window.jspdf;
+    var pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    var pW = pdf.internal.pageSize.getWidth();
+    var pH = pdf.internal.pageSize.getHeight();
+    var iH = canvas.height * (pW / canvas.width);
+    var pos = 0;
+    var imgData = canvas.toDataURL('image/jpeg', 0.92);
+    while(pos < iH) {
+      pdf.addImage(imgData, 'JPEG', 0, -pos, pW, iH);
+      pos += pH;
+      if(pos < iH) pdf.addPage();
+    }
+    pdf.save('Informe_' + nombre.replace(/ /g,'_') + '_' + partido.replace(/ /g,'_') + '.pdf');
+    showToast('✅ PDF descargado');
+  } catch(e) {
+    console.error('PDF error:', e);
+    showToast('Error al generar PDF — usa Ctrl+P en la ventana del informe');
+  }
 }
 
 
