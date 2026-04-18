@@ -566,8 +566,8 @@ function renderDT(tab){
         <button data-action="add-obs" style="width:100%;height:36px;background:rgba(88,166,255,0.1);border:0.5px solid rgba(88,166,255,0.3);border-radius:var(--radius-sm);color:#58a6ff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;">+ Añadir observación</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.5rem;">
-        <button class="btn" style="height:44px;font-size:13px;" onclick="saveInforme()">Guardar informe</button>
-        <button onclick="generarInformeVisual('${id}')" style="height:44px;font-size:13px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-weight:600;letter-spacing:.02em;">📄 Generar informe PDF</button>
+        <button class="btn" style="height:44px;font-size:13px;" data-action="save-informe">Guardar informe</button>
+        <button data-action="ver-informe" data-jug-id="${id}" style="height:44px;font-size:13px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-weight:600;letter-spacing:.02em;">📄 Generar informe PDF</button>
       </div>
 
       ${informes.length?`<div style="${SEC_TITLE}margin-top:1.5rem;">${informes.length} informe${informes.length!==1?'s':''} anteriores</div>
@@ -775,6 +775,16 @@ async function superarObj(oid){
 }
 // Event listener global
 document.addEventListener('click',function(e){
+  // Botones del formulario de informe
+  if(e.target.closest('[data-action="save-informe"]')){
+    saveInforme && saveInforme();
+    return;
+  }
+  if(e.target.closest('[data-action="ver-informe"]')){
+    var jugId = e.target.closest('[data-jug-id]')?.getAttribute('data-jug-id');
+    if(jugId) generarInformeVisual(jugId);
+    return;
+  }
   // Observaciones del informe
   if(e.target.closest('[data-action="add-obs"]')){
     window.addObsBloque && window.addObsBloque();
