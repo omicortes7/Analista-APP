@@ -2585,30 +2585,36 @@ async function exportarInformePDF(infId) {
   const jug = state.jugadores.find(x => x.id === inf.jugador_id);
   if(!jug) { showToast('Jugador no encontrado'); return; }
 
-  _abrirPDF(inf, jug, '#1D9E75');
-
-  // Intentar extraer color del escudo en paralelo (no bloquea)
+  // Extraer color del escudo antes de abrir
   if(jug.logo_club) {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = function() {
+      let clubColor = '#1a3a5c';
       try {
         const canvas = document.createElement('canvas');
-        canvas.width = 50; canvas.height = 50;
+        canvas.width = 80; canvas.height = 80;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, 50, 50);
-        const d = ctx.getImageData(0, 0, 50, 50).data;
+        ctx.drawImage(img, 0, 0, 80, 80);
+        const d = ctx.getImageData(0, 0, 80, 80).data;
         let r=0,g=0,b=0,count=0;
         for(let i=0;i<d.length;i+=4){
-          if(d[i+3]<50||( d[i]>240&&d[i+1]>240&&d[i+2]>240)) continue;
+          if(d[i+3]<100) continue;
+          if(d[i]>230&&d[i+1]>230&&d[i+2]>230) continue;
+          if(d[i]<20&&d[i+1]<20&&d[i+2]<20) continue;
           r+=d[i];g+=d[i+1];b+=d[i+2];count++;
         }
-        if(count) {
-          r=Math.round(r/count*0.7);g=Math.round(g/count*0.7);b=Math.round(b/count*0.7);
+        if(count>10){
+          r=Math.round(r/count);g=Math.round(g/count);b=Math.round(b/count);
+          clubColor='rgb('+r+','+g+','+b+')';
         }
-      } catch(e) {}
+      } catch(e){}
+      _abrirPDF(inf, jug, clubColor);
     };
+    img.onerror = function(){ _abrirPDF(inf, jug, '#1a3a5c'); };
     img.src = jug.logo_club;
+  } else {
+    _abrirPDF(inf, jug, '#1a3a5c');
   }
 }
 
@@ -2692,16 +2698,18 @@ function _abrirPDF(inf, jug, clubColor) {
   </div>
   <div class="portada">
     <div class="portada-accent"></div>
-    ${jug.logo_club?`<img src="${jug.logo_club}" style="position:absolute;right:-20px;top:50%;transform:translateY(-50%);width:300px;height:300px;object-fit:contain;opacity:0.07;pointer-events:none;">`:''}
+    <!-- Fondo degradado con color del club -->
+    <div style="position:absolute;inset:0;background:linear-gradient(135deg, #050A12 0%, #050A12 55%, ${clubColor}55 100%);"></div>
+    <!-- Escudo grande a la derecha -->
+    ${jug.logo_club?`<div style="position:absolute;right:0;top:0;bottom:0;width:45%;display:flex;align-items:center;justify-content:center;">
+      <img src="${jug.logo_club}" style="width:220px;height:220px;object-fit:contain;filter:drop-shadow(0 0 40px ${clubColor}80);">
+    </div>`:''}
     <div class="portada-top">
-      <div>
+      <div style="max-width:55%;">
         <div class="portada-tipo">Informe Técnico Individual · Areté Academy</div>
         <div class="portada-nombre">${(jug.nombre||'').toUpperCase()}</div>
         <div class="portada-posicion">${jug.posicion||''}${jug.equipo?' · '+jug.equipo:''}${jug.categoria?' · '+jug.categoria:''}</div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
-        ${jug.foto_jugador?`<img src="${jug.foto_jugador}" style="width:80px;height:80px;object-fit:cover;object-position:top;border-radius:50%;border:3px solid ${clubColor}40;">`:''}
-        ${jug.logo_club?`<img src="${jug.logo_club}" style="width:40px;height:40px;object-fit:contain;">`:''}
+        ${jug.foto_jugador?`<img src="${jug.foto_jugador}" style="width:60px;height:60px;object-fit:cover;object-position:top;border-radius:50%;border:3px solid ${clubColor};margin-top:12px;">`:''}
       </div>
     </div>
     <div class="portada-bottom">
