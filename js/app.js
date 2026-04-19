@@ -2665,89 +2665,277 @@ function _abrirPDF(inf, jug, clubColor) {
     }
   } catch(e) {}
 
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Informe ${jug.nombre}</title>
-  <style>
-    * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:#1a1a1a; background:#fff; max-width:720px; margin:0 auto; }
-    .portada { position:relative; background:#0D1117; overflow:hidden; padding:48px 44px 36px; min-height:260px; display:flex; flex-direction:column; justify-content:space-between; border-bottom:5px solid ${clubColor}; }
-    .portada-accent { position:absolute; top:0; left:0; right:0; height:4px; background:${clubColor}; }
-    .portada-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; }
-    .portada-tipo { font-size:10px; letter-spacing:.25em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:12px; }
-    .portada-nombre { font-size:52px; font-weight:900; text-transform:uppercase; color:#fff; line-height:.9; }
-    .portada-posicion { font-size:13px; letter-spacing:.15em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-top:10px; }
-    .portada-bottom { display:flex; justify-content:space-between; align-items:flex-end; border-top:1px solid rgba(255,255,255,0.08); padding-top:16px; }
-    .portada-partido { font-size:18px; font-weight:700; color:#fff; }
-    .portada-fecha { font-size:11px; color:rgba(255,255,255,0.4); margin-top:3px; }
-    .body-content { padding:28px 44px; }
-    .nota-box { display:flex; align-items:center; gap:14px; background:#f7f7f5; border-radius:10px; padding:14px; margin-bottom:16px; border-left:4px solid ${clubColor}; }
-    .nota-circle { width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; flex-shrink:0; }
-    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
-    .box-pos { background:#E1F5EE; border-radius:8px; padding:10px; }
-    .box-neg { background:#FAECE7; border-radius:8px; padding:10px; }
-    .footer { margin-top:24px; padding-top:12px; border-top:1px solid #ddd; display:flex; justify-content:space-between; font-size:10px; color:#999; }
-    .download-bar { background:#f0f0f0; padding:10px 44px; display:flex; gap:10px; border-bottom:1px solid #ddd; }
-    .btn-dl { background:${clubColor}; color:#fff; border:none; padding:8px 20px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; }
-    .btn-print { background:#fff; color:#333; border:1px solid #ddd; padding:8px 20px; border-radius:6px; font-size:12px; cursor:pointer; }
-    @media print { .download-bar { display:none!important; } }
-  </style>
+  // ═══ PREMIUM HEADER HELPERS (Areté Academy) ═══
+  function _pxRgb(c){
+    if(!c) return {r:26,g:58,b:92};
+    c = String(c).trim();
+    if(c.charAt(0)==='#'){
+      let h=c.slice(1);
+      if(h.length===3) h=h.split('').map(x=>x+x).join('');
+      return {r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)};
+    }
+    const m=c.match(/rgba?\(([^)]+)\)/i);
+    if(m){ const p=m[1].split(',').map(n=>parseFloat(n.trim())); return {r:p[0]||0,g:p[1]||0,b:p[2]||0}; }
+    return {r:26,g:58,b:92};
+  }
+  function _pxHex(o){ const h=n=>('0'+Math.max(0,Math.min(255,Math.round(n))).toString(16)).slice(-2); return '#'+h(o.r)+h(o.g)+h(o.b); }
+  function _pxLum(c){ const o=_pxRgb(c); const f=v=>{v/=255; return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);}; return .2126*f(o.r)+.7152*f(o.g)+.0722*f(o.b); }
+  function _pxDarken(c,p){ const o=_pxRgb(c); return _pxHex({r:o.r*(1-p), g:o.g*(1-p), b:o.b*(1-p)}); }
+  function _pxMix(c,w,p){ const o=_pxRgb(c), x=_pxRgb(w); return _pxHex({r:o.r*(1-p)+x.r*p, g:o.g*(1-p)+x.g*p, b:o.b*(1-p)+x.b*p}); }
+  function _pxEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  const _clubHex  = _pxHex(_pxRgb(clubColor));
+  const _clubDark = _pxDarken(_clubHex, 0.45);
+  const _clubDeep = _pxDarken(_clubHex, 0.72);
+  const _clubGlow = _pxMix(_clubHex, '#FFFFFF', 0.18);
+  const _isLight  = _pxLum(_clubHex) > 0.55;
+  const _ink      = _isLight ? '#10161F' : '#FFFFFF';
+  const _inkSoft  = _isLight ? 'rgba(16,22,31,.70)'  : 'rgba(255,255,255,.72)';
+  const _inkFaint = _isLight ? 'rgba(16,22,31,.42)'  : 'rgba(255,255,255,.45)';
+  const _inkHair  = _isLike => '';
+  const _border   = _isLight ? 'rgba(16,22,31,.14)'  : 'rgba(255,255,255,.16)';
+  const _chipBg   = _isLight ? 'rgba(16,22,31,.08)'  : 'rgba(255,255,255,.10)';
+
+  const _dorsal = jug.dorsal ? String(jug.dorsal).padStart(2,'0')
+                            : (inf.numero ? String(inf.numero).padStart(2,'0') : '');
+  const _fechaFmt = inf.fecha ? new Date(inf.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}).replace(/\./g,'') : '—';
+  const _taglineRaw = String(inf.positivos||'').split(/\r?\n/)[0].trim();
+  const _tagline = _taglineRaw ? (_taglineRaw.length>64 ? _taglineRaw.slice(0,61)+'…' : _taglineRaw)
+                                : (nota ? nl : 'Análisis técnico individual');
+  const _dossier = inf.numero ? ('Dossier nº '+String(inf.numero).padStart(3,'0')) : 'Dossier técnico';
+
+  // Estrellas por fase a partir de estrellas_json (arrays reales) — usa avgF()
+  function _starRow(key, label){
+    const avg = avgF(key);
+    const n = avg ? Math.round(parseFloat(avg)) : 0;
+    const k = Math.max(0, Math.min(5, n));
+    const on  = k>0 ? '<span class="on">'+'★'.repeat(k)+'</span>' : '';
+    const off = k<5 ? '<span class="off">'+'★'.repeat(5-k)+'</span>' : '';
+    return `<div class="p-star-row">
+      <span class="p-star-key">${key}</span>
+      <span class="p-star-label">${label}</span>
+      <span class="p-star-stars">${on}${off}</span>
+      <span class="p-star-val">${avg||'—'}</span>
+    </div>`;
+  }
+
+  // Clase de resultado (victoria / empate / derrota) a partir del marcador
+  function _resClass(r){
+    if(!r) return '';
+    const m = String(r).match(/(\d+)\s*[-–:]\s*(\d+)/);
+    if(!m) return '';
+    const a=+m[1], b=+m[2];
+    return a>b?'win':(a<b?'loss':'draw');
+  }
+  const _rCls = _resClass(inf.resultado);
+
+  // Emblema Areté en SVG inline (gradiente dorado)
+  const _aretEmblem = `<svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" aria-label="Areté Academy"><defs><linearGradient id="aretG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E6C15A"/><stop offset="50%" stop-color="#D4AF37"/><stop offset="100%" stop-color="#B8932B"/></linearGradient></defs><g fill="url(#aretG)"><ellipse cx="40" cy="108" rx="7" ry="3" transform="rotate(-60 40 108)"/><ellipse cx="33" cy="96" rx="8" ry="3.2" transform="rotate(-48 33 96)"/><ellipse cx="29" cy="82" rx="8" ry="3.2" transform="rotate(-32 29 82)"/><ellipse cx="30" cy="68" rx="8" ry="3.2" transform="rotate(-15 30 68)"/><ellipse cx="36" cy="56" rx="8" ry="3.2" transform="rotate(0 36 56)"/><ellipse cx="46" cy="46" rx="7" ry="3" transform="rotate(18 46 46)"/></g><g fill="url(#aretG)"><ellipse cx="120" cy="108" rx="7" ry="3" transform="rotate(60 120 108)"/><ellipse cx="127" cy="96" rx="8" ry="3.2" transform="rotate(48 127 96)"/><ellipse cx="131" cy="82" rx="8" ry="3.2" transform="rotate(32 131 82)"/><ellipse cx="130" cy="68" rx="8" ry="3.2" transform="rotate(15 130 68)"/><ellipse cx="124" cy="56" rx="8" ry="3.2" transform="rotate(0 124 56)"/><ellipse cx="114" cy="46" rx="7" ry="3" transform="rotate(-18 114 46)"/></g><polygon fill="url(#aretG)" points="80,18 84,32 98,32 87,40 91,54 80,46 69,54 73,40 62,32 76,32"/><text x="80" y="104" text-anchor="middle" font-family="'Fraunces','Playfair Display',Georgia,serif" font-weight="900" font-style="italic" font-size="74" fill="url(#aretG)" letter-spacing="-2">A</text><line x1="54" y1="122" x2="106" y2="122" stroke="url(#aretG)" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Informe ${_pxEsc(jug.nombre)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700;1,900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { background:#F4F3EF; }
+  body { font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:#1a1a1a; max-width:720px; margin:0 auto; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; background:#fff; }
+
+  /* Barra de descarga (no se imprime) */
+  .download-bar { background:#f0f0f0; padding:10px 44px; display:flex; gap:10px; border-bottom:1px solid #ddd; }
+  .btn-dl { background:${_clubHex}; color:${_ink}; border:none; padding:8px 20px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .btn-print { background:#fff; color:#333; border:1px solid #ddd; padding:8px 20px; border-radius:6px; font-size:12px; cursor:pointer; font-family:inherit; }
+  @media print { .download-bar { display:none!important; } }
+
+  /* ══════ PORTADA PREMIUM ══════ */
+  .portada {
+    position:relative; overflow:hidden; padding:30px 44px 32px; color:${_ink};
+    background:
+      radial-gradient(1200px 620px at 115% -20%, ${_clubGlow} 0%, transparent 58%),
+      radial-gradient(900px 520px at -10% 120%, ${_clubDeep} 0%, transparent 62%),
+      linear-gradient(162deg, ${_clubHex} 0%, ${_clubDark} 62%, ${_clubDeep} 100%);
+    border-bottom:5px solid ${_clubHex};
+  }
+  .portada::before {
+    content:""; position:absolute; inset:0; pointer-events:none; opacity:.32; mix-blend-mode:overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.22 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  .wm {
+    position:absolute; right:-20px; top:-42px; z-index:1;
+    font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900;
+    font-size:340px; line-height:1; letter-spacing:-.045em;
+    color:${_ink}; opacity:.07; pointer-events:none; user-select:none;
+  }
+
+  .p-grid { position:relative; z-index:2; display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+  .p-brand { display:flex; align-items:center; gap:12px; }
+  .p-brand-mark { width:44px; height:44px; display:flex; align-items:center; justify-content:center; flex-shrink:0; filter: drop-shadow(0 1px 0 rgba(0,0,0,.2)); }
+  .p-brand-mark svg { width:44px; height:44px; display:block; }
+  .p-brand-text { display:flex; flex-direction:column; line-height:1; }
+  .p-brand-name { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:22px; letter-spacing:-.02em; color:${_ink}; }
+  .p-brand-tag { font-size:8.5px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkSoft}; margin-top:4px; }
+  .p-doclabel { text-align:right; font-size:9px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkSoft}; }
+  .p-doclabel .tag { display:block; margin-top:8px; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:700; font-size:14px; letter-spacing:-.005em; color:${_ink}; text-transform:none; max-width:280px; margin-left:auto; }
+
+  .p-main { position:relative; z-index:2; display:flex; align-items:center; gap:24px; margin-top:28px; }
+  .p-photo {
+    position:relative; width:144px; height:144px; border-radius:50%; overflow:visible; flex-shrink:0;
+  }
+  .p-photo-inner {
+    width:100%; height:100%; border-radius:50%; overflow:hidden;
+    background:${_pxMix(_clubDark,'#000',0.2)};
+    border:2px solid ${_isLight?'rgba(16,22,31,.22)':'rgba(255,255,255,.22)'};
+    box-shadow: 0 0 0 1px ${_isLight?'rgba(16,22,31,.25)':'rgba(255,255,255,.25)'}, 0 20px 44px -16px rgba(0,0,0,.55);
+  }
+  .p-photo-inner img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
+  .p-photo-fallback { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:72px; color:${_ink}; opacity:.55; }
+  .p-shield { position:absolute; bottom:-6px; right:-6px; width:56px; height:56px; border-radius:50%; background:#fff; border:2px solid ${_clubHex}; padding:6px; box-shadow: 0 10px 20px -10px rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; }
+  .p-shield img { width:100%; height:100%; object-fit:contain; display:block; }
+
+  .p-who { flex:1; min-width:0; }
+  .p-dossier-tag { font-size:9.5px; font-weight:700; letter-spacing:.32em; text-transform:uppercase; color:${_inkSoft}; margin-bottom:6px; }
+  .p-name { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:54px; line-height:.92; letter-spacing:-.028em; color:${_ink}; text-shadow:0 2px 0 rgba(0,0,0,.1); }
+  .p-meta { display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; margin-top:12px; font-size:10.5px; font-weight:700; color:${_inkSoft}; letter-spacing:.1em; text-transform:uppercase; }
+  .p-meta .dot { color:${_inkFaint}; }
+  .p-meta .chip { display:inline-flex; align-items:center; gap:4px; background:${_chipBg}; border:1px solid ${_border}; padding:3px 9px; border-radius:99px; letter-spacing:.14em; color:${_ink}; }
+  .p-meta .chip.gold { background:linear-gradient(180deg,rgba(230,193,90,.22),rgba(184,147,43,.22)); border-color:rgba(230,193,90,.45); color:${_ink}; }
+
+  .p-strip { position:relative; z-index:2; margin-top:26px; padding-top:18px; border-top:1px solid ${_border}; display:grid; grid-template-columns: 1.1fr 1.3fr .9fr 1.1fr; gap:18px; align-items:end; }
+  .p-field { display:flex; flex-direction:column; min-width:0; }
+  .p-field-label { font-size:8.5px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkFaint}; margin-bottom:5px; }
+  .p-field-value { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:700; font-size:18px; line-height:1.15; color:${_ink}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .p-field-value.small { font-size:15px; }
+  .p-field-value.result { display:inline-flex; align-items:center; gap:8px; }
+  .p-field-value.result::before { content:""; display:inline-block; width:8px; height:8px; border-radius:50%; background:${_inkFaint}; }
+  .p-field-value.result.win::before { background:#22C08A; box-shadow:0 0 10px rgba(34,192,138,.55); }
+  .p-field-value.result.draw::before { background:#E6C15A; box-shadow:0 0 10px rgba(230,193,90,.55); }
+  .p-field-value.result.loss::before { background:#E06A4A; box-shadow:0 0 10px rgba(224,106,74,.55); }
+
+  .p-score { display:flex; align-items:baseline; gap:6px; justify-content:flex-end; }
+  .p-score-num { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:64px; line-height:.9; letter-spacing:-.035em; color:${_ink}; }
+  .p-score-slash { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:700; font-size:22px; color:${_inkSoft}; }
+  .p-score-label { font-size:9px; font-weight:700; letter-spacing:.28em; text-transform:uppercase; color:${_inkSoft}; margin-top:5px; text-align:right; }
+
+  .p-stars { position:relative; z-index:2; margin-top:20px; background:${_chipBg}; border:1px solid ${_border}; border-radius:12px; padding:12px 14px 10px; }
+  .p-stars-head { font-size:8.5px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkFaint}; margin-bottom:6px; }
+  .p-star-row { display:grid; grid-template-columns: 52px 1fr auto 44px; gap:12px; align-items:center; padding:6px 0; border-top:1px solid ${_border}; }
+  .p-star-row:first-of-type { border-top:none; padding-top:4px; }
+  .p-star-key { font-size:9.5px; font-weight:800; letter-spacing:.15em; color:${_ink}; background:${_isLight?'rgba(16,22,31,.14)':'rgba(255,255,255,.14)'}; border-radius:4px; padding:3px 0; text-align:center; }
+  .p-star-label { font-size:11px; font-weight:600; color:${_inkSoft}; letter-spacing:.02em; }
+  .p-star-stars { font-family:Georgia,serif; font-size:15px; letter-spacing:3px; white-space:nowrap; }
+  .p-star-stars .on { color:#E6C15A; text-shadow:0 0 6px rgba(230,193,90,.55); }
+  .p-star-stars .off { color:${_ink}; opacity:.22; }
+  .p-star-val { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:800; font-size:14px; color:${_ink}; text-align:right; }
+
+  /* ══════ CUERPO (preservado + ligeros retoques premium) ══════ */
+  .body-content { padding:28px 44px 32px; background:#fff; }
+  .nota-box { display:flex; align-items:center; gap:14px; background:#F7F7F5; border-radius:12px; padding:14px 16px; margin-bottom:18px; border-left:4px solid ${_clubHex}; }
+  .nota-circle { width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:24px; flex-shrink:0; }
+  .nota-box-title { font-size:9px; font-weight:800; text-transform:uppercase; color:#666; letter-spacing:.18em; }
+  .nota-box-value { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:700; font-size:18px; margin-top:3px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+  .box-pos { background:#E1F5EE; border-radius:12px; padding:14px; }
+  .box-neg { background:#FAECE7; border-radius:12px; padding:14px; }
+  .box-label { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.18em; margin-bottom:6px; }
+  .box-body { font-size:11.5px; line-height:1.65; }
+  .footer { margin-top:28px; padding-top:14px; border-top:1px solid #ddd; display:flex; justify-content:space-between; font-size:10px; color:#999; }
+  .footer strong { color:#555; }
+</style>
 </head><body>
   <div class="download-bar">
     <button class="btn-dl" onclick="descargarPDF()">⬇ Descargar PDF</button>
     <button class="btn-print" onclick="window.print()">🖨 Imprimir</button>
   </div>
-  <div class="portada">
-    <div class="portada-accent"></div>
-    <!-- Fondo degradado con color del club -->
-    <div style="position:absolute;inset:0;background:linear-gradient(135deg, #050A12 0%, #050A12 55%, ${clubColor}55 100%);"></div>
-    <!-- Escudo grande a la derecha -->
-    ${jug.logo_club?`<div style="position:absolute;right:0;top:0;bottom:0;width:45%;display:flex;align-items:center;justify-content:center;">
-      <img src="${jug.logo_club}" style="width:220px;height:220px;object-fit:contain;filter:drop-shadow(0 0 40px ${clubColor}80);">
-    </div>`:''}
-    <div class="portada-top">
-      <div style="max-width:55%;">
-        <div class="portada-tipo">Informe Técnico Individual · Areté Academy</div>
-        <div class="portada-nombre">${(jug.nombre||'').toUpperCase()}</div>
-        <div class="portada-posicion">${jug.posicion||''}${jug.equipo?' · '+jug.equipo:''}${jug.categoria?' · '+jug.categoria:''}</div>
-        ${jug.foto_jugador?`<img src="${jug.foto_jugador}" style="width:60px;height:60px;object-fit:cover;object-position:top;border-radius:50%;border:3px solid ${clubColor};margin-top:12px;">`:''}
+  <header class="portada">
+    ${_dorsal?`<div class="wm">${_dorsal}</div>`:''}
+    <div class="p-grid">
+      <div class="p-brand">
+        <div class="p-brand-mark">${_aretEmblem}</div>
+        <div class="p-brand-text">
+          <span class="p-brand-name">Areté</span>
+          <span class="p-brand-tag">Academy · Análisis técnico</span>
+        </div>
+      </div>
+      <div class="p-doclabel">
+        ${_pxEsc(_dossier)}
+        <span class="tag">${_pxEsc(_tagline)}</span>
       </div>
     </div>
-    <div class="portada-bottom">
-      <div>
-        <div class="portada-partido">${inf.partido||''}${inf.rival?' · vs '+inf.rival:''}</div>
-        <div class="portada-fecha">${new Date((inf.fecha||'')+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'})}${inf.resultado?' · '+inf.resultado:''}</div>
+    <div class="p-main">
+      <div class="p-photo">
+        <div class="p-photo-inner">
+          ${jug.foto_jugador?`<img src="${jug.foto_jugador}" alt="">`:`<div class="p-photo-fallback">${_pxEsc((jug.nombre||'?').charAt(0).toUpperCase())}</div>`}
+        </div>
+        ${jug.logo_club?`<div class="p-shield"><img src="${jug.logo_club}" alt=""></div>`:''}
+      </div>
+      <div class="p-who">
+        <div class="p-dossier-tag">Informe técnico individual</div>
+        <h1 class="p-name">${_pxEsc((jug.nombre||'').toUpperCase())}</h1>
+        <div class="p-meta">
+          ${jug.dorsal?`<span class="chip gold">Nº ${_pxEsc(jug.dorsal)}</span>`:''}
+          ${jug.posicion?`<span class="chip">${_pxEsc(jug.posicion)}</span>`:''}
+          ${jug.equipo?`<span>${_pxEsc(jug.equipo)}</span>`:''}
+          ${jug.categoria?`<span class="dot">·</span><span>${_pxEsc(jug.categoria)}</span>`:''}
+          ${jug.edad?`<span class="dot">·</span><span>${_pxEsc(jug.edad)} años</span>`:''}
+        </div>
+      </div>
+    </div>
+    <div class="p-strip">
+      <div class="p-field">
+        <span class="p-field-label">Fecha</span>
+        <span class="p-field-value small">${_pxEsc(_fechaFmt)}</span>
+      </div>
+      <div class="p-field">
+        <span class="p-field-label">Partido / Rival</span>
+        <span class="p-field-value small">${_pxEsc(inf.rival||inf.partido||'—')}</span>
+      </div>
+      <div class="p-field">
+        <span class="p-field-label">Resultado</span>
+        <span class="p-field-value result ${_rCls}">${_pxEsc(inf.resultado||'—')}</span>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:48px;font-weight:900;color:${clubColor};line-height:1;">${nota?nota.toFixed(1):'—'}</div>
-        <div style="font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,0.3);">${nota?nl:''}</div>
+        <div class="p-score">
+          <span class="p-score-num">${nota?nota.toFixed(1):'—'}</span>
+          <span class="p-score-slash">/10</span>
+        </div>
+        <div class="p-score-label">${nota?_pxEsc(nl):'Sin valorar'}</div>
       </div>
     </div>
-  </div>
-  <div class="body-content">
-  <div class="nota-box">
-    <div class="nota-circle" style="background:${nc}20;color:${nc};border:2px solid ${nc}40;">${nota?nota.toFixed(1):'—'}</div>
-    <div>
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#666;">Nota global · Media ponderada de las 4 fases</div>
-      <div style="font-size:16px;font-weight:600;color:${nc};margin-top:2px;">${nota?nl:'Sin valorar'}</div>
+    <div class="p-stars">
+      <div class="p-stars-head">Origen de la nota · media por fase</div>
+      ${_starRow('MCB','Momento con balón')}
+      ${_starRow('MSB','Momento sin balón')}
+      ${_starRow('TDA','Transición def → ataque')}
+      ${_starRow('TAD','Transición ata → defensa')}
     </div>
-  </div>
-  ${faseSection('MCB','Momento con balón','#1D9E75',inf.mcb)}
-  ${faseSection('MSB','Momento sin balón','#378ADD',inf.msb)}
-  ${faseSection('TDA','Transición def→ataque','#E07B00',inf.tda)}
-  ${faseSection('TAD','Transición ata→defensa','#D85A30',inf.tad)}
-  ${(inf.positivos||inf.mejoras)?`<div class="grid2">
-    ${inf.positivos?`<div class="box-pos"><div style="font-size:9px;font-weight:700;color:#085041;text-transform:uppercase;margin-bottom:5px;">✓ Positivos</div><div style="font-size:11px;line-height:1.6;color:#085041;">${inf.positivos}</div></div>`:'<div></div>'}
-    ${inf.mejoras?`<div class="box-neg"><div style="font-size:9px;font-weight:700;color:#993C1D;text-transform:uppercase;margin-bottom:5px;">△ A mejorar</div><div style="font-size:11px;line-height:1.6;color:#993C1D;">${inf.mejoras}</div></div>`:'<div></div>'}
-  </div>`:''}
-  ${inf.notas?`<div style="background:#f7f7f5;border-left:3px solid ${clubColor};border-radius:0 8px 8px 0;padding:10px;margin-bottom:10px;">
-    <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#666;margin-bottom:5px;">Notas del analista</div>
-    <div style="font-size:11px;line-height:1.7;font-style:italic;">${inf.notas}</div>
-  </div>`:''}
-  ${obsHtml}
-  <div class="footer">
-    <span>Informe elaborado por <strong>Omar Cortés Ferrero</strong> · Areté Academy</span>
-    <span>${new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'})}</span>
-  </div>
+  </header>
+  <div class="body-content">
+    <div class="nota-box">
+      <div class="nota-circle" style="background:${nc}20;color:${nc};border:2px solid ${nc}40;">${nota?nota.toFixed(1):'—'}</div>
+      <div>
+        <div class="nota-box-title">Nota global · media ponderada de las 4 fases</div>
+        <div class="nota-box-value" style="color:${nc};">${nota?_pxEsc(nl):'Sin valorar'}</div>
+      </div>
+    </div>
+    ${faseSection('MCB','Momento con balón','#1D9E75',inf.mcb)}
+    ${faseSection('MSB','Momento sin balón','#378ADD',inf.msb)}
+    ${faseSection('TDA','Transición def→ataque','#E07B00',inf.tda)}
+    ${faseSection('TAD','Transición ata→defensa','#D85A30',inf.tad)}
+    ${(inf.positivos||inf.mejoras)?`<div class="grid2">
+      ${inf.positivos?`<div class="box-pos"><div class="box-label" style="color:#085041;">✓ Fortalezas</div><div class="box-body" style="color:#085041;">${inf.positivos}</div></div>`:'<div></div>'}
+      ${inf.mejoras?`<div class="box-neg"><div class="box-label" style="color:#993C1D;">△ Aspectos a mejorar</div><div class="box-body" style="color:#993C1D;">${inf.mejoras}</div></div>`:'<div></div>'}
+    </div>`:''}
+    ${inf.notas?`<div style="background:#f7f7f5;border-left:3px solid ${_clubHex};border-radius:0 10px 10px 0;padding:12px 14px;margin-bottom:12px;">
+      <div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#666;letter-spacing:.18em;margin-bottom:5px;">Notas del analista</div>
+      <div style="font-family:'Fraunces',Georgia,serif;font-size:12.5px;line-height:1.7;font-style:italic;color:#333;">${inf.notas}</div>
+    </div>`:''}
+    ${obsHtml}
+    <div class="footer">
+      <span>Informe elaborado por <strong>Omar Cortés Ferrero</strong> · Areté Academy</span>
+      <span>${new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'})}</span>
+    </div>
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
