@@ -3766,6 +3766,40 @@ function generarInformeVisual(jugId, infId) {
     };
   }
 
+  // ═══ Extraer color del club desde el escudo y luego renderizar ═══
+  if(jug.logo_club) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      let clubColor = '#1a3a5c';
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 80; canvas.height = 80;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, 80, 80);
+        const d = ctx.getImageData(0,0,80,80).data;
+        let r=0,g=0,b=0,count=0;
+        for(let i=0;i<d.length;i+=4){
+          if(d[i+3]<100) continue;
+          if(d[i]>230&&d[i+1]>230&&d[i+2]>230) continue;
+          if(d[i]<20&&d[i+1]<20&&d[i+2]<20) continue;
+          r+=d[i]; g+=d[i+1]; b+=d[i+2]; count++;
+        }
+        if(count>10){
+          r=Math.round(r/count); g=Math.round(g/count); b=Math.round(b/count);
+          clubColor='rgb('+r+','+g+','+b+')';
+        }
+      } catch(e){}
+      _renderInformeVisualPremium(jug, inf, clubColor);
+    };
+    img.onerror = function(){ _renderInformeVisualPremium(jug, inf, '#1a3a5c'); };
+    img.src = jug.logo_club;
+  } else {
+    _renderInformeVisualPremium(jug, inf, '#1a3a5c');
+  }
+}
+
+function _renderInformeVisualPremium(jug, inf, clubColor) {
   const nota = parseFloat(inf.nota_decimal) || 0;
   const nc = nota >= 8 ? '#1D9E75' : nota >= 6 ? '#E07B00' : '#D85A30';
   const nl = nota >= 8 ? 'SOBRESALIENTE' : nota >= 6 ? 'CORRECTO' : nota >= 4 ? 'EN PROGRESO' : 'A MEJORAR';
@@ -3828,108 +3862,151 @@ function generarInformeVisual(jugId, infId) {
     }
   } catch(e) {}
 
+  // ═══ PREMIUM HEADER HELPERS ═══
+  function _pxRgb(c){
+    if(!c) return {r:26,g:58,b:92};
+    c = String(c).trim();
+    if(c.charAt(0)==='#'){
+      let h=c.slice(1);
+      if(h.length===3) h=h.split('').map(x=>x+x).join('');
+      return {r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)};
+    }
+    const m=c.match(/rgba?\(([^)]+)\)/i);
+    if(m){ const p=m[1].split(',').map(n=>parseFloat(n.trim())); return {r:p[0]||0,g:p[1]||0,b:p[2]||0}; }
+    return {r:26,g:58,b:92};
+  }
+  function _pxHex(o){ const h=n=>('0'+Math.max(0,Math.min(255,Math.round(n))).toString(16)).slice(-2); return '#'+h(o.r)+h(o.g)+h(o.b); }
+  function _pxLum(c){ const o=_pxRgb(c); const f=v=>{v/=255; return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);}; return .2126*f(o.r)+.7152*f(o.g)+.0722*f(o.b); }
+  function _pxDarken(c,p){ const o=_pxRgb(c); return _pxHex({r:o.r*(1-p), g:o.g*(1-p), b:o.b*(1-p)}); }
+  function _pxMix(c,w,p){ const o=_pxRgb(c), x=_pxRgb(w); return _pxHex({r:o.r*(1-p)+x.r*p, g:o.g*(1-p)+x.g*p, b:o.b*(1-p)+x.b*p}); }
+  function _pxEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  const _clubHex  = _pxHex(_pxRgb(clubColor));
+  const _clubDark = _pxDarken(_clubHex, 0.45);
+  const _clubDeep = _pxDarken(_clubHex, 0.72);
+  const _clubGlow = _pxMix(_clubHex, '#FFFFFF', 0.18);
+  const _isLight  = _pxLum(_clubHex) > 0.55;
+  const _ink      = _isLight ? '#10161F' : '#FFFFFF';
+  const _inkSoft  = _isLight ? 'rgba(16,22,31,.70)'  : 'rgba(255,255,255,.72)';
+  const _inkFaint = _isLight ? 'rgba(16,22,31,.42)'  : 'rgba(255,255,255,.45)';
+  const _border   = _isLight ? 'rgba(16,22,31,.14)'  : 'rgba(255,255,255,.16)';
+  const _chipBg   = _isLight ? 'rgba(16,22,31,.08)'  : 'rgba(255,255,255,.10)';
+  const _dorsal   = jug.dorsal ? String(jug.dorsal).padStart(2,'0') : '';
+  const _taglineRaw = String(inf.positivos||'').split(/\r?\n/)[0].trim();
+  const _tagline = _taglineRaw ? (_taglineRaw.length>64 ? _taglineRaw.slice(0,61)+'…' : _taglineRaw)
+                                : (nota ? nl : 'Análisis técnico individual');
+  const _rCls = (function(){
+    if(!inf.resultado) return '';
+    const m = String(inf.resultado).match(/(\d+)\s*[-–:]\s*(\d+)/);
+    if(!m) return '';
+    const a=+m[1], b=+m[2];
+    return a>b?'win':(a<b?'loss':'draw');
+  })();
+  function _pStarRow(key, label) {
+    const avg = avgF(key);
+    const v = avg ? avg.toFixed(1) : '—';
+    const k = Math.max(0, Math.min(5, Math.round(avg || 0)));
+    const on = k>0 ? '<span class="on">'+'★'.repeat(k)+'</span>' : '';
+    const off = k<5 ? '<span class="off">'+'★'.repeat(5-k)+'</span>' : '';
+    return `<div class="p-star-row">
+      <span class="p-star-key">${key}</span>
+      <span class="p-star-label">${label}</span>
+      <span class="p-star-stars">${on}${off}</span>
+      <span class="p-star-val">${v}</span>
+    </div>`;
+  }
+  const _aretEmblem = `<svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" aria-label="Areté Academy"><defs><linearGradient id="aretG2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E6C15A"/><stop offset="50%" stop-color="#D4AF37"/><stop offset="100%" stop-color="#B8932B"/></linearGradient></defs><g fill="url(#aretG2)"><ellipse cx="40" cy="108" rx="7" ry="3" transform="rotate(-60 40 108)"/><ellipse cx="33" cy="96" rx="8" ry="3.2" transform="rotate(-48 33 96)"/><ellipse cx="29" cy="82" rx="8" ry="3.2" transform="rotate(-32 29 82)"/><ellipse cx="30" cy="68" rx="8" ry="3.2" transform="rotate(-15 30 68)"/><ellipse cx="36" cy="56" rx="8" ry="3.2" transform="rotate(0 36 56)"/><ellipse cx="46" cy="46" rx="7" ry="3" transform="rotate(18 46 46)"/></g><g fill="url(#aretG2)"><ellipse cx="120" cy="108" rx="7" ry="3" transform="rotate(60 120 108)"/><ellipse cx="127" cy="96" rx="8" ry="3.2" transform="rotate(48 127 96)"/><ellipse cx="131" cy="82" rx="8" ry="3.2" transform="rotate(32 131 82)"/><ellipse cx="130" cy="68" rx="8" ry="3.2" transform="rotate(15 130 68)"/><ellipse cx="124" cy="56" rx="8" ry="3.2" transform="rotate(0 124 56)"/><ellipse cx="114" cy="46" rx="7" ry="3" transform="rotate(-18 114 46)"/></g><polygon fill="url(#aretG2)" points="80,18 84,32 98,32 87,40 91,54 80,46 69,54 73,40 62,32 76,32"/><text x="80" y="104" text-anchor="middle" font-family="'Fraunces','Playfair Display',Georgia,serif" font-weight="900" font-style="italic" font-size="74" fill="url(#aretG2)" letter-spacing="-2">A</text><line x1="54" y1="122" x2="106" y2="122" stroke="url(#aretG2)" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Informe ${jug.nombre} · ${inf.partido || ''}</title>
+<title>Informe ${_pxEsc(jug.nombre)} · ${_pxEsc(inf.partido || '')}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700;1,900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;1,400;1,700&family=Barlow:wght@400;500;600&display=swap');
   * { box-sizing:border-box; margin:0; padding:0; }
-  body { font-family:'Barlow', sans-serif; background:#f0ede8; color:#1a1a1a; min-height:100vh; }
+  body { font-family:'Manrope', sans-serif; background:#f0ede8; color:#1a1a1a; min-height:100vh; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
 
-  .page {
-    width:794px; min-height:1123px; margin:0 auto;
-    background:#fff; position:relative; overflow:hidden;
-  }
+  .page { width:794px; min-height:1123px; margin:0 auto; background:#fff; position:relative; overflow:hidden; box-shadow:0 20px 60px -20px rgba(0,0,0,.15); }
 
-  /* HEADER */
-  .header {
-    display:grid;
-    grid-template-columns:1fr auto;
-    min-height:240px;
-    background:#1a1a2e;
-    position:relative;
-    overflow:hidden;
+  /* ══════ PORTADA PREMIUM ══════ */
+  .portada {
+    position:relative; overflow:hidden; padding:32px 36px 28px; color:${_ink};
+    background:
+      radial-gradient(1200px 620px at 115% -20%, ${_clubGlow} 0%, transparent 58%),
+      radial-gradient(900px 520px at -10% 120%, ${_clubDeep} 0%, transparent 62%),
+      linear-gradient(162deg, ${_clubHex} 0%, ${_clubDark} 62%, ${_clubDeep} 100%);
+    border-bottom:5px solid ${_clubHex};
   }
-  .header::before {
-    content:''; position:absolute; top:0; left:0; right:0; bottom:0;
-    background:radial-gradient(ellipse at 30% 50%, rgba(0,212,255,0.08) 0%, transparent 60%);
+  .portada::before {
+    content:""; position:absolute; inset:0; pointer-events:none; opacity:.32; mix-blend-mode:overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.22 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   }
-  .header-left {
-    padding:36px 36px 28px;
-    display:flex; flex-direction:column; justify-content:flex-end;
-    position:relative; z-index:1;
+  .wm {
+    position:absolute; right:-24px; top:-48px; z-index:1;
+    font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900;
+    font-size:360px; line-height:1; letter-spacing:-.045em;
+    color:${_ink}; opacity:.07; pointer-events:none; user-select:none;
   }
-  .header-badge {
-    font-family:'Barlow Condensed', sans-serif;
-    font-size:10px; font-weight:700; letter-spacing:.18em;
-    color:rgba(255,255,255,.4); text-transform:uppercase;
-    margin-bottom:10px;
-  }
-  .header-name {
-    font-family:'Barlow Condensed', sans-serif;
-    font-size:52px; font-weight:800; letter-spacing:-.01em;
-    color:#fff; line-height:.95; text-transform:uppercase;
-    margin-bottom:10px;
-  }
-  .header-meta {
-    font-family:'Barlow Condensed', sans-serif;
-    font-size:14px; font-weight:400; color:rgba(255,255,255,.55);
-    letter-spacing:.04em; text-transform:uppercase;
-    line-height:1.8;
-  }
-  .header-right {
-    width:280px; position:relative; overflow:hidden;
-  }
-  .player-photo {
-    width:100%; height:100%; object-fit:cover; object-position:top center;
-    display:block;
-  }
-  .player-photo-placeholder {
-    width:100%; height:100%;
-    background:linear-gradient(135deg,#0f3460,#16213e);
-    display:flex; align-items:center; justify-content:center;
-  }
-  .photo-initials {
-    font-family:'Barlow Condensed', sans-serif;
-    font-size:72px; font-weight:800; color:rgba(255,255,255,.15);
-    text-transform:uppercase;
-  }
-  /* Gradiente sobre la foto */
-  .header-right::after {
-    content:''; position:absolute; inset:0;
-    background:linear-gradient(to right, #1a1a2e 0%, transparent 40%);
-    pointer-events:none;
-  }
+  .p-grid { position:relative; z-index:2; display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+  .p-brand { display:flex; align-items:center; gap:12px; }
+  .p-brand-mark { width:48px; height:48px; display:flex; align-items:center; justify-content:center; flex-shrink:0; filter: drop-shadow(0 1px 0 rgba(0,0,0,.22)); }
+  .p-brand-mark svg { width:48px; height:48px; display:block; }
+  .p-brand-text { display:flex; flex-direction:column; line-height:1; }
+  .p-brand-name { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:24px; letter-spacing:-.02em; color:${_ink}; }
+  .p-brand-tag { font-size:9px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkSoft}; margin-top:4px; }
+  .p-doclabel { text-align:right; font-size:9.5px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkSoft}; }
+  .p-doclabel .tag { display:block; margin-top:8px; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:700; font-size:15px; letter-spacing:-.005em; color:${_ink}; text-transform:none; max-width:320px; margin-left:auto; line-height:1.25; }
 
-  /* NOTA GLOBAL */
-  .nota-strip {
-    background:#1a1a2e;
-    padding:0 36px 24px;
-    display:flex; align-items:center; gap:20px;
+  .p-main { position:relative; z-index:2; display:flex; align-items:center; gap:26px; margin-top:28px; }
+  .p-photo { position:relative; width:152px; height:152px; flex-shrink:0; }
+  .p-photo-inner {
+    width:100%; height:100%; border-radius:50%; overflow:hidden;
+    background:${_pxMix(_clubDark,'#000',0.2)};
+    border:2px solid ${_isLight?'rgba(16,22,31,.22)':'rgba(255,255,255,.22)'};
+    box-shadow: 0 0 0 1px ${_isLight?'rgba(16,22,31,.25)':'rgba(255,255,255,.25)'}, 0 20px 44px -16px rgba(0,0,0,.55);
   }
-  .nota-circle {
-    width:72px; height:72px; border-radius:50%;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    flex-shrink:0; border:2px solid;
-  }
-  .nota-num {
-    font-family:'Barlow Condensed', sans-serif;
-    font-size:28px; font-weight:800; line-height:1;
-  }
-  .nota-label {
-    font-family:'Barlow Condensed', sans-serif;
-    font-size:16px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
-    color:#fff; margin-left:4px;
-  }
-  .nota-sub { font-size:11px; color:rgba(255,255,255,.4); margin-top:2px; letter-spacing:.04em; }
-  .partido-info {
-    margin-left:auto; text-align:right;
-    font-family:'Barlow Condensed', sans-serif;
-  }
-  .partido-name { font-size:18px; font-weight:700; color:#fff; letter-spacing:.02em; }
-  .partido-meta { font-size:12px; color:rgba(255,255,255,.4); margin-top:3px; letter-spacing:.04em; }
+  .p-photo-inner img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
+  .p-photo-fallback { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:78px; color:${_ink}; opacity:.55; }
+  .p-shield { position:absolute; bottom:-6px; right:-6px; width:60px; height:60px; border-radius:50%; background:#fff; border:2px solid ${_clubHex}; padding:6px; box-shadow: 0 10px 20px -10px rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; }
+  .p-shield img { width:100%; height:100%; object-fit:contain; display:block; }
+
+  .p-who { flex:1; min-width:0; }
+  .p-dossier-tag { font-size:10px; font-weight:700; letter-spacing:.32em; text-transform:uppercase; color:${_inkSoft}; margin-bottom:6px; }
+  .p-name { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:56px; line-height:.92; letter-spacing:-.028em; color:${_ink}; text-shadow:0 2px 0 rgba(0,0,0,.1); }
+  .p-meta { display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; margin-top:12px; font-size:11px; font-weight:700; color:${_inkSoft}; letter-spacing:.1em; text-transform:uppercase; }
+  .p-meta .dot { color:${_inkFaint}; }
+  .p-meta .chip { display:inline-flex; align-items:center; gap:4px; background:${_chipBg}; border:1px solid ${_border}; padding:3px 10px; border-radius:99px; letter-spacing:.14em; color:${_ink}; }
+  .p-meta .chip.gold { background:linear-gradient(180deg,rgba(230,193,90,.22),rgba(184,147,43,.22)); border-color:rgba(230,193,90,.5); }
+
+  .p-strip { position:relative; z-index:2; margin-top:24px; padding-top:18px; border-top:1px solid ${_border}; display:grid; grid-template-columns: 1.1fr 1.3fr .9fr 1.1fr; gap:18px; align-items:end; }
+  .p-field { display:flex; flex-direction:column; min-width:0; }
+  .p-field-label { font-size:9px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkFaint}; margin-bottom:5px; }
+  .p-field-value { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:700; font-size:19px; line-height:1.15; color:${_ink}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .p-field-value.small { font-size:16px; }
+  .p-field-value.result { display:inline-flex; align-items:center; gap:8px; }
+  .p-field-value.result::before { content:""; display:inline-block; width:8px; height:8px; border-radius:50%; background:${_inkFaint}; }
+  .p-field-value.result.win::before { background:#22C08A; box-shadow:0 0 10px rgba(34,192,138,.55); }
+  .p-field-value.result.draw::before { background:#E6C15A; box-shadow:0 0 10px rgba(230,193,90,.55); }
+  .p-field-value.result.loss::before { background:#E06A4A; box-shadow:0 0 10px rgba(224,106,74,.55); }
+
+  .p-score { display:flex; align-items:baseline; gap:6px; justify-content:flex-end; }
+  .p-score-num { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:68px; line-height:.9; letter-spacing:-.035em; color:${_ink}; }
+  .p-score-slash { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:700; font-size:24px; color:${_inkSoft}; }
+  .p-score-label { font-size:9.5px; font-weight:700; letter-spacing:.28em; text-transform:uppercase; color:${_inkSoft}; margin-top:5px; text-align:right; }
+
+  .p-stars { position:relative; z-index:2; margin-top:20px; background:${_chipBg}; border:1px solid ${_border}; border-radius:12px; padding:12px 16px 10px; }
+  .p-stars-head { font-size:9px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkFaint}; margin-bottom:6px; }
+  .p-star-row { display:grid; grid-template-columns: 56px 1fr auto 46px; gap:12px; align-items:center; padding:6px 0; border-top:1px solid ${_border}; }
+  .p-star-row:first-of-type { border-top:none; padding-top:4px; }
+  .p-star-key { font-size:10px; font-weight:800; letter-spacing:.15em; color:${_ink}; background:${_isLight?'rgba(16,22,31,.14)':'rgba(255,255,255,.14)'}; border-radius:4px; padding:3px 0; text-align:center; }
+  .p-star-label { font-size:11.5px; font-weight:600; color:${_inkSoft}; letter-spacing:.02em; }
+  .p-star-stars { font-family:Georgia,serif; font-size:16px; letter-spacing:3px; white-space:nowrap; }
+  .p-star-stars .on { color:#E6C15A; text-shadow:0 0 6px rgba(230,193,90,.55); }
+  .p-star-stars .off { color:${_ink}; opacity:.22; }
+  .p-star-val { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:800; font-size:15px; color:${_ink}; text-align:right; }
 
   /* CONTENIDO */
   .content { padding:28px 36px; }
@@ -4036,55 +4113,78 @@ function generarInformeVisual(jugId, infId) {
 
 <!-- BOTÓN IMPRIMIR -->
 <div class="no-print" style="text-align:center;padding:16px;background:#f0ede8;">
-  <button onclick="window.print()" style="background:#1a1a2e;color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600;letter-spacing:.04em;">↓ DESCARGAR PDF</button>
+  <button onclick="window.print()" style="background:${_clubHex};color:${_ink};border:none;border-radius:8px;padding:10px 28px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:700;letter-spacing:.04em;">↓ DESCARGAR PDF</button>
   <div style="font-size:11px;color:#999;margin-top:6px;">En el diálogo de impresión → Guardar como PDF</div>
 </div>
 
 <div class="page">
 
-  <!-- HEADER -->
-  <div class="header">
-    <div class="header-left">
-      <div class="header-badge">Informe Técnico Individual · ${fechaFormateada}</div>
-      <div class="header-name">${jug.nombre}</div>
-      <div class="header-meta">
-        ${jug.posicion}<br>
-        ${jug.equipo || ''} ${jug.categoria ? '· '+jug.categoria : ''}
+  <!-- ═══ PORTADA PREMIUM ═══ -->
+  <header class="portada">
+    ${_dorsal?`<div class="wm">${_dorsal}</div>`:''}
+    <div class="p-grid">
+      <div class="p-brand">
+        <div class="p-brand-mark">${_aretEmblem}</div>
+        <div class="p-brand-text">
+          <span class="p-brand-name">Areté</span>
+          <span class="p-brand-tag">Academy · Análisis técnico</span>
+        </div>
+      </div>
+      <div class="p-doclabel">
+        Informe técnico individual
+        <span class="tag">${_pxEsc(_tagline)}</span>
       </div>
     </div>
-    <div class="header-right">
-      ${jug.foto_jugador
-        ? `<img class="player-photo" src="${jug.foto_jugador}" alt="${jug.nombre}">`
-        : `<div class="player-photo-placeholder"><div class="photo-initials">${jug.nombre.split(' ').map(w=>w[0]).join('').slice(0,2)}</div></div>`
-      }
+    <div class="p-main">
+      <div class="p-photo">
+        <div class="p-photo-inner">
+          ${jug.foto_jugador
+            ? `<img src="${jug.foto_jugador}" alt="${_pxEsc(jug.nombre)}">`
+            : `<div class="p-photo-fallback">${_pxEsc((jug.nombre||'?').charAt(0).toUpperCase())}</div>`}
+        </div>
+        ${jug.logo_club?`<div class="p-shield"><img src="${jug.logo_club}" alt="" onerror="this.parentNode.style.display='none'"></div>`:''}
+      </div>
+      <div class="p-who">
+        <div class="p-dossier-tag">Dossier técnico</div>
+        <h1 class="p-name">${_pxEsc((jug.nombre||'').toUpperCase())}</h1>
+        <div class="p-meta">
+          ${jug.dorsal?`<span class="chip gold">Nº ${_pxEsc(jug.dorsal)}</span>`:''}
+          ${jug.posicion?`<span class="chip">${_pxEsc(jug.posicion)}</span>`:''}
+          ${jug.equipo?`<span>${_pxEsc(jug.equipo)}</span>`:''}
+          ${jug.categoria?`<span class="dot">·</span><span>${_pxEsc(jug.categoria)}</span>`:''}
+          ${jug.edad?`<span class="dot">·</span><span>${_pxEsc(jug.edad)} años</span>`:''}
+        </div>
+      </div>
     </div>
-  </div>
-
-  <!-- NOTA + PARTIDO -->
-  <div class="nota-strip">
-    <div class="nota-circle" style="border-color:${nc}60;background:${nc}15;">
-      <span class="nota-num" style="color:${nc};">${nota ? nota.toFixed(1) : '—'}</span>
-      <span style="font-family:'Barlow Condensed',sans-serif;font-size:8px;color:${nc};letter-spacing:.08em;">/ 10</span>
+    <div class="p-strip">
+      <div class="p-field">
+        <span class="p-field-label">Fecha</span>
+        <span class="p-field-value small">${_pxEsc(fechaFormateada)}</span>
+      </div>
+      <div class="p-field">
+        <span class="p-field-label">Partido / Rival</span>
+        <span class="p-field-value small">${_pxEsc(inf.rival || inf.partido || '—')}</span>
+      </div>
+      <div class="p-field">
+        <span class="p-field-label">Resultado</span>
+        <span class="p-field-value result ${_rCls}">${_pxEsc(inf.resultado || '—')}</span>
+      </div>
+      <div style="text-align:right;">
+        <div class="p-score">
+          <span class="p-score-num">${nota ? nota.toFixed(1) : '—'}</span>
+          <span class="p-score-slash">/10</span>
+        </div>
+        <div class="p-score-label">${nota ? _pxEsc(nl) : 'Sin valorar'}</div>
+      </div>
     </div>
-    <div>
-      <div class="nota-label">${nl}</div>
-      <div class="nota-sub">Nota global · Media ponderada de las 4 fases</div>
+    <div class="p-stars">
+      <div class="p-stars-head">Origen de la nota · media por fase</div>
+      ${_pStarRow('MCB','Momento con balón')}
+      ${_pStarRow('MSB','Momento sin balón')}
+      ${_pStarRow('TDA','Transición def → ataque')}
+      ${_pStarRow('TAD','Transición ata → defensa')}
     </div>
-    <div class="partido-info">
-      <div class="partido-name">${inf.partido || ''}</div>
-      <div class="partido-meta">${inf.rival ? 'vs '+inf.rival : ''}${inf.resultado ? ' · '+inf.resultado : ''}</div>
-    </div>
-  </div>
-
-  <!-- LOGOS -->
-  <div class="logos-row" style="background:#1a1a2e;padding-bottom:24px;">
-    ${jug.logo_club ? `<img src="${jug.logo_club}" style="height:40px;object-fit:contain;" onerror="this.style.display='none'">` : ''}
-    <div style="flex:1;"></div>
-    <div style="text-align:right;">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:800;letter-spacing:.15em;color:rgba(255,255,255,.35);">OMAR CORTÉS FERRERO</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;color:rgba(255,255,255,.25);letter-spacing:.1em;">ANALISTA INDIVIDUAL · FÚTBOL BASE</div>
-    </div>
-  </div>
+  </header>
 
   <div class="content">
 
@@ -4169,13 +4269,6 @@ function generarInformeVisual(jugId, infId) {
 
 </div>
 
-<script>
-// Auto print al cargar
-window.addEventListener('load', () => {
-  setTimeout(() => window.print(), 800);
-});
-
-</script>
 </body>
 </html>`;
 
