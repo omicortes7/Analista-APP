@@ -3846,7 +3846,7 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
   // Fortalezas y mejoras — SOLO lo que escribió el analista
   const fortalezas = inf.positivos ? inf.positivos.split('\n').filter(Boolean) : [];
   const mejoras = inf.mejoras ? inf.mejoras.split('\n').filter(Boolean) : [];
-  const objs = getObjJugador(jugId);
+  const objs = getObjJugador(jug.id);
 
   const micros = (inf.microconceptos_obs || '').split(',').filter(Boolean).map(m => m.trim());
   const fechaFormateada = new Date((inf.fecha||'') + 'T12:00:00').toLocaleDateString('es-ES', {day:'numeric', month:'long', year:'numeric'});
