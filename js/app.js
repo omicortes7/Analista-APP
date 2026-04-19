@@ -3766,7 +3766,19 @@ function generarInformeVisual(jugId, infId) {
     };
   }
 
-  // ═══ Extraer color del club desde el escudo y luego renderizar ═══
+  // ═══ Abrir ventana INMEDIATAMENTE (dentro del gesto de click) para evitar bloqueo de popup ═══
+  const win = window.open('', '_blank');
+  if(!win) {
+    showToast('Permite ventanas emergentes para ver el informe');
+    return;
+  }
+  try {
+    win.document.open();
+    win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cargando informe…</title><style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0f1116;color:#E6C15A;font-size:14px;letter-spacing:.2em;text-transform:uppercase;}</style></head><body>Preparando informe…</body></html>');
+    win.document.close();
+  } catch(e){}
+
+  // ═══ Extraer color del club desde el escudo y luego renderizar dentro de la ventana ya abierta ═══
   if(jug.logo_club) {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -3790,16 +3802,16 @@ function generarInformeVisual(jugId, infId) {
           clubColor='rgb('+r+','+g+','+b+')';
         }
       } catch(e){}
-      _renderInformeVisualPremium(jug, inf, clubColor);
+      _renderInformeVisualPremium(jug, inf, clubColor, win);
     };
-    img.onerror = function(){ _renderInformeVisualPremium(jug, inf, '#1a3a5c'); };
+    img.onerror = function(){ _renderInformeVisualPremium(jug, inf, '#1a3a5c', win); };
     img.src = jug.logo_club;
   } else {
-    _renderInformeVisualPremium(jug, inf, '#1a3a5c');
+    _renderInformeVisualPremium(jug, inf, '#1a3a5c', win);
   }
 }
 
-function _renderInformeVisualPremium(jug, inf, clubColor) {
+function _renderInformeVisualPremium(jug, inf, clubColor, win) {
   const nota = parseFloat(inf.nota_decimal) || 0;
   const nc = nota >= 8 ? '#1D9E75' : nota >= 6 ? '#E07B00' : '#D85A30';
   const nl = nota >= 8 ? 'SOBRESALIENTE' : nota >= 6 ? 'CORRECTO' : nota >= 4 ? 'EN PROGRESO' : 'A MEJORAR';
@@ -4272,19 +4284,30 @@ function _renderInformeVisualPremium(jug, inf, clubColor) {
 </body>
 </html>`;
 
-  // Abrir en nueva pestaña
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url, '_blank');
-  if(!win) {
-    showToast('Permite ventanas emergentes para ver el informe');
-    // Fallback: descarga directa
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Informe_${jug.nombre.replace(/ /g,'_')}_${inf.partido || 'partido'}.html`;
-    a.click();
+  // Escribir el HTML en la ventana que ya abrimos durante el click (evita bloqueo de popup)
+  try {
+    if(win && !win.closed) {
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+    } else {
+      // Fallback: blob + nueva ventana
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const w2 = window.open(url, '_blank');
+      if(!w2) {
+        showToast('Permite ventanas emergentes para ver el informe');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Informe_${(jug.nombre||'jugador').replace(/ /g,'_')}_${(inf.partido || 'partido').replace(/ /g,'_')}.html`;
+        a.click();
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+  } catch(e) {
+    console.error('Render informe error:', e);
+    showToast('Error al abrir el informe');
   }
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 // ─── GUARDAR INFORME DE PARTIDO ───
