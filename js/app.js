@@ -3812,6 +3812,7 @@ function generarInformeVisual(jugId, infId) {
 }
 
 function _renderInformeVisualPremium(jug, inf, clubColor, win) {
+  try {
   const nota = parseFloat(inf.nota_decimal) || 0;
   const nc = nota >= 8 ? '#1D9E75' : nota >= 6 ? '#E07B00' : '#D85A30';
   const nl = nota >= 8 ? 'SOBRESALIENTE' : nota >= 6 ? 'CORRECTO' : nota >= 4 ? 'EN PROGRESO' : 'A MEJORAR';
@@ -3837,10 +3838,10 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
   }
 
   const fases = [
-    {key:'MCB', label:'CON BALÓN',           color:'#1D9E75', texto: inf.mcb},
-    {key:'MSB', label:'SIN BALÓN',           color:'#378ADD', texto: inf.msb},
-    {key:'TDA', label:'TRANS. OFENSIVA',     color:'#E07B00', texto: inf.tda},
-    {key:'TAD', label:'TRANS. DEFENSIVA',    color:'#D85A30', texto: inf.tad},
+    {key:'MCB', label:'Con balón',           color:'#1D9E75', texto: inf.mcb},
+    {key:'MSB', label:'Sin balón',           color:'#378ADD', texto: inf.msb},
+    {key:'TDA', label:'Transición ofensiva', color:'#E07B00', texto: inf.tda},
+    {key:'TAD', label:'Transición defensiva',color:'#D85A30', texto: inf.tad},
   ];
 
   // Fortalezas y mejoras — SOLO lo que escribió el analista
@@ -3857,20 +3858,21 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
     <div style="line-height:1.2;"><div style="font-size:9px;font-weight:800;letter-spacing:.12em;color:#1a1a2e;">ANALISTA</div><div style="font-size:9px;color:#666;letter-spacing:.08em;">INDIVIDUAL</div></div>
   </div>`;
 
-  // Pre-calcular observaciones
+  // Pre-calcular observaciones (estilo premium)
   let obsHtml = '';
   try {
     const obsArr = JSON.parse(inf.obs_imagenes || '[]');
     if(obsArr && obsArr.length) {
-      obsHtml = '<div style="border:1px solid #e8f0fe;border-radius:10px;padding:14px;margin-bottom:16px;background:#f8faff;">';
-      obsHtml += '<div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#58a6ff;letter-spacing:.1em;margin-bottom:12px;">📎 Observaciones del informe</div>';
-      obsArr.forEach(function(o, i) {
-        obsHtml += '<div style="margin-bottom:12px;' + (i < obsArr.length-1 ? 'padding-bottom:12px;border-bottom:1px solid #eee;' : '') + '">';
-        if(o.texto) obsHtml += '<div style="font-size:11px;line-height:1.7;color:#333;margin-bottom:8px;">' + o.texto + '</div>';
-        if(o.imagen) obsHtml += '<img src="' + o.imagen + '" style="width:100%;max-height:280px;object-fit:contain;border-radius:6px;">';
+      obsHtml = '<section class="obs-section">';
+      obsHtml += '<span class="obs-eyebrow">Observaciones · soporte visual</span>';
+      obsHtml += '<span class="obs-title">Notas del partido</span>';
+      obsArr.forEach(function(o) {
+        obsHtml += '<div class="obs-item">';
+        if(o.texto) obsHtml += '<div class="obs-texto">' + _pxEsc(o.texto) + '</div>';
+        if(o.imagen) obsHtml += '<img class="obs-img" src="' + o.imagen + '" alt="">';
         obsHtml += '</div>';
       });
-      obsHtml += '</div>';
+      obsHtml += '</section>';
     }
   } catch(e) {}
 
@@ -3969,18 +3971,19 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
   .p-brand-text { display:flex; flex-direction:column; line-height:1; }
   .p-brand-name { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:24px; letter-spacing:-.02em; color:${_ink}; }
   .p-brand-tag { font-size:9px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkSoft}; margin-top:4px; }
-  .p-doclabel { text-align:right; font-size:9.5px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkSoft}; }
-  .p-doclabel .tag { display:block; margin-top:8px; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:700; font-size:15px; letter-spacing:-.005em; color:${_ink}; text-transform:none; max-width:320px; margin-left:auto; line-height:1.25; }
+  .p-doclabel { text-align:right; font-size:9.5px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkSoft}; max-width:340px; }
+  .p-doclabel .tag { display:block; margin-top:10px; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:700; font-size:17px; letter-spacing:-.005em; color:${_ink}; text-transform:none; margin-left:auto; line-height:1.28; border-right:2px solid ${_ink}; padding-right:12px; }
 
   .p-main { position:relative; z-index:2; display:flex; align-items:center; gap:26px; margin-top:28px; }
-  .p-photo { position:relative; width:152px; height:152px; flex-shrink:0; }
+  .p-photo { position:relative; width:168px; height:168px; flex-shrink:0; }
   .p-photo-inner {
     width:100%; height:100%; border-radius:50%; overflow:hidden;
     background:${_pxMix(_clubDark,'#000',0.2)};
     border:2px solid ${_isLight?'rgba(16,22,31,.22)':'rgba(255,255,255,.22)'};
     box-shadow: 0 0 0 1px ${_isLight?'rgba(16,22,31,.25)':'rgba(255,255,255,.25)'}, 0 20px 44px -16px rgba(0,0,0,.55);
+    position:relative;
   }
-  .p-photo-inner img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
+  .p-photo-inner img { width:112%; height:112%; object-fit:cover; object-position:center 22%; display:block; position:absolute; top:-6%; left:-6%; }
   .p-photo-fallback { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:78px; color:${_ink}; opacity:.55; }
   .p-shield { position:absolute; bottom:-6px; right:-6px; width:60px; height:60px; border-radius:50%; background:#fff; border:2px solid ${_clubHex}; padding:6px; box-shadow: 0 10px 20px -10px rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; }
   .p-shield img { width:100%; height:100%; object-fit:contain; display:block; }
@@ -4020,97 +4023,174 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
   .p-star-stars .off { color:${_ink}; opacity:.22; }
   .p-star-val { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:800; font-size:15px; color:${_ink}; text-align:right; }
 
-  /* CONTENIDO */
-  .content { padding:28px 36px; }
+  /* ══════ CONTENIDO PREMIUM ══════ */
+  .content { padding:32px 40px 20px; font-family:'Manrope',sans-serif; }
+
+  /* Section title premium — eyebrow + H2 serif + ornamento */
+  .section-title {
+    position:relative; margin-bottom:18px; padding-bottom:10px;
+    border-bottom:1px solid rgba(16,22,31,.08);
+  }
+  .section-title .eyebrow {
+    display:inline-block; font-family:'Manrope',sans-serif; font-size:9.5px; font-weight:800;
+    letter-spacing:.32em; text-transform:uppercase; color:${_clubHex};
+    padding:3px 10px 3px 0; border-left:3px solid ${_clubHex}; padding-left:10px;
+    margin-bottom:6px;
+  }
+  .section-title .h2 {
+    display:block; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900;
+    font-size:26px; line-height:1.05; letter-spacing:-.02em; color:#10161F;
+  }
+  .section-title .h2-sub {
+    display:inline-block; margin-left:10px; font-family:'Manrope',sans-serif; font-style:normal;
+    font-size:11px; font-weight:500; color:rgba(16,22,31,.48); letter-spacing:.04em;
+    vertical-align:6px;
+  }
 
   /* FASES */
-  .fases-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:24px; }
+  .fases-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:30px; }
   .fase-card {
-    border-radius:10px; padding:16px;
-    border:1px solid;
+    position:relative; border-radius:14px; padding:18px 18px 16px;
+    background:#fff; border:1px solid rgba(16,22,31,.08);
+    box-shadow: 0 1px 0 rgba(16,22,31,.02), 0 10px 28px -18px rgba(16,22,31,.18);
+    overflow:hidden;
   }
+  .fase-card::before {
+    content:""; position:absolute; top:0; left:0; right:0; height:3px;
+  }
+  .fase-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
   .fase-tag {
-    font-family:'Barlow Condensed', sans-serif;
-    font-size:9px; font-weight:800; letter-spacing:.14em;
-    padding:3px 9px; border-radius:99px; display:inline-block; margin-bottom:10px;
+    font-family:'Manrope',sans-serif; font-size:9.5px; font-weight:800;
+    letter-spacing:.22em; text-transform:uppercase;
+    padding:4px 10px; border-radius:99px; display:inline-block;
   }
   .fase-avg {
-    font-family:'Barlow Condensed', sans-serif;
-    font-size:22px; font-weight:800; float:right; margin-top:-4px;
+    font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900;
+    font-size:26px; line-height:1; letter-spacing:-.02em;
   }
+  .fase-avg .den { font-size:13px; color:rgba(16,22,31,.35); font-weight:700; font-style:normal; margin-left:1px; }
   .fase-texto {
-    font-size:11px; line-height:1.6; color:#444; margin-top:10px;
-    clear:both;
+    font-family:'Fraunces',Georgia,serif; font-weight:400; font-style:normal;
+    font-size:13px; line-height:1.65; color:#10161F; margin-top:12px;
   }
 
   /* FORTALEZAS / MEJORAS */
-  .dos-cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+  .dos-cols { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:30px; }
+  .col-card {
+    background:#fff; border:1px solid rgba(16,22,31,.08); border-radius:14px;
+    padding:18px; box-shadow: 0 10px 28px -18px rgba(16,22,31,.18);
+  }
   .col-title {
-    font-family:'Barlow Condensed', sans-serif;
-    font-size:10px; font-weight:800; letter-spacing:.14em;
-    text-transform:uppercase; margin-bottom:10px;
-    display:flex; align-items:center; gap:6px;
+    display:flex; align-items:center; gap:8px;
+    font-family:'Manrope',sans-serif; font-size:10px; font-weight:800;
+    letter-spacing:.28em; text-transform:uppercase; margin-bottom:14px;
+    padding-bottom:10px; border-bottom:1px solid rgba(16,22,31,.08);
   }
-  .col-title::before {
-    content:''; display:inline-block;
-    width:3px; height:14px; border-radius:2px;
-  }
+  .col-title .bar { width:3px; height:16px; border-radius:2px; }
   .col-item {
-    display:flex; align-items:flex-start; gap:8px;
-    font-size:12px; line-height:1.5; margin-bottom:8px; color:#333;
+    display:flex; align-items:flex-start; gap:10px;
+    font-family:'Fraunces',Georgia,serif; font-weight:400;
+    font-size:13px; line-height:1.55; margin-bottom:10px; color:#10161F;
   }
-  .col-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+  .col-item:last-child { margin-bottom:0; }
+  .col-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; margin-top:7px; box-shadow:0 0 0 3px rgba(255,255,255,1), 0 0 0 4px currentColor; opacity:.9; }
+  .col-empty { font-family:'Fraunces',serif; font-style:italic; font-size:12px; color:rgba(16,22,31,.35); }
 
   /* OBJETIVOS */
-  .obj-section { margin-bottom:24px; }
-  .section-title {
-    font-family:'Barlow Condensed', sans-serif;
-    font-size:10px; font-weight:800; letter-spacing:.14em;
-    text-transform:uppercase; color:#888; margin-bottom:12px;
-    display:flex; align-items:center; gap:8px;
-  }
-  .section-title::after {
-    content:''; flex:1; height:1px; background:#eee;
-  }
+  .obj-section { margin-bottom:30px; }
+  .obj-list { background:#fff; border:1px solid rgba(16,22,31,.08); border-radius:14px; overflow:hidden; box-shadow: 0 10px 28px -18px rgba(16,22,31,.18); }
   .obj-row {
     display:flex; align-items:center; justify-content:space-between;
-    padding:7px 0; border-bottom:1px solid #f0f0f0;
+    padding:12px 18px; border-bottom:1px solid rgba(16,22,31,.06);
   }
-  .obj-text { font-size:12px; color:#333; flex:1; }
+  .obj-row:last-child { border-bottom:none; }
+  .obj-text { font-family:'Fraunces',Georgia,serif; font-size:13px; color:#10161F; flex:1; line-height:1.4; }
   .obj-fase {
-    font-size:9px; font-weight:700; letter-spacing:.08em;
-    padding:2px 7px; border-radius:99px; margin:0 10px; flex-shrink:0;
+    font-family:'Manrope',sans-serif; font-size:9px; font-weight:800;
+    letter-spacing:.2em; text-transform:uppercase;
+    padding:3px 9px; border-radius:99px; margin:0 12px; flex-shrink:0;
   }
 
-  /* MICROS */
-  .mic-pills { display:flex; flex-wrap:wrap; gap:5px; }
+  /* MICROS — pills premium con color del club */
+  .mic-section { margin-bottom:30px; }
+  .mic-pills { display:flex; flex-wrap:wrap; gap:7px; }
   .mic-pill {
-    font-size:10px; padding:4px 10px; border-radius:99px;
-    background:#EEEDFE; color:#3C3489; font-weight:500;
+    font-family:'Manrope',sans-serif; font-size:11px; font-weight:600;
+    padding:6px 14px; border-radius:99px;
+    background:linear-gradient(180deg, ${_pxMix(_clubHex,'#FFFFFF',0.90)} 0%, ${_pxMix(_clubHex,'#FFFFFF',0.82)} 100%);
+    color:${_clubDark};
+    border:1px solid ${_pxMix(_clubHex,'#FFFFFF',0.72)};
+    letter-spacing:.02em;
+    box-shadow: 0 1px 0 rgba(255,255,255,.6) inset;
   }
 
-  /* NOTAS */
+  /* NOTAS premium — fondo suave, borde con color del club */
   .notas-box {
-    background:#f7f7f5; border-left:3px solid #1a1a2e;
-    border-radius:0 8px 8px 0; padding:14px 16px;
-    margin-bottom:24px;
+    position:relative; background:${_pxMix(_clubHex,'#FFFFFF',0.94)};
+    border:1px solid ${_pxMix(_clubHex,'#FFFFFF',0.78)};
+    border-left:4px solid ${_clubHex};
+    border-radius:0 14px 14px 0; padding:20px 22px; margin-bottom:30px;
   }
-  .notas-text { font-size:12px; line-height:1.7; color:#444; font-style:italic; }
+  .notas-eyebrow {
+    font-family:'Manrope',sans-serif; font-size:9.5px; font-weight:800;
+    letter-spacing:.28em; text-transform:uppercase; color:${_clubDark};
+    margin-bottom:10px;
+  }
+  .notas-text {
+    font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:400;
+    font-size:14px; line-height:1.65; color:#10161F;
+  }
+  .notas-text::before { content:"\\201C"; font-family:'Fraunces',serif; font-weight:900; font-size:40px; line-height:0; vertical-align:-14px; margin-right:6px; color:${_clubHex}; opacity:.55; }
 
-  /* FOOTER */
+  /* OBSERVACIONES premium */
+  .obs-section {
+    margin:0 40px 30px; padding:22px 24px;
+    background:linear-gradient(180deg, #FFFFFF 0%, ${_pxMix(_clubHex,'#FFFFFF',0.96)} 100%);
+    border:1px solid rgba(16,22,31,.08); border-radius:14px;
+    box-shadow: 0 10px 28px -18px rgba(16,22,31,.18);
+  }
+  .obs-eyebrow {
+    display:inline-block; font-family:'Manrope',sans-serif; font-size:9.5px; font-weight:800;
+    letter-spacing:.32em; text-transform:uppercase; color:${_clubHex};
+    border-left:3px solid ${_clubHex}; padding-left:10px; margin-bottom:8px;
+  }
+  .obs-title {
+    display:block; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900;
+    font-size:22px; color:#10161F; margin-bottom:16px; letter-spacing:-.015em;
+  }
+  .obs-item {
+    padding:14px 0; border-bottom:1px dashed rgba(16,22,31,.12);
+  }
+  .obs-item:last-child { border-bottom:none; padding-bottom:0; }
+  .obs-item:first-child { padding-top:0; }
+  .obs-texto {
+    font-family:'Fraunces',Georgia,serif; font-weight:400; font-style:normal;
+    font-size:13.5px; line-height:1.65; color:#10161F; margin-bottom:10px;
+  }
+  .obs-img {
+    width:100%; max-height:320px; object-fit:contain;
+    border-radius:10px; background:#0f1116;
+    border:1px solid rgba(16,22,31,.1);
+  }
+
+  /* FOOTER premium */
   .footer {
-    padding:16px 36px;
-    border-top:1px solid #eee;
+    padding:22px 40px 18px;
+    border-top:1px solid rgba(16,22,31,.08);
     display:flex; align-items:center; justify-content:space-between;
-    margin-top:auto;
+    background:linear-gradient(180deg, transparent 0%, ${_pxMix(_clubHex,'#FFFFFF',0.96)} 100%);
   }
-  .footer-analista { font-size:10px; color:#999; }
-  .footer-analista strong { color:#333; font-weight:600; }
-
-  /* LOGOS */
-  .logos-row {
-    display:flex; align-items:center; gap:16px;
-    padding:0 36px 20px;
+  .footer-analista {
+    font-family:'Manrope',sans-serif; font-size:10px; font-weight:500;
+    letter-spacing:.08em; color:rgba(16,22,31,.55);
+  }
+  .footer-analista strong {
+    font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:700;
+    color:#10161F; letter-spacing:-.005em; font-size:12px;
+  }
+  .footer-date {
+    font-family:'Manrope',sans-serif; font-size:10px; font-weight:700;
+    letter-spacing:.22em; text-transform:uppercase; color:${_clubDark};
   }
 
   /* PRINT */
@@ -4201,71 +4281,91 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
   <div class="content">
 
     <!-- FASES -->
-    <div class="section-title">Valoración por fases</div>
+    <div class="section-title">
+      <span class="eyebrow">01 · Evaluación</span>
+      <span class="h2">Valoración por fases<span class="h2-sub">rendimiento por momento del juego</span></span>
+    </div>
     <div class="fases-grid">
       ${fases.map(f => {
         const avg = avgF(f.key);
         const pct = avg ? Math.round((avg/5)*100) : 0;
-        return avg > 0 || f.texto ? `<div class="fase-card" style="border-color:${f.color}25;background:${f.color}05;">
-          <div>
-            <span class="fase-tag" style="background:${f.color}15;color:${f.color};">${f.label}</span>
-            ${avg > 0 ? `<span class="fase-avg" style="color:${f.color};">${avg.toFixed(1)}<span style="font-size:13px;color:#bbb;">/5</span></span>` : ''}
+        return avg > 0 || f.texto ? `<div class="fase-card">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${f.color};"></div>
+          <div class="fase-head">
+            <span class="fase-tag" style="background:${f.color}18;color:${f.color};">${f.label}</span>
+            ${avg > 0 ? `<span class="fase-avg" style="color:${f.color};">${avg.toFixed(1)}<span class="den">/5</span></span>` : ''}
           </div>
-          ${avg > 0 ? `<div style="display:flex;gap:1px;margin-bottom:4px;">${starsHtml(avg, f.color)}</div>${barHtml(pct, f.color)}` : ''}
-          ${f.texto ? `<div class="fase-texto">${f.texto}</div>` : ''}
+          ${avg > 0 ? `<div style="display:flex;gap:2px;margin-bottom:4px;">${starsHtml(avg, f.color)}</div>${barHtml(pct, f.color)}` : ''}
+          ${f.texto ? `<div class="fase-texto">${_pxEsc(f.texto)}</div>` : ''}
         </div>` : '';
       }).filter(Boolean).join('')}
     </div>
 
     <!-- FORTALEZAS Y MEJORAS -->
     ${(fortalezas.length || mejoras.length) ? `
+    <div class="section-title">
+      <span class="eyebrow">02 · Balance</span>
+      <span class="h2">Fortalezas y aspectos a mejorar</span>
+    </div>
     <div class="dos-cols">
-      <div>
+      <div class="col-card">
         <div class="col-title" style="color:#1D9E75;">
-          <span style="background:#1D9E75;width:3px;height:14px;border-radius:2px;"></span>
+          <span class="bar" style="background:#1D9E75;"></span>
           Fortalezas
         </div>
-        ${fortalezas.map(f => `<div class="col-item"><div class="col-dot" style="background:#1D9E75;"></div><span>${f}</span></div>`).join('') || '<div style="font-size:11px;color:#bbb;font-style:italic;">Sin registrar</div>'}
+        ${fortalezas.length ? fortalezas.map(f => `<div class="col-item" style="color:#1D9E75;"><span class="col-dot"></span><span style="color:#10161F;">${_pxEsc(f)}</span></div>`).join('') : '<div class="col-empty">Sin registrar</div>'}
       </div>
-      <div>
+      <div class="col-card">
         <div class="col-title" style="color:#D85A30;">
-          <span style="background:#D85A30;width:3px;height:14px;border-radius:2px;"></span>
+          <span class="bar" style="background:#D85A30;"></span>
           Aspectos a mejorar
         </div>
-        ${mejoras.map(m => `<div class="col-item"><div class="col-dot" style="background:#D85A30;"></div><span>${m}</span></div>`).join('') || '<div style="font-size:11px;color:#bbb;font-style:italic;">Sin registrar</div>'}
+        ${mejoras.length ? mejoras.map(m => `<div class="col-item" style="color:#D85A30;"><span class="col-dot"></span><span style="color:#10161F;">${_pxEsc(m)}</span></div>`).join('') : '<div class="col-empty">Sin registrar</div>'}
       </div>
     </div>` : ''}
 
     <!-- OBJETIVOS -->
     ${objs.length ? `
     <div class="obj-section">
-      <div class="section-title">Objetivos del jugador</div>
+      <div class="section-title">
+        <span class="eyebrow">03 · Objetivos</span>
+        <span class="h2">Objetivos del jugador<span class="h2-sub">valoración en este partido</span></span>
+      </div>
+      <div class="obj-list">
       ${objs.map((o,i) => {
         const v = (starsData.OBJ || [])[i] || 0;
         const fi = FASES.find(f => f.id === o.fase);
         const col = fi ? (fi.dot || '#888') : '#888';
         return `<div class="obj-row">
-          <div class="obj-text">${o.texto}</div>
-          ${fi ? `<span class="obj-fase" style="background:${col}15;color:${col};">${fi.label}</span>` : ''}
+          <div class="obj-text">${_pxEsc(o.texto)}</div>
+          ${fi ? `<span class="obj-fase" style="background:${col}18;color:${col};">${_pxEsc(fi.label)}</span>` : ''}
           <div>${starsHtml(v, '#F5A623')}</div>
         </div>`;
       }).join('')}
+      </div>
     </div>` : ''}
 
     <!-- MICROCONCEPTOS -->
     ${micros.length ? `
-    <div style="margin-bottom:24px;">
-      <div class="section-title">Microconceptos observados</div>
+    <div class="mic-section">
+      <div class="section-title">
+        <span class="eyebrow">04 · Lectura táctica</span>
+        <span class="h2">Microconceptos observados</span>
+      </div>
       <div class="mic-pills">
-        ${micros.map(m => `<span class="mic-pill">${m}</span>`).join('')}
+        ${micros.map(m => `<span class="mic-pill">${_pxEsc(m)}</span>`).join('')}
       </div>
     </div>` : ''}
 
     <!-- NOTAS -->
     ${inf.notas ? `
+    <div class="section-title">
+      <span class="eyebrow">05 · Voz del analista</span>
+      <span class="h2">Notas</span>
+    </div>
     <div class="notas-box">
-      <div style="font-size:9px;font-weight:800;letter-spacing:.14em;color:#999;text-transform:uppercase;margin-bottom:6px;">Notas del analista</div>
-      <div class="notas-text">${inf.notas}</div>
+      <div class="notas-eyebrow">Comentario del analista</div>
+      <div class="notas-text">${_pxEsc(inf.notas)}</div>
     </div>` : ''}
 
   </div>
@@ -4276,7 +4376,7 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
     <!-- FOOTER -->
   <div class="footer">
     <div class="footer-analista">Informe elaborado por <strong>Omar Cortés Ferrero</strong> · Analista Individual de Fútbol Base</div>
-    <div style="font-size:10px;color:#bbb;">${fechaFormateada}</div>
+    <div class="footer-date">${_pxEsc(fechaFormateada)}</div>
   </div>
 
 </div>
@@ -4285,28 +4385,38 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
 </html>`;
 
   // Escribir el HTML en la ventana que ya abrimos durante el click (evita bloqueo de popup)
-  try {
-    if(win && !win.closed) {
-      win.document.open();
-      win.document.write(html);
-      win.document.close();
-    } else {
-      // Fallback: blob + nueva ventana
-      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const w2 = window.open(url, '_blank');
-      if(!w2) {
-        showToast('Permite ventanas emergentes para ver el informe');
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Informe_${(jug.nombre||'jugador').replace(/ /g,'_')}_${(inf.partido || 'partido').replace(/ /g,'_')}.html`;
-        a.click();
-      }
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+  if(win && !win.closed) {
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+  } else {
+    // Fallback: blob + nueva ventana
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const w2 = window.open(url, '_blank');
+    if(!w2) {
+      showToast('Permite ventanas emergentes para ver el informe');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Informe_${(jug.nombre||'jugador').replace(/ /g,'_')}_${(inf.partido || 'partido').replace(/ /g,'_')}.html`;
+      a.click();
     }
-  } catch(e) {
-    console.error('Render informe error:', e);
-    showToast('Error al abrir el informe');
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+  } catch(err) {
+    // ═══ MOSTRAR EL ERROR DENTRO DE LA VENTANA EN VEZ DE DEJARLA COLGADA ═══
+    console.error('Render informe error:', err);
+    try {
+      if(win && !win.closed) {
+        const msg = String(err && err.message ? err.message : err);
+        const stk = String(err && err.stack ? err.stack : '');
+        const errHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Error en informe</title><style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0f1116;color:#E6C15A;padding:40px;line-height:1.5;}h1{color:#E06A4A;font-size:20px;margin-bottom:16px;}pre{background:#1a1d24;padding:16px;border-radius:8px;color:#eee;font-size:12px;overflow:auto;white-space:pre-wrap;word-break:break-word;}code{color:#ff9b8a;}</style></head><body><h1>Error al generar el informe</h1><p>Mándale esto a Claude para que lo arregle:</p><pre><code>'+msg.replace(/[<&]/g,c=>c==='<'?'&lt;':'&amp;')+'</code>\n\n'+stk.replace(/[<&]/g,c=>c==='<'?'&lt;':'&amp;')+'</pre></body></html>';
+        win.document.open();
+        win.document.write(errHtml);
+        win.document.close();
+      }
+    } catch(e2){}
+    if(typeof showToast==='function') showToast('Error: ' + (err && err.message ? err.message : 'desconocido'));
   }
 }
 
