@@ -3906,9 +3906,14 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
   const _border   = _isLight ? 'rgba(16,22,31,.14)'  : 'rgba(255,255,255,.16)';
   const _chipBg   = _isLight ? 'rgba(16,22,31,.08)'  : 'rgba(255,255,255,.10)';
   const _dorsal   = jug.dorsal ? String(jug.dorsal).padStart(2,'0') : '';
-  const _taglineRaw = String(inf.positivos||'').split(/\r?\n/)[0].trim();
-  const _tagline = _taglineRaw ? (_taglineRaw.length>64 ? _taglineRaw.slice(0,61)+'…' : _taglineRaw)
-                                : (nota ? nl : 'Análisis técnico individual');
+  // Tagline: coge la primera frase no vacía de (por orden): notas → positivos → mcb → msb → tda → tad
+  const _tagSources = [inf.notas, inf.positivos, inf.mcb, inf.msb, inf.tda, inf.tad]
+    .map(s => String(s||'').replace(/\r?\n/g,' ').replace(/\s+/g,' ').trim())
+    .filter(Boolean);
+  const _taglineRaw = _tagSources[0] || '';
+  const _tagline = _taglineRaw
+    ? (_taglineRaw.length>110 ? _taglineRaw.slice(0,108).replace(/[\s,;:.]+\S*$/,'')+'…' : _taglineRaw)
+    : (nota ? nl : 'Análisis técnico individual');
   const _rCls = (function(){
     if(!inf.resultado) return '';
     const m = String(inf.resultado).match(/(\d+)\s*[-–:]\s*(\d+)/);
@@ -3971,8 +3976,8 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
   .p-brand-text { display:flex; flex-direction:column; line-height:1; }
   .p-brand-name { font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:24px; letter-spacing:-.02em; color:${_ink}; }
   .p-brand-tag { font-size:9px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkSoft}; margin-top:4px; }
-  .p-doclabel { text-align:right; font-size:9.5px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkSoft}; max-width:340px; }
-  .p-doclabel .tag { display:block; margin-top:10px; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:700; font-size:17px; letter-spacing:-.005em; color:${_ink}; text-transform:none; margin-left:auto; line-height:1.28; border-right:2px solid ${_ink}; padding-right:12px; }
+  .p-doclabel { text-align:right; font-size:9.5px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkSoft}; max-width:360px; }
+  .p-doclabel .tag { display:block; margin-top:12px; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:700; font-size:16px; letter-spacing:-.005em; color:${_ink}; text-transform:none; margin-left:auto; line-height:1.32; border-right:2px solid ${_ink}; padding-right:12px; max-width:360px; }
 
   .p-main { position:relative; z-index:2; display:flex; align-items:center; gap:26px; margin-top:28px; }
   .p-photo { position:relative; width:168px; height:168px; flex-shrink:0; }
@@ -3983,7 +3988,7 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
     box-shadow: 0 0 0 1px ${_isLight?'rgba(16,22,31,.25)':'rgba(255,255,255,.25)'}, 0 20px 44px -16px rgba(0,0,0,.55);
     position:relative;
   }
-  .p-photo-inner img { width:112%; height:112%; object-fit:cover; object-position:center 22%; display:block; position:absolute; top:-6%; left:-6%; }
+  .p-photo-inner img { width:100%; height:100%; object-fit:cover; object-position:center; display:block; }
   .p-photo-fallback { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:78px; color:${_ink}; opacity:.55; }
   .p-shield { position:absolute; bottom:-6px; right:-6px; width:60px; height:60px; border-radius:50%; background:#fff; border:2px solid ${_clubHex}; padding:6px; box-shadow: 0 10px 20px -10px rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; }
   .p-shield img { width:100%; height:100%; object-fit:contain; display:block; }
