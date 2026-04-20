@@ -3906,13 +3906,14 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
   const _border   = _isLight ? 'rgba(16,22,31,.14)'  : 'rgba(255,255,255,.16)';
   const _chipBg   = _isLight ? 'rgba(16,22,31,.08)'  : 'rgba(255,255,255,.10)';
   const _dorsal   = jug.dorsal ? String(jug.dorsal).padStart(2,'0') : '';
-  // Tagline: coge la primera frase no vacía de (por orden): notas → positivos → mcb → msb → tda → tad
-  const _tagSources = [inf.notas, inf.positivos, inf.mcb, inf.msb, inf.tda, inf.tad]
-    .map(s => String(s||'').replace(/\r?\n/g,' ').replace(/\s+/g,' ').trim())
+  // Tagline de cabecera: NO usar inf.notas (esas van en su propio bloque de cita).
+  // Orden: primera línea de positivos → mcb → msb → tda → tad → veredicto.
+  const _tagSources = [inf.positivos, inf.mcb, inf.msb, inf.tda, inf.tad]
+    .map(s => String(s||'').split(/\r?\n/)[0].replace(/\s+/g,' ').trim())
     .filter(Boolean);
   const _taglineRaw = _tagSources[0] || '';
   const _tagline = _taglineRaw
-    ? (_taglineRaw.length>110 ? _taglineRaw.slice(0,108).replace(/[\s,;:.]+\S*$/,'')+'…' : _taglineRaw)
+    ? (_taglineRaw.length>90 ? _taglineRaw.slice(0,88).replace(/[\s,;:.]+\S*$/,'')+'…' : _taglineRaw)
     : (nota ? nl : 'Análisis técnico individual');
   const _rCls = (function(){
     if(!inf.resultado) return '';
@@ -3979,18 +3980,22 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
   .p-doclabel { text-align:right; font-size:9.5px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:${_inkSoft}; max-width:360px; }
   .p-doclabel .tag { display:block; margin-top:12px; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:700; font-size:16px; letter-spacing:-.005em; color:${_ink}; text-transform:none; margin-left:auto; line-height:1.32; border-right:2px solid ${_ink}; padding-right:12px; max-width:360px; }
 
-  .p-main { position:relative; z-index:2; display:flex; align-items:center; gap:26px; margin-top:28px; }
-  .p-photo { position:relative; width:168px; height:168px; flex-shrink:0; }
+  .p-main { position:relative; z-index:2; display:flex; align-items:center; gap:28px; margin-top:28px; }
+  .p-photo { position:relative; width:170px; height:210px; flex-shrink:0; }
   .p-photo-inner {
-    width:100%; height:100%; border-radius:50%; overflow:hidden;
-    background:${_pxMix(_clubDark,'#000',0.2)};
-    border:2px solid ${_isLight?'rgba(16,22,31,.22)':'rgba(255,255,255,.22)'};
-    box-shadow: 0 0 0 1px ${_isLight?'rgba(16,22,31,.25)':'rgba(255,255,255,.25)'}, 0 20px 44px -16px rgba(0,0,0,.55);
+    width:100%; height:100%; border-radius:18px; overflow:hidden;
+    background:linear-gradient(160deg, ${_pxMix(_clubHex,'#000',0.15)} 0%, ${_pxMix(_clubDark,'#000',0.35)} 100%);
+    border:1px solid ${_isLight?'rgba(16,22,31,.18)':'rgba(255,255,255,.18)'};
+    box-shadow:
+      0 0 0 1px ${_isLight?'rgba(16,22,31,.10)':'rgba(255,255,255,.10)'},
+      0 24px 50px -18px rgba(0,0,0,.65),
+      inset 0 1px 0 ${_isLight?'rgba(255,255,255,.30)':'rgba(255,255,255,.10)'};
     position:relative;
   }
-  .p-photo-inner img { width:100%; height:100%; object-fit:cover; object-position:center; display:block; }
-  .p-photo-fallback { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:78px; color:${_ink}; opacity:.55; }
-  .p-shield { position:absolute; bottom:-6px; right:-6px; width:60px; height:60px; border-radius:50%; background:#fff; border:2px solid ${_clubHex}; padding:6px; box-shadow: 0 10px 20px -10px rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; }
+  .p-photo-inner img { width:100%; height:100%; object-fit:cover; object-position:center top; display:block; }
+  .p-photo-fallback { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:900; font-size:96px; color:${_ink}; opacity:.55; }
+  .p-photo-corner { position:absolute; top:10px; left:10px; font-family:'Manrope',sans-serif; font-size:9px; font-weight:800; letter-spacing:.28em; color:${_ink}; opacity:.65; text-transform:uppercase; z-index:2; }
+  .p-shield { position:absolute; bottom:-10px; right:-10px; width:62px; height:62px; border-radius:14px; background:#fff; border:1px solid ${_clubHex}; padding:7px; box-shadow: 0 14px 26px -10px rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; }
   .p-shield img { width:100%; height:100%; object-fit:contain; display:block; }
 
   .p-who { flex:1; min-width:0; }
@@ -4129,23 +4134,55 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
     box-shadow: 0 1px 0 rgba(255,255,255,.6) inset;
   }
 
-  /* NOTAS premium — fondo suave, borde con color del club */
-  .notas-box {
-    position:relative; background:${_pxMix(_clubHex,'#FFFFFF',0.94)};
-    border:1px solid ${_pxMix(_clubHex,'#FFFFFF',0.78)};
-    border-left:4px solid ${_clubHex};
-    border-radius:0 14px 14px 0; padding:20px 22px; margin-bottom:30px;
+  /* NOTAS — cita editorial tipo libro (debajo de las 4 fases) */
+  .quote-section { margin:8px 0 34px; }
+  .quote-card {
+    position:relative;
+    background: linear-gradient(180deg, #FAF7F1 0%, #F3EEE3 100%);
+    border:1px solid rgba(16,22,31,.10);
+    border-radius:4px;
+    padding:44px 56px 38px;
+    margin:0 12px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.7) inset,
+      0 14px 34px -20px rgba(16,22,31,.28),
+      0 2px 0 rgba(16,22,31,.04);
   }
-  .notas-eyebrow {
+  .quote-card::before {
+    content:""; position:absolute; inset:6px; border:1px solid rgba(16,22,31,.08); border-radius:2px; pointer-events:none;
+  }
+  .quote-mark-open, .quote-mark-close {
+    position:absolute; font-family:'Fraunces',Georgia,serif; font-weight:900; font-style:italic;
+    font-size:140px; line-height:.8; color:${_clubHex}; opacity:.30; user-select:none;
+  }
+  .quote-mark-open  { top:-6px; left:16px; }
+  .quote-mark-close { bottom:-58px; right:18px; }
+  .quote-eyebrow {
+    display:flex; align-items:center; gap:10px; justify-content:center;
     font-family:'Manrope',sans-serif; font-size:9.5px; font-weight:800;
-    letter-spacing:.28em; text-transform:uppercase; color:${_clubDark};
-    margin-bottom:10px;
+    letter-spacing:.32em; text-transform:uppercase; color:${_clubDark};
+    margin-bottom:18px;
   }
-  .notas-text {
-    font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:400;
-    font-size:14px; line-height:1.65; color:#10161F;
+  .quote-eyebrow::before, .quote-eyebrow::after {
+    content:""; flex:0 0 40px; height:1px; background:${_clubHex}; opacity:.55;
   }
-  .notas-text::before { content:"\\201C"; font-family:'Fraunces',serif; font-weight:900; font-size:40px; line-height:0; vertical-align:-14px; margin-right:6px; color:${_clubHex}; opacity:.55; }
+  .quote-body {
+    font-family:'Fraunces',Georgia,serif; font-weight:400; font-style:italic;
+    font-size:18px; line-height:1.62; color:#10161F;
+    text-align:center;
+    letter-spacing:-.002em;
+    position:relative; z-index:1;
+  }
+  .quote-body p { margin:0 0 10px; }
+  .quote-body p:last-child { margin-bottom:0; }
+  .quote-attribution {
+    margin-top:22px; display:flex; align-items:center; justify-content:center; gap:12px;
+    font-family:'Manrope',sans-serif; font-size:10px; font-weight:700;
+    letter-spacing:.24em; text-transform:uppercase; color:rgba(16,22,31,.55);
+  }
+  .quote-attribution::before {
+    content:""; width:26px; height:1px; background:rgba(16,22,31,.35);
+  }
 
   /* OBSERVACIONES premium */
   .obs-section {
@@ -4306,6 +4343,20 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
       }).filter(Boolean).join('')}
     </div>
 
+    <!-- NOTAS — cita editorial justo después de las 4 fases -->
+    ${inf.notas ? `
+    <div class="quote-section">
+      <div class="quote-card">
+        <span class="quote-mark-open" aria-hidden="true">\u201C</span>
+        <span class="quote-mark-close" aria-hidden="true">\u201D</span>
+        <div class="quote-eyebrow">Voz del analista</div>
+        <div class="quote-body">
+          ${String(inf.notas).split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => `<p>${_pxEsc(l)}</p>`).join('')}
+        </div>
+        <div class="quote-attribution">Omar Cortés · Analista individual</div>
+      </div>
+    </div>` : ''}
+
     <!-- FORTALEZAS Y MEJORAS -->
     ${(fortalezas.length || mejoras.length) ? `
     <div class="section-title">
@@ -4360,17 +4411,6 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
       <div class="mic-pills">
         ${micros.map(m => `<span class="mic-pill">${_pxEsc(m)}</span>`).join('')}
       </div>
-    </div>` : ''}
-
-    <!-- NOTAS -->
-    ${inf.notas ? `
-    <div class="section-title">
-      <span class="eyebrow">05 · Voz del analista</span>
-      <span class="h2">Notas</span>
-    </div>
-    <div class="notas-box">
-      <div class="notas-eyebrow">Comentario del analista</div>
-      <div class="notas-text">${_pxEsc(inf.notas)}</div>
     </div>` : ''}
 
   </div>
