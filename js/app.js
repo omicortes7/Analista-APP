@@ -563,22 +563,29 @@ function renderDT(tab){
       <div style="${CARD}border:0.5px solid rgba(138,110,47,.35);background:linear-gradient(180deg,rgba(247,241,227,.55) 0%,rgba(237,228,206,.40) 100%);">
         <div style="${SEC_TITLE}color:#8A6E2F;">✦ Conclusión del partido · visible para el jugador</div>
         <div style="font-size:10.5px;color:var(--text3);margin-bottom:8px;line-height:1.55;">
-          Esquematiza los puntos clave. Saldrá en el informe en formato editorial (paleta papel/oro, Cormorant + Cinzel + firma Italianno).<br>
-          <span style="color:#8A6E2F;font-weight:700;">## Título de bloque</span> · <span style="color:#8A6E2F;font-weight:700;">- punto normal</span> · <span style="color:#8A6E2F;font-weight:700;">★ punto prioritario</span>
+          3 niveles de jerarquía (como en el modelo "Conclusión del análisis"):<br>
+          <span style="color:#8A6E2F;font-weight:700;">##&nbsp;Sección</span> (I, II, III con numeración romana) ·
+          <span style="color:#8A6E2F;font-weight:700;">###&nbsp;Apartado</span> (subtítulo en cursiva) ·
+          <span style="color:#8A6E2F;font-weight:700;">-&nbsp;Acción</span> (01, 02, 03) ·
+          <span style="color:#8A6E2F;font-weight:700;">&nbsp;&nbsp;-&nbsp;sub-punto</span> (con 2 espacios al inicio) ·
+          <span style="color:#8A6E2F;font-weight:700;">★&nbsp;prioritaria</span>
         </div>
-        <textarea id="inf-conclusion" placeholder="## Momento con balón
-- Primer control orientado a portería
-- Tercer hombre como salida natural
-- Conducción en zonas seguras
+        <textarea id="inf-conclusion" placeholder="## Momento sin balón
+### Gestión de saltos a intermedias
+- Saber cuándo el salto es viable
+  - Ver amenazas próximas
+  - Ajustar la distancia del salto
+  - Ganar el retorno
+- Gestionar desmarques hacia fuera
+  - Si no hay medio que persiga
+  - Si la amenaza a la espalda existe
 
-## Momento sin balón
-★ Gestión de saltos a intermedias
-★ Lectura del segundo balón
-- Presión coordinada con el lateral
-
-## Acciones prioritarias a entrenar
-★ Saltos a intermedias en bloque medio
-★ Primer control bajo presión orientado" style="${TA}height:200px;font-family:'Georgia',serif;font-size:13px;line-height:1.6;"></textarea>
+## Momento con balón
+### Lectura y primer control
+- Interpretación de espacios
+  - No atraer para el portero
+  - Lectura de ser receptor o tercer hombre
+★ Abrir el control para ganar pase y generar incertidumbre" style="${TA}height:260px;font-family:'Georgia',serif;font-size:13px;line-height:1.6;"></textarea>
       </div>
       <div style="${CARD}border:0.5px solid rgba(88,166,255,0.2);background:rgba(88,166,255,0.03);">
         <div style="${SEC_TITLE}color:#58a6ff;">📎 Observaciones del informe</div>
@@ -2685,38 +2692,56 @@ function _abrirPDF(inf, jug, clubColor) {
     }
   } catch(e) {}
 
-  // ═══ CONCLUSIÓN ESQUEMATIZADA (estilo editorial premium — paleta papel/tinta/oro) ═══
+  // ═══ CONCLUSIÓN ESQUEMATIZADA (jerarquía 3 niveles fiel a Conclusion_analisis.html) ═══
   let conclHtml = '';
   try {
-    const _blocks = _parseConclusion(inf.conclusion);
-    if(_blocks && _blocks.length) {
-      const _colsClass = _blocks.length === 2 ? 'cols-2' : '';
-      const _partidoTxt = (jug.nombre || '') + (inf.partido ? ' · ' + inf.partido : (inf.rival ? ' · ' + inf.rival : ''));
+    const _esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const _sections = _parseConclusion(inf.conclusion);
+    if(_sections && _sections.length) {
+      const _colsClass = _sections.length === 2 ? 'cols-2' : (_sections.length >= 3 ? 'cols-stack' : 'cols-1');
+      const _renderSection = (sec, idx) => {
+        const roman = _romanNum(idx+1);
+        const blocksHtml = (sec.blocks.length ? sec.blocks : [{title:'', actions:[]}]).map(function(b){
+          const actionsHtml = b.actions.map(function(a){
+            const subHtml = (a.sub && a.sub.length)
+              ? '<ul class="concl-nested">' + a.sub.map(s => '<li>' + _esc(s) + '</li>').join('') + '</ul>'
+              : '';
+            return '<li class="' + (a.priority?'priority':'') + '">' +
+              '<div class="concl-action-title">' + _esc(a.text) + '</div>' +
+              subHtml +
+            '</li>';
+          }).join('');
+          return (b.title ? '<div class="concl-block-sub">' + _esc(b.title) + '</div>' : '') +
+            (actionsHtml ? '<ol class="concl-actions">' + actionsHtml + '</ol>' : '');
+        }).join('');
+        return '<section class="concl-col' + (sec.priority?' priority':'') + '">' +
+          (sec.priority ? '<div class="concl-priority-wrap"><span class="concl-priority-badge">Prioritario</span></div>' : '') +
+          (sec.title ? '<div class="concl-roman">' + roman + (sec.title ? ' · ' + _esc(sec.title) : '') + '</div>' : '') +
+          (sec.title ? '<h2 class="concl-col-h2"><span class="concl-num">' + roman + '</span>' + _esc(sec.title) + '</h2>' : '') +
+          blocksHtml +
+        '</section>';
+      };
+      const sectionsHtml = _sections.map(_renderSection).join(
+        _sections.length === 2 ? '<div class="concl-divider"></div>' : ''
+      );
       conclHtml =
         '<section class="concl-section">' +
           '<div class="concl-eyebrow">Conclusión del partido</div>' +
-          '<h2 class="concl-title">Lectura del analista</h2>' +
-          '<div class="concl-kicker">' + String(_partidoTxt).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' +
-          '<div class="concl-rule"></div>' +
-          '<div class="concl-blocks ' + _colsClass + '">' +
-            _blocks.map(function(b){
-              const itemsHtml = b.items.map(function(it, i){
-                const txt = String(it.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-                return '<li class="concl-item' + (it.priority ? ' priority' : '') + '">' +
-                  '<span class="concl-num">' + _romanNum(i+1) + '.</span>' +
-                  '<span class="concl-text">' + txt + '</span>' +
-                '</li>';
-              }).join('');
-              const hd = String(b.title||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-              return '<div class="concl-block">' +
-                (hd ? '<div class="concl-block-h">· ' + hd + ' ·</div>' : '') +
-                '<ul class="concl-list">' + itemsHtml + '</ul>' +
-              '</div>';
-            }).join('') +
-          '</div>' +
+          '<h2 class="concl-title">Conclusión<span class="amp">.</span></h2>' +
+          '<div class="concl-kicker">Acciones prioritarias a entrenar</div>' +
+          '<svg class="concl-rule" width="170" height="14" viewBox="0 0 170 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+            '<line x1="0" y1="7" x2="74" y2="7" stroke="#8A6E2F" stroke-width="0.8"/>' +
+            '<circle cx="85" cy="7" r="3" stroke="#8A6E2F" stroke-width="0.8" fill="none"/>' +
+            '<circle cx="85" cy="7" r="1" fill="#8A6E2F"/>' +
+            '<line x1="96" y1="7" x2="170" y2="7" stroke="#8A6E2F" stroke-width="0.8"/>' +
+          '</svg>' +
+          '<div class="concl-cols ' + _colsClass + '">' + sectionsHtml + '</div>' +
           '<div class="concl-foot">' +
-            '<span class="role">Conclusión del analista</span>' +
-            '<span class="sig">Omar Cortés Ferrero</span>' +
+            '<div class="concl-foot-left"><strong>Areté Academy</strong><br><span class="sub">Análisis individual · ' + _esc(jug.nombre||'') + '</span></div>' +
+            '<div class="concl-foot-sig">' +
+              '<span class="hand">Omar Cortés</span>' +
+              '<span class="role">Analista Individual</span>' +
+            '</div>' +
           '</div>' +
         '</section>';
     }
@@ -2900,14 +2925,14 @@ function _abrirPDF(inf, jug, clubColor) {
   .footer { margin-top:28px; padding-top:14px; border-top:1px solid #ddd; display:flex; justify-content:space-between; font-size:10px; color:#999; }
   .footer strong { color:#555; }
 
-  /* ══════ CONCLUSIÓN — bloque editorial premium (paleta papel/tinta/oro) ══════ */
+  /* ══════ CONCLUSIÓN — jerarquía 3 niveles fiel a Conclusion_analisis.html ══════ */
   .concl-section {
     position:relative;
     margin: 22px 0 18px;
-    padding: 30px 34px 26px;
+    padding: 32px 34px 26px;
     background:
       radial-gradient(640px 360px at 50% 0%, rgba(255,255,255,.55) 0%, transparent 60%),
-      radial-gradient(520px 320px at 82% 100%, rgba(138,110,47,.07) 0%, transparent 60%),
+      radial-gradient(520px 320px at 82% 100%, rgba(138,110,47,.06) 0%, transparent 60%),
       #F7F1E3;
     border: 1px solid #EDE4CE;
     border-radius: 6px;
@@ -2917,77 +2942,148 @@ function _abrirPDF(inf, jug, clubColor) {
   }
   .concl-section::before {
     content:""; position:absolute; inset:7px;
-    border:1px solid rgba(138,110,47,.32);
+    border:1px solid rgba(138,110,47,.35);
     border-radius:3px; pointer-events:none;
   }
   .concl-eyebrow {
-    font-family:'Cinzel', serif; font-weight:500; font-size:9px;
+    font-family:'Cinzel', serif; font-weight:500; font-size:9.5px;
     letter-spacing:.55em; text-transform:uppercase;
-    color:#8A6E2F; text-align:center; margin-bottom:14px;
+    color:#8A6E2F; text-align:center; margin-bottom:10px;
+    position:relative; z-index:1;
   }
   .concl-title {
     font-family:'Cormorant Garamond', Georgia, serif;
-    font-weight:500; font-style:italic; font-size:32px;
-    line-height:1.05; letter-spacing:-.005em;
+    font-weight:500; font-style:italic; font-size:40px;
+    line-height:1.05; letter-spacing:-.01em;
     color:#1C2A24; text-align:center; margin: 0 0 4px;
+    position:relative; z-index:1;
   }
+  .concl-title .amp { font-weight:300; color:#8A6E2F; font-style:italic; }
   .concl-kicker {
     font-family:'Cormorant Garamond', Georgia, serif;
-    font-style:italic; font-weight:400; font-size:14px;
-    color:#3D4B44; text-align:center; margin-bottom:14px;
+    font-style:italic; font-weight:400; font-size:16px;
+    color:#6B3B2A; text-align:center; margin-bottom:8px;
+    position:relative; z-index:1;
   }
-  .concl-rule {
-    width:54px; height:1px; background:rgba(138,110,47,.55);
-    margin: 4px auto 22px;
+  .concl-rule { display:block; margin:8px auto 22px; position:relative; z-index:1; }
+
+  .concl-cols {
+    position:relative; z-index:1;
+    display:grid; gap:22px;
   }
-  .concl-blocks { display:grid; grid-template-columns:1fr; gap:22px; }
-  .concl-blocks.cols-2 { grid-template-columns:1fr 1fr; gap:24px; }
-  .concl-block { min-width:0; }
-  .concl-block-h {
-    font-family:'Cormorant Garamond', Georgia, serif;
-    font-style:italic; font-weight:500; font-size:14.5px;
-    color:#8A6E2F; text-align:center; letter-spacing:.02em;
-    margin-bottom:10px;
+  .concl-cols.cols-1 { grid-template-columns:1fr; }
+  .concl-cols.cols-2 { grid-template-columns:1fr 1px 1fr; gap:26px; }
+  .concl-cols.cols-stack { grid-template-columns:1fr; gap:24px; }
+  .concl-divider { background:linear-gradient(180deg, transparent 0%, rgba(138,110,47,.35) 10%, rgba(138,110,47,.35) 90%, transparent 100%); }
+  .concl-col { padding:0; min-width:0; }
+
+  .concl-priority-wrap { text-align:center; }
+  .concl-priority-badge {
+    display:inline-block; margin:0 auto 10px;
+    font-family:'Cinzel', serif; font-weight:500;
+    font-size:8.5px; letter-spacing:.4em; text-transform:uppercase;
+    color:#6B3B2A;
+    border:1px solid #6B3B2A; border-radius:99px;
+    padding:3px 12px; background:rgba(255,255,255,.55);
   }
-  .concl-list { list-style:none; margin:0; padding:0; }
-  .concl-item {
-    display:flex; align-items:flex-start; gap:9px;
-    padding: 7px 9px; margin-bottom: 4px;
-    border-radius: 3px;
-    page-break-inside: avoid;
-    break-inside: avoid;
+  .concl-roman {
+    font-family:'Cinzel', serif; font-weight:600;
+    font-size:10px; letter-spacing:.42em; text-transform:uppercase;
+    color:#8A6E2F; margin-bottom:4px;
+    display:flex; align-items:center; gap:10px;
   }
-  .concl-item.priority {
-    background: linear-gradient(180deg, rgba(138,110,47,.08), rgba(138,110,47,.02));
-    border-left: 2px solid rgba(138,110,47,.55);
-    padding-left: 11px;
+  .concl-roman::before, .concl-roman::after {
+    content:""; flex:1; height:1px; background:rgba(138,110,47,.35);
   }
-  .concl-num {
-    font-family:'Cinzel', serif; font-weight:500; font-size:10px;
-    letter-spacing:.12em; color:#8A6E2F; min-width:26px; padding-top:3px;
-    flex-shrink:0;
+  .concl-col-h2 {
+    font-family:'Cormorant Garamond', Georgia, serif; font-weight:500; font-style:italic;
+    font-size:24px; line-height:1.1; color:#1C2A24; text-align:center;
+    letter-spacing:-.005em; margin-bottom:12px;
   }
-  .concl-item.priority .concl-num::before {
-    content:"★ "; color:#8A6E2F;
+  .concl-col-h2 .concl-num {
+    font-family:'Cinzel', serif; font-weight:400; font-style:normal;
+    font-size:17px; color:#8A6E2F; margin-right:7px; letter-spacing:.1em;
   }
-  .concl-text {
-    font-family:'Cormorant Garamond', Georgia, serif;
-    font-weight:400; font-size:13.5px; line-height:1.55;
-    color:#1C2A24;
+
+  .concl-block-sub {
+    font-family:'Cormorant Garamond', Georgia, serif; font-weight:500; font-style:italic;
+    font-size:15px; line-height:1.3; color:#6B3B2A;
+    text-align:center; margin: 6px 0 10px;
+    letter-spacing:.005em;
   }
+  .concl-block-sub::before, .concl-block-sub::after {
+    content:"·"; color:#8A6E2F; margin:0 8px; opacity:.65;
+  }
+
+  .concl-actions { list-style:none; padding:0; margin:0 0 8px; counter-reset:item; }
+  .concl-actions > li {
+    position:relative; padding:9px 0 9px 32px;
+    counter-increment:item;
+    border-bottom:1px dotted rgba(28,42,36,.18);
+    page-break-inside: avoid; break-inside: avoid;
+  }
+  .concl-actions > li:last-child { border-bottom:none; padding-bottom:4px; }
+  .concl-actions > li::before {
+    content: counter(item, decimal-leading-zero);
+    position:absolute; left:0; top:11px;
+    font-family:'Cinzel', serif; font-weight:500;
+    font-size:12px; color:#8A6E2F; letter-spacing:.06em;
+    border-top:1px solid #8A6E2F; padding-top:2px;
+    width:22px; text-align:left;
+  }
+  .concl-actions > li.priority {
+    background:linear-gradient(90deg, rgba(138,110,47,.08), rgba(138,110,47,.02) 60%, transparent);
+    margin: 2px -8px; padding-left:40px; padding-right:8px;
+    border-radius:3px;
+  }
+  .concl-actions > li.priority::before {
+    left:8px; color:#6B3B2A; border-top-color:#6B3B2A;
+  }
+  .concl-action-title {
+    font-family:'Cormorant Garamond', Georgia, serif; font-weight:500; font-style:italic;
+    font-size:14px; line-height:1.3; color:#1C2A24;
+    margin-bottom:3px; letter-spacing:.005em;
+  }
+  .concl-nested { list-style:none; padding:0; margin:3px 0 0; }
+  .concl-nested li {
+    position:relative; padding:2px 0 2px 18px;
+    font-family:'Cormorant Garamond', Georgia, serif; font-weight:400;
+    font-size:12px; line-height:1.45; color:#3D4B44;
+  }
+  .concl-nested li::before {
+    content:""; position:absolute; left:0; top:9px;
+    width:10px; height:1px; background:#8A6E2F;
+  }
+  .concl-nested li::after {
+    content:""; position:absolute; left:12px; top:7.5px;
+    width:3px; height:3px; border-radius:50%; background:#8A6E2F;
+  }
+
   .concl-foot {
-    margin-top:22px; padding-top:14px;
-    border-top:1px solid rgba(28,42,36,.12);
-    display:flex; justify-content:space-between; align-items:center;
+    margin-top:18px; padding-top:12px;
+    border-top:1px solid rgba(138,110,47,.35);
+    display:flex; align-items:flex-end; justify-content:space-between; gap:20px;
+    position:relative; z-index:1;
   }
-  .concl-foot .role {
-    font-family:'Cinzel', serif; font-weight:500; font-size:8.5px;
-    letter-spacing:.45em; text-transform:uppercase;
-    color:rgba(28,42,36,.55);
+  .concl-foot-left {
+    font-family:'Cinzel', serif; font-weight:500;
+    font-size:9px; letter-spacing:.36em; text-transform:uppercase;
+    color:rgba(28,42,36,.45); line-height:1.9;
   }
-  .concl-foot .sig {
+  .concl-foot-left strong { color:#1C2A24; font-weight:600; }
+  .concl-foot-left .sub {
+    text-transform:none; letter-spacing:.02em; font-family:'Cormorant Garamond', Georgia, serif;
+    font-style:italic; font-weight:400; font-size:11.5px; color:rgba(28,42,36,.55);
+  }
+  .concl-foot-sig { text-align:right; }
+  .concl-foot-sig .hand {
     font-family:'Italianno', cursive; font-weight:400;
-    font-size:30px; color:#1C2A24; line-height:1;
+    font-size:34px; line-height:1; color:#6B3B2A;
+    display:block; margin-bottom:2px;
+  }
+  .concl-foot-sig .role {
+    font-family:'Cinzel', serif; font-weight:500;
+    font-size:9px; letter-spacing:.36em; text-transform:uppercase; color:#8A6E2F;
   }
 </style>
 </head><body>
@@ -3006,8 +3102,7 @@ function _abrirPDF(inf, jug, clubColor) {
         </div>
       </div>
       <div class="p-doclabel">
-        ${_pxEsc(_dossier)}
-        <span class="tag">${_pxEsc(_tagline)}</span>
+        Informe técnico individual
       </div>
     </div>
     <div class="p-main">
@@ -3887,35 +3982,83 @@ async function confirmarAddTareaJugador(tareaId, tareaSrc) {
 const _ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX'];
 function _romanNum(n){ return _ROMAN[n-1] || String(n); }
 
-// Parser del formato estructurado de la conclusión:
-//   ## Título de bloque
-//   - Punto normal  (o • o *)
-//   ★ Punto prioritario  (o [P])
-//   Texto plano también se trata como punto
-// Devuelve array de { title, items:[{priority, text}] } o null si no hay nada.
+// Parser jerárquico (3 niveles, fiel a Conclusion_analisis.html):
+//   ## Sección                  → <section> con número romano (I, II, III…)
+//   ### Subtítulo de bloque     → block-sub (cursiva dorada entre puntitos)
+//   - Acción                    → acción numerada 01, 02, 03 (puede llevar ★/[P] al inicio para prioritaria)
+//   ★ Acción                    → acción prioritaria (equivalente a "- ★ ...")
+//     - Sub-punto               → sub-guión dentro de la acción (necesita 2+ espacios o tab al inicio)
+// Devuelve { sections: [{title, priority, blocks:[{title, actions:[{text, priority, sub:[]}]}]}] } o null.
 function _parseConclusion(raw){
   if(!raw || !String(raw).trim()) return null;
-  const lines = String(raw).split(/\r?\n/).map(l => l.trim());
-  const blocks = [];
-  let current = null;
-  const ensure = () => { if(!current){ current = { title:'', items:[] }; blocks.push(current); } };
-  for(const line of lines){
-    if(!line) continue;
-    if(/^##\s+/.test(line)){
-      current = { title: line.replace(/^##\s+/, ''), items: [] };
-      blocks.push(current);
-    } else if(/^(★|\[P\])\s*/i.test(line)){
-      ensure();
-      current.items.push({ priority:true, text: line.replace(/^(★|\[P\])\s*/i, '') });
-    } else if(/^[-•*]\s+/.test(line)){
-      ensure();
-      current.items.push({ priority:false, text: line.replace(/^[-•*]\s+/, '') });
-    } else {
-      ensure();
-      current.items.push({ priority:false, text: line });
+  const lines = String(raw).split(/\r?\n/);
+  const sections = [];
+  let curSection = null;
+  let curBlock = null;
+  let curAction = null;
+
+  const ensureSection = () => {
+    if(!curSection){
+      curSection = { title:'', priority:false, blocks:[] };
+      sections.push(curSection);
+      curBlock = null; curAction = null;
     }
+  };
+  const ensureBlock = () => {
+    ensureSection();
+    if(!curBlock){
+      curBlock = { title:'', actions:[] };
+      curSection.blocks.push(curBlock);
+      curAction = null;
+    }
+  };
+
+  for(const rawLine of lines){
+    if(!rawLine.trim()) { continue; }
+    const indent = rawLine.match(/^[\s\t]*/)[0];
+    const isIndented = indent.length >= 2 || /\t/.test(indent);
+    const line = rawLine.trim();
+
+    // Sección (## titulo)
+    if(/^##\s+(?!#)/.test(line) && !isIndented){
+      curSection = { title: line.replace(/^##\s+/, ''), priority:false, blocks:[] };
+      sections.push(curSection);
+      curBlock = null; curAction = null;
+      continue;
+    }
+    // Block-sub (### titulo)
+    if(/^###\s+/.test(line) && !isIndented){
+      ensureSection();
+      curBlock = { title: line.replace(/^###\s+/, ''), actions:[] };
+      curSection.blocks.push(curBlock);
+      curAction = null;
+      continue;
+    }
+    // Sub-punto indentado: pertenece a la última acción
+    if(isIndented && /^[-•*]\s+/.test(line) && curAction){
+      curAction.sub.push(line.replace(/^[-•*]\s+/, ''));
+      continue;
+    }
+    // Acción prioritaria (★ o [P] al inicio)
+    let priority = false;
+    let txt = line;
+    const pri = txt.match(/^(★|\[P\])\s*/i);
+    if(pri){ priority = true; txt = txt.replace(/^(★|\[P\])\s*/i, ''); }
+    // Si después del marcador prioritario hay un guión, lo quitamos también
+    txt = txt.replace(/^[-•*]\s+/, '');
+    // Si la línea empieza con guión sin marcador prioritario
+    if(!pri){
+      const m = line.match(/^[-•*]\s+(.*)$/);
+      if(m){ txt = m[1]; }
+      else { txt = line; }
+    }
+
+    ensureBlock();
+    curAction = { text: txt, priority, sub: [] };
+    curBlock.actions.push(curAction);
+    if(priority) curSection.priority = true;
   }
-  return blocks.length ? blocks : null;
+  return sections.length ? sections : null;
 }
 
 // ═══════════════════════════════════════════════════
@@ -4066,32 +4209,53 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
   // Pre-calcular conclusión esquematizada (estilo Conclusion_analisis premium)
   let conclHtml = '';
   try {
-    const _blocks = _parseConclusion(inf.conclusion);
-    if(_blocks && _blocks.length) {
-      const _colsClass = _blocks.length === 2 ? 'cols-2' : '';
+    const _sections = _parseConclusion(inf.conclusion);
+    if(_sections && _sections.length) {
+      const _esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      const _colsClass = _sections.length === 2 ? 'cols-2' : (_sections.length >= 3 ? 'cols-stack' : 'cols-1');
+      const _renderSection = (sec, idx) => {
+        const roman = _romanNum(idx+1);
+        const blocksHtml = (sec.blocks.length ? sec.blocks : [{title:'', actions:[]}]).map(function(b){
+          const actionsHtml = b.actions.map(function(a){
+            const subHtml = (a.sub && a.sub.length)
+              ? '<ul class="concl-nested">' + a.sub.map(s => '<li>' + _esc(s) + '</li>').join('') + '</ul>'
+              : '';
+            return '<li class="' + (a.priority?'priority':'') + '">' +
+              '<div class="concl-action-title">' + _esc(a.text) + '</div>' +
+              subHtml +
+            '</li>';
+          }).join('');
+          return (b.title ? '<div class="concl-block-sub">' + _esc(b.title) + '</div>' : '') +
+            (actionsHtml ? '<ol class="concl-actions">' + actionsHtml + '</ol>' : '');
+        }).join('');
+        return '<section class="concl-col' + (sec.priority?' priority':'') + '">' +
+          (sec.priority ? '<div class="concl-priority-wrap"><span class="concl-priority-badge">Prioritario</span></div>' : '') +
+          (sec.title ? '<div class="concl-roman">' + roman + (sec.title ? ' · ' + _esc(sec.title) : '') + '</div>' : '') +
+          (sec.title ? '<h2 class="concl-col-h2"><span class="concl-num">' + roman + '</span>' + _esc(sec.title) + '</h2>' : '') +
+          blocksHtml +
+        '</section>';
+      };
+      const sectionsHtml = _sections.map(_renderSection).join(
+        _sections.length === 2 ? '<div class="concl-divider"></div>' : ''
+      );
       conclHtml =
         '<section class="concl-section">' +
           '<div class="concl-eyebrow">Conclusión del partido</div>' +
-          '<h2 class="concl-title">Lectura del analista</h2>' +
-          '<div class="concl-kicker">' + _pxEsc(jug.nombre || '') + (inf.partido ? ' · ' + _pxEsc(inf.partido) : '') + '</div>' +
-          '<div class="concl-rule"></div>' +
-          '<div class="concl-blocks ' + _colsClass + '">' +
-            _blocks.map(function(b){
-              const itemsHtml = b.items.map(function(it, i){
-                return '<li class="concl-item' + (it.priority ? ' priority' : '') + '">' +
-                  '<span class="concl-num">' + _romanNum(i+1) + '.</span>' +
-                  '<span class="concl-text">' + _pxEsc(it.text) + '</span>' +
-                '</li>';
-              }).join('');
-              return '<div class="concl-block">' +
-                (b.title ? '<div class="concl-block-h">' + _pxEsc(b.title) + '</div>' : '') +
-                '<ul class="concl-list">' + itemsHtml + '</ul>' +
-              '</div>';
-            }).join('') +
-          '</div>' +
+          '<h2 class="concl-title">Conclusión<span class="amp">.</span></h2>' +
+          '<div class="concl-kicker">Acciones prioritarias a entrenar</div>' +
+          '<svg class="concl-rule" width="170" height="14" viewBox="0 0 170 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+            '<line x1="0" y1="7" x2="74" y2="7" stroke="#8A6E2F" stroke-width="0.8"/>' +
+            '<circle cx="85" cy="7" r="3" stroke="#8A6E2F" stroke-width="0.8" fill="none"/>' +
+            '<circle cx="85" cy="7" r="1" fill="#8A6E2F"/>' +
+            '<line x1="96" y1="7" x2="170" y2="7" stroke="#8A6E2F" stroke-width="0.8"/>' +
+          '</svg>' +
+          '<div class="concl-cols ' + _colsClass + '">' + sectionsHtml + '</div>' +
           '<div class="concl-foot">' +
-            '<span class="role">Conclusión del analista</span>' +
-            '<span class="sig">Omar Cortés Ferrero</span>' +
+            '<div class="concl-foot-left"><strong>Areté Academy</strong><br><span class="sub">Análisis individual · ' + _esc(jug.nombre||'') + '</span></div>' +
+            '<div class="concl-foot-sig">' +
+              '<span class="hand">Omar Cortés</span>' +
+              '<span class="role">Analista Individual</span>' +
+            '</div>' +
           '</div>' +
         '</section>';
     }
@@ -4436,14 +4600,14 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
     border:1px solid rgba(16,22,31,.1);
   }
 
-  /* ══════ CONCLUSIÓN DEL PARTIDO (estética Conclusion_analisis) ══════ */
+  /* ══════ CONCLUSIÓN DEL PARTIDO (jerarquía fiel a Conclusion_analisis.html) ══════ */
   .concl-section {
     margin: 0 28px 28px;
-    padding: 36px 40px 30px;
+    padding: 36px 40px 28px;
     position: relative;
     background:
-      radial-gradient(700px 380px at 50% 0%, rgba(255,255,255,.55) 0%, transparent 60%),
-      radial-gradient(560px 360px at 80% 100%, rgba(138,110,47,.07) 0%, transparent 60%),
+      radial-gradient(700px 400px at 50% 0%, rgba(255,255,255,.55) 0%, transparent 60%),
+      radial-gradient(600px 400px at 80% 100%, rgba(138,110,47,.06) 0%, transparent 60%),
       #F7F1E3;
     border: 1px solid #EDE4CE;
     border-radius: 4px;
@@ -4451,89 +4615,170 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
       0 1px 0 rgba(255,255,255,.7) inset,
       0 18px 40px -22px rgba(28,42,36,.30),
       0 2px 0 rgba(28,42,36,.04);
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
   .concl-section::before {
     content:""; position:absolute; inset:8px;
-    border:1px solid rgba(138,110,47,.32);
+    border:1px solid rgba(138,110,47,.35);
     border-radius:2px; pointer-events:none;
   }
   .concl-section::after {
     content:""; position:absolute; inset:0; pointer-events:none; opacity:.22; mix-blend-mode:multiply;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n2'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.36  0 0 0 0 0.20  0 0 0 0.18 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n2)'/></svg>");
   }
+
+  /* Cabecera del bloque conclusión */
   .concl-eyebrow {
     font-family:'Cinzel', serif; font-weight:500;
-    font-size:9px; letter-spacing:.55em; text-transform:uppercase;
+    font-size:9.5px; letter-spacing:.55em; text-transform:uppercase;
     color:#8A6E2F; text-align:center; margin-bottom:10px;
     position:relative; z-index:1;
   }
   .concl-title {
     font-family:'Cormorant Garamond', Georgia, serif; font-weight:500; font-style:italic;
-    font-size:34px; line-height:1.05; letter-spacing:-.012em;
-    color:#1C2A24; text-align:center; margin-bottom:6px;
+    font-size:44px; line-height:1.05; letter-spacing:-.01em;
+    color:#1C2A24; text-align:center; margin-bottom:4px;
     position:relative; z-index:1;
   }
+  .concl-title .amp { font-weight:300; color:#8A6E2F; font-style:italic; }
   .concl-kicker {
     font-family:'Cormorant Garamond', Georgia, serif; font-weight:400; font-style:italic;
-    font-size:14.5px; line-height:1.3; color:#6B3B2A; text-align:center;
-    margin-bottom:14px; position:relative; z-index:1;
-  }
-  .concl-rule {
-    width:64px; height:1px; background:#8A6E2F; opacity:.55;
-    margin:0 auto 22px; position:relative; z-index:1;
-  }
-  .concl-blocks {
-    display:grid; gap:24px; grid-template-columns:1fr;
+    font-size:17px; line-height:1.2; color:#6B3B2A; text-align:center;
+    margin-bottom:8px; letter-spacing:.005em;
     position:relative; z-index:1;
   }
-  .concl-blocks.cols-2 { grid-template-columns:1fr 1fr; gap:30px; }
-  .concl-block { position:relative; }
-  .concl-block-h {
-    font-family:'Cormorant Garamond', Georgia, serif; font-weight:500; font-style:italic;
-    font-size:18px; color:#1C2A24;
-    text-align:center; margin-bottom:14px;
-    display:flex; align-items:center; justify-content:center; gap:12px;
+  .concl-rule { display:block; margin:8px auto 22px; position:relative; z-index:1; }
+
+  /* Columnas */
+  .concl-cols {
+    position:relative; z-index:1;
+    display:grid; gap:22px;
+    margin-top: 2mm;
   }
-  .concl-block-h::before, .concl-block-h::after {
-    content:"·"; color:#8A6E2F; font-size:24px; line-height:.8; font-style:normal;
+  .concl-cols.cols-1 { grid-template-columns:1fr; }
+  .concl-cols.cols-2 { grid-template-columns:1fr 1px 1fr; gap:28px; }
+  .concl-cols.cols-stack { grid-template-columns:1fr; gap:26px; }
+  .concl-divider { background:linear-gradient(180deg, transparent 0%, rgba(138,110,47,.35) 10%, rgba(138,110,47,.35) 90%, transparent 100%); }
+
+  .concl-col { padding:0; position:relative; min-width:0; }
+
+  /* Badge Prioritario */
+  .concl-priority-wrap { text-align:center; }
+  .concl-priority-badge {
+    display:inline-block; margin:0 auto 10px;
+    font-family:'Cinzel', serif; font-weight:500;
+    font-size:8.5px; letter-spacing:.4em; text-transform:uppercase;
+    color:#6B3B2A;
+    border:1px solid #6B3B2A; border-radius:99px;
+    padding:3px 12px; background:rgba(255,255,255,.55);
   }
-  .concl-list { list-style:none; padding:0; margin:0; }
-  .concl-item {
-    display:grid; grid-template-columns:36px 1fr;
-    gap:10px; padding:9px 0;
-    border-bottom:1px dashed rgba(28,42,36,.13);
-  }
-  .concl-item:last-child { border-bottom:none; }
-  .concl-num {
+
+  /* Roman con líneas decorativas */
+  .concl-roman {
     font-family:'Cinzel', serif; font-weight:600;
-    font-size:10.5px; letter-spacing:.14em; color:#8A6E2F;
-    padding-top:3px; text-align:right;
+    font-size:10.5px; letter-spacing:.42em; text-transform:uppercase;
+    color:#8A6E2F; margin-bottom:4px;
+    display:flex; align-items:center; gap:10px;
   }
-  .concl-text {
-    font-family:'Cormorant Garamond', Georgia, serif; font-weight:500;
-    font-size:14.5px; line-height:1.5; color:#1C2A24;
+  .concl-roman::before, .concl-roman::after {
+    content:""; flex:1; height:1px; background:rgba(138,110,47,.35);
   }
-  .concl-item.priority {
-    background:linear-gradient(180deg, rgba(138,110,47,.06), rgba(138,110,47,.02));
-    margin:2px -8px; padding:9px 8px; border-radius:3px;
-    border-bottom:1px dashed rgba(138,110,47,.25);
+
+  /* Título de sección (col-h2) */
+  .concl-col-h2 {
+    font-family:'Cormorant Garamond', Georgia, serif; font-weight:500; font-style:italic;
+    font-size:26px; line-height:1.1; color:#1C2A24; text-align:center;
+    letter-spacing:-.005em; margin-bottom:14px;
   }
-  .concl-item.priority .concl-text { font-weight:600; color:#1C2A24; }
-  .concl-item.priority .concl-num { color:#6B3B2A; }
-  .concl-item.priority .concl-num::before { content:"★ "; color:#8A6E2F; }
+  .concl-col-h2 .concl-num {
+    font-family:'Cinzel', serif; font-weight:400; font-style:normal;
+    font-size:18px; color:#8A6E2F; margin-right:8px; letter-spacing:.1em;
+  }
+
+  /* Subtítulo de bloque (block-sub) */
+  .concl-block-sub {
+    font-family:'Cormorant Garamond', Georgia, serif; font-weight:500; font-style:italic;
+    font-size:16px; line-height:1.3; color:#6B3B2A;
+    text-align:center; margin: 8px 0 12px;
+    letter-spacing:.005em;
+  }
+  .concl-block-sub::before, .concl-block-sub::after {
+    content:"·"; color:#8A6E2F; margin:0 8px; opacity:.65;
+  }
+
+  /* Lista de acciones (01, 02, 03…) */
+  .concl-actions { list-style:none; padding:0; margin:0 0 8px; counter-reset:item; }
+  .concl-actions > li {
+    position:relative; padding:10px 0 10px 34px;
+    counter-increment:item;
+    border-bottom:1px dotted rgba(28,42,36,.18);
+  }
+  .concl-actions > li:last-child { border-bottom:none; padding-bottom:4px; }
+  .concl-actions > li::before {
+    content: counter(item, decimal-leading-zero);
+    position:absolute; left:0; top:12px;
+    font-family:'Cinzel', serif; font-weight:500;
+    font-size:12.5px; color:#8A6E2F; letter-spacing:.06em;
+    border-top:1px solid #8A6E2F; padding-top:2px;
+    width:24px; text-align:left;
+  }
+  .concl-actions > li.priority {
+    background:linear-gradient(90deg, rgba(138,110,47,.08), rgba(138,110,47,.02) 60%, transparent);
+    margin: 2px -8px; padding-left:42px; padding-right:8px;
+    border-radius:3px;
+  }
+  .concl-actions > li.priority::before {
+    left:8px; color:#6B3B2A; border-top-color:#6B3B2A;
+  }
+  .concl-action-title {
+    font-family:'Cormorant Garamond', Georgia, serif; font-weight:500; font-style:italic;
+    font-size:15px; line-height:1.3; color:#1C2A24;
+    margin-bottom:4px; letter-spacing:.005em;
+  }
+
+  /* Sub-puntos dentro de una acción */
+  .concl-nested { list-style:none; padding:0; margin:4px 0 0; }
+  .concl-nested li {
+    position:relative; padding:3px 0 3px 20px;
+    font-family:'Cormorant Garamond', Georgia, serif; font-weight:400;
+    font-size:12.5px; line-height:1.45; color:#3D4B44;
+  }
+  .concl-nested li::before {
+    content:""; position:absolute; left:0; top:10px;
+    width:11px; height:1px; background:#8A6E2F;
+  }
+  .concl-nested li::after {
+    content:""; position:absolute; left:13px; top:8.5px;
+    width:3px; height:3px; border-radius:50%; background:#8A6E2F;
+  }
+
+  /* Firma */
   .concl-foot {
-    margin-top:24px; padding-top:14px;
-    border-top:1px solid rgba(138,110,47,.30);
-    text-align:center; position:relative; z-index:1;
+    margin-top:20px; padding-top:14px;
+    border-top:1px solid rgba(138,110,47,.35);
+    display:flex; align-items:flex-end; justify-content:space-between; gap:20px;
+    position:relative; z-index:1;
   }
-  .concl-foot .role {
-    font-family:'Cinzel', serif; font-size:8.5px; font-weight:500;
-    letter-spacing:.32em; text-transform:uppercase; color:rgba(28,42,36,.55);
+  .concl-foot-left {
+    font-family:'Cinzel', serif; font-weight:500;
+    font-size:9px; letter-spacing:.36em; text-transform:uppercase;
+    color:rgba(28,42,36,.45); line-height:1.9;
+  }
+  .concl-foot-left strong { color:#1C2A24; font-weight:600; }
+  .concl-foot-left .sub {
+    text-transform:none; letter-spacing:.02em; font-family:'Cormorant Garamond', Georgia, serif;
+    font-style:italic; font-weight:400; font-size:12px; color:rgba(28,42,36,.55);
+  }
+  .concl-foot-sig { text-align:right; }
+  .concl-foot-sig .hand {
+    font-family:'Italianno', cursive; font-weight:400;
+    font-size:36px; line-height:1; color:#6B3B2A;
     display:block; margin-bottom:2px;
   }
-  .concl-foot .sig {
-    font-family:'Italianno', cursive; font-weight:400;
-    font-size:32px; line-height:1; color:#1C2A24; letter-spacing:0;
+  .concl-foot-sig .role {
+    font-family:'Cinzel', serif; font-weight:500;
+    font-size:9px; letter-spacing:.36em; text-transform:uppercase; color:#8A6E2F;
   }
 
   /* FOOTER premium */
@@ -4593,7 +4838,6 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
       </div>
       <div class="p-doclabel">
         Informe técnico individual
-        <span class="tag">${_pxEsc(_tagline)}</span>
       </div>
     </div>
     <div class="p-main">
