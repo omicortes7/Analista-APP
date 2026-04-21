@@ -217,7 +217,7 @@ function renderJugadores(){
         </div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${j.nombre}</div>
-          <div style="font-size:10px;color:var(--text2);">${j.posicion}${j.equipo?' · '+j.equipo:''}${j.categoria?' · '+j.categoria:''}</div>
+          <div style="font-size:10px;color:var(--text2);">${j.posicion}${j.equipo?' · '+j.equipo:''}</div>
         </div>
         ${nota?`<div style="width:34px;height:34px;border-radius:50%;background:${nc}12;color:${nc};border:1.5px solid ${nc}40;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:11px;font-weight:800;line-height:1;">${nota.toFixed(1)}</span></div>`:''}
       </div>
@@ -247,7 +247,7 @@ async function saveJugador(){
     const r2=new FileReader();
     foto_jugador=await new Promise(res=>{r2.onload=e=>res(e.target.result);r2.readAsDataURL(ff2.files[0]);});
   }
-  const data={nombre,posicion:document.getElementById('npp').value,equipo:document.getElementById('npe').value.trim(),categoria:document.getElementById('npc').value,sesion_fecha:document.getElementById('nps').value||null,logo_club,foto_jugador,email_jugador:document.getElementById('npe-mail')?.value.trim()||''};
+  const data={nombre,posicion:document.getElementById('npp').value,equipo:document.getElementById('npe').value.trim(),sesion_fecha:document.getElementById('nps').value||null,logo_club,foto_jugador,email_jugador:document.getElementById('npe-mail')?.value.trim()||''};
   const{data:res,error}=await DB.from('jugadores').insert(data).select();
   if(error){showToast('Error al guardar');return;}
   state.jugadores.unshift(res[0]);
@@ -262,7 +262,7 @@ function openJug(id){
   av.textContent=initials(j.nombre);
   av.style.cssText=`width:44px;height:44px;font-size:14px;font-weight:500;border-radius:50%;background:${pc.bg};color:${pc.color};display:flex;align-items:center;justify-content:center;`;
   document.getElementById('djn').textContent=j.nombre;
-  document.getElementById('djm').textContent=`${j.posicion} · ${j.equipo||''} · ${j.categoria||''}`;
+  document.getElementById('djm').textContent=`${j.posicion}${j.equipo?' · '+j.equipo:''}`;
   document.getElementById('djdel').onclick=()=>{if(confirm('¿Eliminar jugador?')){state.jugadores=state.jugadores.filter(x=>x.id!==id);state.objetivos=state.objetivos.filter(o=>o.jugador_id!==id);state.observaciones=state.observaciones.filter(o=>o.jugador_id!==id);state.notasVideo=state.notasVideo.filter(n=>n.jugador_id!==id);DB.from('jugadores').delete().eq('id',id);closeModal('mdj');renderJugadores();renderInicio();}};
   switchDT('obj');openModal('mdj');
 }
@@ -4291,7 +4291,6 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
           ${jug.dorsal?`<span class="chip gold">Nº ${_pxEsc(jug.dorsal)}</span>`:''}
           ${jug.posicion?`<span class="chip">${_pxEsc(jug.posicion)}</span>`:''}
           ${jug.equipo?`<span>${_pxEsc(jug.equipo)}</span>`:''}
-          ${jug.categoria?`<span class="dot">·</span><span>${_pxEsc(jug.categoria)}</span>`:''}
           ${jug.edad?`<span class="dot">·</span><span>${_pxEsc(jug.edad)} años</span>`:''}
         </div>
       </div>
@@ -4776,7 +4775,6 @@ function abrirEditarJugador() {
   document.getElementById('ej-nombre').value = j.nombre||'';
   document.getElementById('ej-pos').value = j.posicion||'Central';
   document.getElementById('ej-equipo').value = j.equipo||'';
-  document.getElementById('ej-cat').value = j.categoria||'Cadete';
   document.getElementById('ej-sesion').value = j.sesion_fecha||'';
   document.getElementById('ej-email').value = j.email_jugador||'';
   openModal('modal-edit-jug');
@@ -4794,7 +4792,6 @@ async function guardarEdicionJugador() {
     nombre,
     posicion: document.getElementById('ej-pos').value,
     equipo: document.getElementById('ej-equipo').value.trim(),
-    categoria: document.getElementById('ej-cat').value,
     sesion_fecha: document.getElementById('ej-sesion').value || null,
     email_jugador: document.getElementById('ej-email').value.trim(),
   };
@@ -4823,7 +4820,7 @@ async function guardarEdicionJugador() {
   // Actualizar header del modal
   const pc = AV_COLORS[j.posicion]||{bg:'#eee',color:'#666'};
   document.getElementById('djn').textContent = j.nombre;
-  document.getElementById('djm').textContent = `${j.posicion} · ${j.equipo||''} · ${j.categoria||''}`;
+  document.getElementById('djm').textContent = `${j.posicion}${j.equipo?' · '+j.equipo:''}`;
 
   renderJugadores();
   renderInicio();
