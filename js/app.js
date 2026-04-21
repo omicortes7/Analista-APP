@@ -2877,7 +2877,6 @@ function _abrirPDF(inf, jug, clubColor) {
           ${jug.dorsal?`<span class="chip gold">Nº ${_pxEsc(jug.dorsal)}</span>`:''}
           ${jug.posicion?`<span class="chip">${_pxEsc(jug.posicion)}</span>`:''}
           ${jug.equipo?`<span>${_pxEsc(jug.equipo)}</span>`:''}
-          ${jug.categoria?`<span class="dot">·</span><span>${_pxEsc(jug.categoria)}</span>`:''}
           ${jug.edad?`<span class="dot">·</span><span>${_pxEsc(jug.edad)} años</span>`:''}
         </div>
       </div>
