@@ -560,6 +560,26 @@ function renderDT(tab){
         <div style="${SEC_TITLE}">Notas privadas</div>
         <textarea id="inf-notas" placeholder="Contexto del partido, condiciones, observaciones extra..." style="${TA}height:70px;"></textarea>
       </div>
+      <div style="${CARD}border:0.5px solid rgba(138,110,47,.35);background:linear-gradient(180deg,rgba(247,241,227,.55) 0%,rgba(237,228,206,.40) 100%);">
+        <div style="${SEC_TITLE}color:#8A6E2F;">✦ Conclusión del partido · visible para el jugador</div>
+        <div style="font-size:10.5px;color:var(--text3);margin-bottom:8px;line-height:1.55;">
+          Esquematiza los puntos clave. Saldrá en el informe en formato editorial (paleta papel/oro, Cormorant + Cinzel + firma Italianno).<br>
+          <span style="color:#8A6E2F;font-weight:700;">## Título de bloque</span> · <span style="color:#8A6E2F;font-weight:700;">- punto normal</span> · <span style="color:#8A6E2F;font-weight:700;">★ punto prioritario</span>
+        </div>
+        <textarea id="inf-conclusion" placeholder="## Momento con balón
+- Primer control orientado a portería
+- Tercer hombre como salida natural
+- Conducción en zonas seguras
+
+## Momento sin balón
+★ Gestión de saltos a intermedias
+★ Lectura del segundo balón
+- Presión coordinada con el lateral
+
+## Acciones prioritarias a entrenar
+★ Saltos a intermedias en bloque medio
+★ Primer control bajo presión orientado" style="${TA}height:200px;font-family:'Georgia',serif;font-size:13px;line-height:1.6;"></textarea>
+      </div>
       <div style="${CARD}border:0.5px solid rgba(88,166,255,0.2);background:rgba(88,166,255,0.03);">
         <div style="${SEC_TITLE}color:#58a6ff;">📎 Observaciones del informe</div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">El jugador también las verá. Añade texto e imágenes para explicar situaciones tácticas.</div>
@@ -2665,6 +2685,43 @@ function _abrirPDF(inf, jug, clubColor) {
     }
   } catch(e) {}
 
+  // ═══ CONCLUSIÓN ESQUEMATIZADA (estilo editorial premium — paleta papel/tinta/oro) ═══
+  let conclHtml = '';
+  try {
+    const _blocks = _parseConclusion(inf.conclusion);
+    if(_blocks && _blocks.length) {
+      const _colsClass = _blocks.length === 2 ? 'cols-2' : '';
+      const _partidoTxt = (jug.nombre || '') + (inf.partido ? ' · ' + inf.partido : (inf.rival ? ' · ' + inf.rival : ''));
+      conclHtml =
+        '<section class="concl-section">' +
+          '<div class="concl-eyebrow">Conclusión del partido</div>' +
+          '<h2 class="concl-title">Lectura del analista</h2>' +
+          '<div class="concl-kicker">' + String(_partidoTxt).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' +
+          '<div class="concl-rule"></div>' +
+          '<div class="concl-blocks ' + _colsClass + '">' +
+            _blocks.map(function(b){
+              const itemsHtml = b.items.map(function(it, i){
+                const txt = String(it.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                return '<li class="concl-item' + (it.priority ? ' priority' : '') + '">' +
+                  '<span class="concl-num">' + _romanNum(i+1) + '.</span>' +
+                  '<span class="concl-text">' + txt + '</span>' +
+                '</li>';
+              }).join('');
+              const hd = String(b.title||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+              return '<div class="concl-block">' +
+                (hd ? '<div class="concl-block-h">· ' + hd + ' ·</div>' : '') +
+                '<ul class="concl-list">' + itemsHtml + '</ul>' +
+              '</div>';
+            }).join('') +
+          '</div>' +
+          '<div class="concl-foot">' +
+            '<span class="role">Conclusión del analista</span>' +
+            '<span class="sig">Omar Cortés Ferrero</span>' +
+          '</div>' +
+        '</section>';
+    }
+  } catch(e) { console.error('Conclusión render error (_abrirPDF):', e); }
+
   // ═══ PREMIUM HEADER HELPERS (Areté Academy) ═══
   function _pxRgb(c){
     if(!c) return {r:26,g:58,b:92};
@@ -2737,7 +2794,7 @@ function _abrirPDF(inf, jug, clubColor) {
 <title>Informe ${_pxEsc(jug.nombre)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700;1,900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700;1,900&family=Manrope:wght@400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Cinzel:wght@400;500;600;700&family=Italianno&display=swap" rel="stylesheet">
 <style>
   * { box-sizing:border-box; margin:0; padding:0; }
   html, body { background:#F4F3EF; }
@@ -2842,6 +2899,96 @@ function _abrirPDF(inf, jug, clubColor) {
   .box-body { font-size:11.5px; line-height:1.65; }
   .footer { margin-top:28px; padding-top:14px; border-top:1px solid #ddd; display:flex; justify-content:space-between; font-size:10px; color:#999; }
   .footer strong { color:#555; }
+
+  /* ══════ CONCLUSIÓN — bloque editorial premium (paleta papel/tinta/oro) ══════ */
+  .concl-section {
+    position:relative;
+    margin: 22px 0 18px;
+    padding: 30px 34px 26px;
+    background:
+      radial-gradient(640px 360px at 50% 0%, rgba(255,255,255,.55) 0%, transparent 60%),
+      radial-gradient(520px 320px at 82% 100%, rgba(138,110,47,.07) 0%, transparent 60%),
+      #F7F1E3;
+    border: 1px solid #EDE4CE;
+    border-radius: 6px;
+    color: #1C2A24;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .concl-section::before {
+    content:""; position:absolute; inset:7px;
+    border:1px solid rgba(138,110,47,.32);
+    border-radius:3px; pointer-events:none;
+  }
+  .concl-eyebrow {
+    font-family:'Cinzel', serif; font-weight:500; font-size:9px;
+    letter-spacing:.55em; text-transform:uppercase;
+    color:#8A6E2F; text-align:center; margin-bottom:14px;
+  }
+  .concl-title {
+    font-family:'Cormorant Garamond', Georgia, serif;
+    font-weight:500; font-style:italic; font-size:32px;
+    line-height:1.05; letter-spacing:-.005em;
+    color:#1C2A24; text-align:center; margin: 0 0 4px;
+  }
+  .concl-kicker {
+    font-family:'Cormorant Garamond', Georgia, serif;
+    font-style:italic; font-weight:400; font-size:14px;
+    color:#3D4B44; text-align:center; margin-bottom:14px;
+  }
+  .concl-rule {
+    width:54px; height:1px; background:rgba(138,110,47,.55);
+    margin: 4px auto 22px;
+  }
+  .concl-blocks { display:grid; grid-template-columns:1fr; gap:22px; }
+  .concl-blocks.cols-2 { grid-template-columns:1fr 1fr; gap:24px; }
+  .concl-block { min-width:0; }
+  .concl-block-h {
+    font-family:'Cormorant Garamond', Georgia, serif;
+    font-style:italic; font-weight:500; font-size:14.5px;
+    color:#8A6E2F; text-align:center; letter-spacing:.02em;
+    margin-bottom:10px;
+  }
+  .concl-list { list-style:none; margin:0; padding:0; }
+  .concl-item {
+    display:flex; align-items:flex-start; gap:9px;
+    padding: 7px 9px; margin-bottom: 4px;
+    border-radius: 3px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .concl-item.priority {
+    background: linear-gradient(180deg, rgba(138,110,47,.08), rgba(138,110,47,.02));
+    border-left: 2px solid rgba(138,110,47,.55);
+    padding-left: 11px;
+  }
+  .concl-num {
+    font-family:'Cinzel', serif; font-weight:500; font-size:10px;
+    letter-spacing:.12em; color:#8A6E2F; min-width:26px; padding-top:3px;
+    flex-shrink:0;
+  }
+  .concl-item.priority .concl-num::before {
+    content:"★ "; color:#8A6E2F;
+  }
+  .concl-text {
+    font-family:'Cormorant Garamond', Georgia, serif;
+    font-weight:400; font-size:13.5px; line-height:1.55;
+    color:#1C2A24;
+  }
+  .concl-foot {
+    margin-top:22px; padding-top:14px;
+    border-top:1px solid rgba(28,42,36,.12);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .concl-foot .role {
+    font-family:'Cinzel', serif; font-weight:500; font-size:8.5px;
+    letter-spacing:.45em; text-transform:uppercase;
+    color:rgba(28,42,36,.55);
+  }
+  .concl-foot .sig {
+    font-family:'Italianno', cursive; font-weight:400;
+    font-size:30px; color:#1C2A24; line-height:1;
+  }
 </style>
 </head><body>
   <div class="download-bar">
@@ -2931,6 +3078,7 @@ function _abrirPDF(inf, jug, clubColor) {
       <div style="font-family:'Fraunces',Georgia,serif;font-size:12.5px;line-height:1.7;font-style:italic;color:#333;">${inf.notas}</div>
     </div>`:''}
     ${obsHtml}
+    ${conclHtml}
     <div class="footer">
       <span>Informe elaborado por <strong>Omar Cortés Ferrero</strong> · Areté Academy</span>
       <span>${new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'})}</span>
@@ -3731,6 +3879,46 @@ async function confirmarAddTareaJugador(tareaId, tareaSrc) {
 
 
 // ═══════════════════════════════════════════════════
+// HELPERS · CONCLUSIÓN ESQUEMATIZADA DEL PARTIDO
+// (usados por ambos templates de informe)
+// ═══════════════════════════════════════════════════
+
+// Numeración romana — cap a 20 ítems por bloque
+const _ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX'];
+function _romanNum(n){ return _ROMAN[n-1] || String(n); }
+
+// Parser del formato estructurado de la conclusión:
+//   ## Título de bloque
+//   - Punto normal  (o • o *)
+//   ★ Punto prioritario  (o [P])
+//   Texto plano también se trata como punto
+// Devuelve array de { title, items:[{priority, text}] } o null si no hay nada.
+function _parseConclusion(raw){
+  if(!raw || !String(raw).trim()) return null;
+  const lines = String(raw).split(/\r?\n/).map(l => l.trim());
+  const blocks = [];
+  let current = null;
+  const ensure = () => { if(!current){ current = { title:'', items:[] }; blocks.push(current); } };
+  for(const line of lines){
+    if(!line) continue;
+    if(/^##\s+/.test(line)){
+      current = { title: line.replace(/^##\s+/, ''), items: [] };
+      blocks.push(current);
+    } else if(/^(★|\[P\])\s*/i.test(line)){
+      ensure();
+      current.items.push({ priority:true, text: line.replace(/^(★|\[P\])\s*/i, '') });
+    } else if(/^[-•*]\s+/.test(line)){
+      ensure();
+      current.items.push({ priority:false, text: line.replace(/^[-•*]\s+/, '') });
+    } else {
+      ensure();
+      current.items.push({ priority:false, text: line });
+    }
+  }
+  return blocks.length ? blocks : null;
+}
+
+// ═══════════════════════════════════════════════════
 // GENERADOR DE INFORME VISUAL PREMIUM
 // ═══════════════════════════════════════════════════
 
@@ -3874,6 +4062,40 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
       obsHtml += '</section>';
     }
   } catch(e) {}
+
+  // Pre-calcular conclusión esquematizada (estilo Conclusion_analisis premium)
+  let conclHtml = '';
+  try {
+    const _blocks = _parseConclusion(inf.conclusion);
+    if(_blocks && _blocks.length) {
+      const _colsClass = _blocks.length === 2 ? 'cols-2' : '';
+      conclHtml =
+        '<section class="concl-section">' +
+          '<div class="concl-eyebrow">Conclusión del partido</div>' +
+          '<h2 class="concl-title">Lectura del analista</h2>' +
+          '<div class="concl-kicker">' + _pxEsc(jug.nombre || '') + (inf.partido ? ' · ' + _pxEsc(inf.partido) : '') + '</div>' +
+          '<div class="concl-rule"></div>' +
+          '<div class="concl-blocks ' + _colsClass + '">' +
+            _blocks.map(function(b){
+              const itemsHtml = b.items.map(function(it, i){
+                return '<li class="concl-item' + (it.priority ? ' priority' : '') + '">' +
+                  '<span class="concl-num">' + _romanNum(i+1) + '.</span>' +
+                  '<span class="concl-text">' + _pxEsc(it.text) + '</span>' +
+                '</li>';
+              }).join('');
+              return '<div class="concl-block">' +
+                (b.title ? '<div class="concl-block-h">' + _pxEsc(b.title) + '</div>' : '') +
+                '<ul class="concl-list">' + itemsHtml + '</ul>' +
+              '</div>';
+            }).join('') +
+          '</div>' +
+          '<div class="concl-foot">' +
+            '<span class="role">Conclusión del analista</span>' +
+            '<span class="sig">Omar Cortés Ferrero</span>' +
+          '</div>' +
+        '</section>';
+    }
+  } catch(e) { console.error('Conclusión render error:', e); }
 
   // ═══ PREMIUM HEADER HELPERS ═══
   function _pxRgb(c){
@@ -4214,6 +4436,106 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
     border:1px solid rgba(16,22,31,.1);
   }
 
+  /* ══════ CONCLUSIÓN DEL PARTIDO (estética Conclusion_analisis) ══════ */
+  .concl-section {
+    margin: 0 28px 28px;
+    padding: 36px 40px 30px;
+    position: relative;
+    background:
+      radial-gradient(700px 380px at 50% 0%, rgba(255,255,255,.55) 0%, transparent 60%),
+      radial-gradient(560px 360px at 80% 100%, rgba(138,110,47,.07) 0%, transparent 60%),
+      #F7F1E3;
+    border: 1px solid #EDE4CE;
+    border-radius: 4px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.7) inset,
+      0 18px 40px -22px rgba(28,42,36,.30),
+      0 2px 0 rgba(28,42,36,.04);
+  }
+  .concl-section::before {
+    content:""; position:absolute; inset:8px;
+    border:1px solid rgba(138,110,47,.32);
+    border-radius:2px; pointer-events:none;
+  }
+  .concl-section::after {
+    content:""; position:absolute; inset:0; pointer-events:none; opacity:.22; mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n2'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.36  0 0 0 0 0.20  0 0 0 0.18 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n2)'/></svg>");
+  }
+  .concl-eyebrow {
+    font-family:'Cinzel', serif; font-weight:500;
+    font-size:9px; letter-spacing:.55em; text-transform:uppercase;
+    color:#8A6E2F; text-align:center; margin-bottom:10px;
+    position:relative; z-index:1;
+  }
+  .concl-title {
+    font-family:'Cormorant Garamond', Georgia, serif; font-weight:500; font-style:italic;
+    font-size:34px; line-height:1.05; letter-spacing:-.012em;
+    color:#1C2A24; text-align:center; margin-bottom:6px;
+    position:relative; z-index:1;
+  }
+  .concl-kicker {
+    font-family:'Cormorant Garamond', Georgia, serif; font-weight:400; font-style:italic;
+    font-size:14.5px; line-height:1.3; color:#6B3B2A; text-align:center;
+    margin-bottom:14px; position:relative; z-index:1;
+  }
+  .concl-rule {
+    width:64px; height:1px; background:#8A6E2F; opacity:.55;
+    margin:0 auto 22px; position:relative; z-index:1;
+  }
+  .concl-blocks {
+    display:grid; gap:24px; grid-template-columns:1fr;
+    position:relative; z-index:1;
+  }
+  .concl-blocks.cols-2 { grid-template-columns:1fr 1fr; gap:30px; }
+  .concl-block { position:relative; }
+  .concl-block-h {
+    font-family:'Cormorant Garamond', Georgia, serif; font-weight:500; font-style:italic;
+    font-size:18px; color:#1C2A24;
+    text-align:center; margin-bottom:14px;
+    display:flex; align-items:center; justify-content:center; gap:12px;
+  }
+  .concl-block-h::before, .concl-block-h::after {
+    content:"·"; color:#8A6E2F; font-size:24px; line-height:.8; font-style:normal;
+  }
+  .concl-list { list-style:none; padding:0; margin:0; }
+  .concl-item {
+    display:grid; grid-template-columns:36px 1fr;
+    gap:10px; padding:9px 0;
+    border-bottom:1px dashed rgba(28,42,36,.13);
+  }
+  .concl-item:last-child { border-bottom:none; }
+  .concl-num {
+    font-family:'Cinzel', serif; font-weight:600;
+    font-size:10.5px; letter-spacing:.14em; color:#8A6E2F;
+    padding-top:3px; text-align:right;
+  }
+  .concl-text {
+    font-family:'Cormorant Garamond', Georgia, serif; font-weight:500;
+    font-size:14.5px; line-height:1.5; color:#1C2A24;
+  }
+  .concl-item.priority {
+    background:linear-gradient(180deg, rgba(138,110,47,.06), rgba(138,110,47,.02));
+    margin:2px -8px; padding:9px 8px; border-radius:3px;
+    border-bottom:1px dashed rgba(138,110,47,.25);
+  }
+  .concl-item.priority .concl-text { font-weight:600; color:#1C2A24; }
+  .concl-item.priority .concl-num { color:#6B3B2A; }
+  .concl-item.priority .concl-num::before { content:"★ "; color:#8A6E2F; }
+  .concl-foot {
+    margin-top:24px; padding-top:14px;
+    border-top:1px solid rgba(138,110,47,.30);
+    text-align:center; position:relative; z-index:1;
+  }
+  .concl-foot .role {
+    font-family:'Cinzel', serif; font-size:8.5px; font-weight:500;
+    letter-spacing:.32em; text-transform:uppercase; color:rgba(28,42,36,.55);
+    display:block; margin-bottom:2px;
+  }
+  .concl-foot .sig {
+    font-family:'Italianno', cursive; font-weight:400;
+    font-size:32px; line-height:1; color:#1C2A24; letter-spacing:0;
+  }
+
   /* FOOTER premium */
   .footer {
     padding:22px 40px 18px;
@@ -4422,6 +4744,8 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
 
   ${obsHtml}
 
+  ${conclHtml}
+
     <!-- FOOTER -->
   <div class="footer">
     <div class="footer-analista"><span>Informe elaborado por</span><span class="sig">Omar Cortés Ferrero</span><span class="role">· Analista Individual de Fútbol Base</span></div>
@@ -4505,6 +4829,7 @@ async function saveInforme() {
     microconceptos_obs: micTags.join(', '),
     objetivos_trabajados: objTextos,
     notas: document.getElementById('inf-notas')?.value.trim() || '',
+    conclusion: document.getElementById('inf-conclusion')?.value.trim() || '',
     positivos: document.getElementById('inf-positivos')?.value.trim() || '',
     mejoras: document.getElementById('inf-mejoras')?.value.trim() || '',
     obs_imagenes: JSON.stringify(window.getObsData ? window.getObsData() : []),
@@ -4526,7 +4851,7 @@ async function saveInforme() {
   document.getElementById('inf-resultado').value = '';
   document.getElementById('nota-global').textContent = '—';
   document.getElementById('nota-global').style.color = 'var(--text3)';
-  ['mcb','msb','tda','tad','notas'].forEach(k => {
+  ['mcb','msb','tda','tad','notas','conclusion','positivos','mejoras'].forEach(k => {
     const el = document.getElementById('inf-'+k);
     if(el) el.value = '';
   });
