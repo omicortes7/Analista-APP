@@ -2550,6 +2550,9 @@ window.renderCalJugador = function() {
 
     var html = '';
 
+    // Contenedor con ancho máximo para desktop (que no se estire el grid)
+    html += '<div style="max-width:720px;margin:0 auto;">';
+
     // Header mes + navegación
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">';
     html += '<div style="font-size:18px;font-weight:800;letter-spacing:.01em;">' + MESES_FULL[month] + ' ' + year + '</div>';
@@ -2567,12 +2570,12 @@ window.renderCalJugador = function() {
     });
     html += '</div>';
 
-    // Grid mensual
+    // Grid mensual (altura de celda limitada)
     html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:1.25rem;">';
 
     // Celdas vacías al inicio
     for(var k = 0; k < startDay; k++) {
-      html += '<div style="aspect-ratio:1;"></div>';
+      html += '<div style="height:68px;"></div>';
     }
 
     for(var dnum = 1; dnum <= daysInMonth; dnum++) {
@@ -2587,10 +2590,10 @@ window.renderCalJugador = function() {
       var bgColor     = esHoy ? 'rgba(255,255,255,0.1)' : tc ? tc.bg : 'transparent';
       var textColor   = esHoy ? '#fff' : 'var(--text)';
 
-      html += '<div onclick="verDiaCalendario(\'' + fecha + '\')" style="aspect-ratio:1;border-radius:10px;border:1.5px solid ' + borderColor + ';background:' + bgColor + ';cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:transform .12s;padding:2px;" onmouseover="this.style.transform=\'scale(1.06)\'" onmouseout="this.style.transform=\'scale(1)\'">';
+      html += '<div onclick="verDiaCalendario(\'' + fecha + '\')" style="height:68px;border-radius:10px;border:1.5px solid ' + borderColor + ';background:' + bgColor + ';cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:transform .12s;padding:2px;" onmouseover="this.style.transform=\'scale(1.06)\'" onmouseout="this.style.transform=\'scale(1)\'">';
       html += '<div style="font-size:14px;font-weight:' + (esHoy?'800':'600') + ';color:' + textColor + ';line-height:1;">' + dnum + '</div>';
       if(tc) {
-        html += '<div style="font-size:11px;line-height:1;">' + tc.ico + '</div>';
+        html += '<div style="font-size:13px;line-height:1;">' + tc.ico + '</div>';
       }
       if(tareas.length || notasD.length) {
         html += '<div style="display:flex;gap:2px;">';
@@ -2653,6 +2656,8 @@ window.renderCalJugador = function() {
     } else {
       html += '<div style="text-align:center;padding:2rem 1rem;color:var(--text3);font-size:12px;">Sin eventos programados este mes.<br>Tu analista los irá añadiendo.</div>';
     }
+
+    html += '</div>'; // cierre max-width wrapper
 
     cont.innerHTML = html;
   });
