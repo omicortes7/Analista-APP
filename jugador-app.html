@@ -61,11 +61,27 @@ body {
     min-height: 100vh;
     overflow: visible !important;
     display: block !important;
+    grid-template-rows: none !important;
+  }
+  .app-header-wrap {
+    position: sticky !important;
+    top: 0 !important;
   }
   .secs {
     overflow-y: visible !important;
+    overflow-x: visible !important;
     height: auto !important;
-    padding-bottom: 80px;
+    min-height: auto !important;
+    flex: none !important;
+    padding: 1.5rem 2rem 120px !important;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .sec {
+    display: none;
+  }
+  .sec.active {
+    display: block !important;
   }
   .bnav {
     position: fixed;
