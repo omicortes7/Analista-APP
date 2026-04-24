@@ -1176,7 +1176,7 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
 
   function loadApp(user) {
     document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('app-screen').style.display = '';
     document.getElementById('app-nombre').textContent = user.user_metadata && user.user_metadata.nombre ? user.user_metadata.nombre : user.email;
 
     DB.from('jugadores').select('*').eq('email_jugador', user.email).single().then(function(res) {
@@ -1473,7 +1473,7 @@ async function loadApp(user) {
 
   // Mostrar app
   document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = '';
 
   // Render inicial
   renderInicio && renderInicio();
