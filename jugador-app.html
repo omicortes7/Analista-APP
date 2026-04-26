@@ -190,6 +190,56 @@ h1, h2, h3, .title-serif {
 }
 .fade-in-up { animation: fadeInUp 0.5s cubic-bezier(.16,1,.3,1) forwards; }
 
+/* ━━━ Title hero — utilidad para cabeceras de cualquier sección ━━━ */
+.section-hero {
+  text-align: left;
+  padding: 8px 0 24px;
+  margin-bottom: 8px;
+}
+
+/* Botones-opción dentro de cuestionarios — más limpios */
+.opt-btn {
+  font-family: 'Barlow', sans-serif !important;
+  font-weight: 500 !important;
+  transition: all 0.2s cubic-bezier(.16,1,.3,1);
+  border-radius: 12px !important;
+}
+.opt-btn:hover {
+  border-color: rgba(255,255,255,0.25) !important;
+  color: rgba(255,255,255,0.92) !important;
+  transform: translateY(-1px);
+}
+.card textarea, .card input[type="text"], .card input[type="date"] {
+  font-family: 'Barlow', sans-serif !important;
+}
+.section-hero-kicker {
+  display: inline-block;
+  font-family: 'Barlow', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.section-hero-title {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-weight: 400;
+  color: #fff;
+  font-size: clamp(36px, 7vw, 52px);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+}
+.section-hero-sub {
+  font-family: 'Barlow', sans-serif;
+  font-weight: 300;
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+  max-width: 540px;
+}
+
 
 /* PC — permitir scroll normal */
 @media (min-width: 768px) {
@@ -2000,17 +2050,30 @@ function renderInicio() {
   var jug = window._jug || {};
   if (!jugId || !window.DB_REF) return;
 
+  var hoyStr = new Date().toISOString().slice(0,10);
+
   // Cargar todos los datos en paralelo
   Promise.all([
     window.DB_REF.from('informes_partido').select('*').eq('jugador_id', jugId).order('fecha', { ascending: false }).limit(1),
     window.DB_REF.from('objetivos').select('*').eq('jugador_id', jugId),
-    window.DB_REF.from('calendario_semana').select('*').eq('jugador_id', jugId).eq('tipo','partido').gte('fecha', new Date().toISOString().slice(0,10)).order('fecha').limit(1),
-    window.DB_REF.from('planes_partido').select('*').eq('jugador_id', jugId).order('created_at', { ascending: false }).limit(1)
+    window.DB_REF.from('calendario_semana').select('*').eq('jugador_id', jugId).eq('tipo','partido').gte('fecha', hoyStr).order('fecha').limit(1),
+    window.DB_REF.from('planes_partido').select('*').eq('jugador_id', jugId).order('created_at', { ascending: false }).limit(1),
+    window.DB_REF.from('calendario_semana').select('*').eq('jugador_id', jugId).eq('fecha', hoyStr).limit(1),
+    window.DB_REF.from('mental_log').select('id,tipo').eq('jugador_id', jugId).eq('fecha', hoyStr),
+    window.DB_REF.from('nutricion_log').select('id').eq('jugador_id', jugId).eq('fecha', hoyStr).limit(1)
   ]).then(function(results) {
     var ultInforme  = (results[0].data || [])[0] || null;
     var objetivos   = results[1].data || [];
     var proxPartido = (results[2].data || [])[0] || null;
     var ultPlan     = (results[3].data || [])[0] || null;
+    var hoyCal      = (results[4].data || [])[0] || null;
+    var mentalHoy   = results[5].data || [];
+    var nutHoy      = (results[6].data || []).length > 0;
+
+    // Derivar tipo de día
+    var tipoHoy = hoyCal ? hoyCal.tipo : null; // entreno | partido | descanso | otros | null
+    var mentalEntrenoDone = mentalHoy.some(function(m){ return m.tipo === 'entreno'; });
+    var mentalPartidoDone = mentalHoy.some(function(m){ return m.tipo === 'partido'; });
 
     // Cálculos
     var nombre  = (jug.nombre || jug.alias || jug.email_jugador || 'Jugador').split(' ')[0];
@@ -2020,7 +2083,40 @@ function renderInicio() {
     var h = new Date().getHours();
     var saludo = h < 6 ? 'Buenas noches' : h < 13 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
 
-    // Valoración del último informe (busca la columna que exista)
+    // Fecha hoy bonita
+    var dHoy = new Date();
+    var fechaHoy = dHoy.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+    fechaHoy = fechaHoy.charAt(0).toUpperCase() + fechaHoy.slice(1);
+
+    // Etiqueta del día
+    var TIPOS_LABEL = {
+      entreno:  { label:'Día de entrenamiento', color:'#3fb950', bg:'rgba(63,185,80,0.14)', ico:'💪' },
+      partido:  { label:'Día de partido',        color:'#58a6ff', bg:'rgba(88,166,255,0.14)', ico:'⚽' },
+      descanso: { label:'Día de descanso',       color:'rgba(255,255,255,0.6)', bg:'rgba(255,255,255,0.06)', ico:'😴' },
+      otros:    { label:'Día especial',          color:'#d29922', bg:'rgba(210,153,34,0.14)', ico:'📌' }
+    };
+    var tipoInfo = tipoHoy ? TIPOS_LABEL[tipoHoy] : { label:'Sin evento programado', color:'rgba(255,255,255,0.5)', bg:'rgba(255,255,255,0.04)', ico:'·' };
+
+    // Tareas del día según el tipo
+    var tareasHoy = [];
+    if (tipoHoy === 'entreno' || tipoHoy === 'partido') {
+      var doneM = (tipoHoy === 'partido') ? mentalPartidoDone : mentalEntrenoDone;
+      tareasHoy.push({
+        ico: '🧠',
+        label: 'Cuestionario mental ' + (tipoHoy === 'partido' ? '· post-partido' : '· post-entreno'),
+        done: doneM,
+        action: 'goSec(\'psico\',document.querySelector(\'.nb[data-id=psico]\'))'
+      });
+    }
+    // Nutrición todos los días
+    tareasHoy.push({
+      ico: '🥗',
+      label: 'Check-in nutrición',
+      done: nutHoy,
+      action: 'goSec(\'nut\',document.querySelector(\'.nb[data-id=nut]\'))'
+    });
+
+    // Valoración del último informe
     var nota = '–';
     var notaSub = 'Sin informes aún';
     if (ultInforme) {
@@ -2028,11 +2124,8 @@ function renderInicio() {
       if (n !== undefined && n !== null && n !== '') {
         nota = (typeof n === 'number') ? n.toFixed(1) : String(n);
       } else if (ultInforme.mcb !== undefined && ultInforme.msb !== undefined) {
-        // Calcular media de las 4 facetas tácticas si están
         var facetas = [ultInforme.mcb, ultInforme.msb, ultInforme.tda, ultInforme.tad].filter(function(x){ return typeof x === 'number'; });
-        if (facetas.length) {
-          nota = (facetas.reduce(function(a,b){ return a+b; }, 0) / facetas.length).toFixed(1);
-        }
+        if (facetas.length) nota = (facetas.reduce(function(a,b){ return a+b; }, 0) / facetas.length).toFixed(1);
       }
       notaSub = 'Último informe · ' + (ultInforme.fecha ? new Date(ultInforme.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'}) : 'reciente');
     }
@@ -2040,7 +2133,6 @@ function renderInicio() {
     var totalObj = objetivos.length;
     var objSub = totalObj === 0 ? 'Sin objetivos definidos' : (totalObj === 1 ? '1 objetivo activo' : totalObj + ' objetivos activos');
 
-    // Próximo partido + plan
     var proxFecha = '';
     var proxRival = '';
     if (proxPartido) {
@@ -2061,14 +2153,13 @@ function renderInicio() {
       objBullets = '<div style="font-size:13px;color:rgba(255,255,255,0.5);font-weight:300;padding:12px 0;border-top:0.5px solid rgba(255,255,255,0.06);">Tu analista aún no ha definido objetivos.</div>';
     }
 
-    // Plan de partido bullets (parseo simple del último plan si tiene texto)
+    // Plan de partido bullets
     var planBullets = '';
     if (ultPlan) {
       var planTxt = ultPlan.plan || ultPlan.contenido || ultPlan.texto || ultPlan.descripcion || '';
       if (typeof planTxt === 'object' && planTxt !== null) planTxt = JSON.stringify(planTxt);
       planTxt = String(planTxt).trim();
       if (planTxt) {
-        // Extraer primeras líneas con bullets o sentencias cortas
         var lineas = planTxt.split(/[\n•\-]+/).map(function(s){ return s.trim(); }).filter(function(s){ return s && s.length > 3 && s.length < 200; }).slice(0,3);
         planBullets = lineas.map(function(l){
           return '<div style="font-size:12px;color:rgba(255,255,255,0.78);font-weight:300;padding:6px 0;line-height:1.5;">› '+escapeHtml(l)+'</div>';
@@ -2079,31 +2170,25 @@ function renderInicio() {
     var html = '';
 
     // ━━━ HERO ━━━
-    html += '<section style="position:relative;padding:24px 0 32px;text-align:center;" class="fade-in-up">';
+    html += '<section style="position:relative;padding:24px 0 28px;text-align:center;" class="fade-in-up">';
 
-    // Greeting chip
     html += '<div class="liquid-glass" style="display:inline-flex;align-items:center;gap:10px;border-radius:9999px;padding:5px 16px 5px 5px;font-size:12px;color:rgba(255,255,255,0.92);margin-bottom:18px;font-weight:400;">';
     html += '<span style="background:#fff;color:#000;border-radius:9999px;padding:4px 12px;font-size:10px;font-weight:700;letter-spacing:.04em;">'+saludo.toUpperCase()+'</span>';
     html += '<span>Sesión activa · Temporada 25/26</span>';
     html += '</div>';
 
-    // Hero name (Instrument Serif italic gigante)
     html += '<h1 style="font-family:\'Instrument Serif\',serif;font-style:italic;font-weight:400;color:#fff;font-size:clamp(48px,10vw,96px);line-height:0.85;letter-spacing:-0.045em;margin:0 auto 16px;max-width:90%;text-wrap:balance;">'+escapeHtml(nombreCompleto)+'</h1>';
 
-    // Sub
-    html += '<p style="font-family:\'Barlow\',sans-serif;font-weight:300;font-size:14px;color:rgba(255,255,255,0.85);max-width:480px;margin:0 auto 28px;line-height:1.45;padding:0 16px;">Tu plan, tus objetivos y tu progreso. Enfocado, medido y diseñado para llevarte un paso más allá cada semana.</p>';
+    html += '<p style="font-family:\'Barlow\',sans-serif;font-weight:300;font-size:14px;color:rgba(255,255,255,0.85);max-width:480px;margin:0 auto 24px;line-height:1.45;padding:0 16px;">Tu plan, tus objetivos y tu progreso. Enfocado, medido y diseñado para llevarte un paso más allá cada semana.</p>';
 
     // Stats reales (2)
-    html += '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;padding:0 8px;">';
-
-    // Stat 1: valoración último informe
+    html += '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding:0 8px;">';
     html += '<div class="liquid-glass" style="width:160px;padding:16px;border-radius:18px;text-align:left;">';
     html += '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#fff;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
     html += '<div style="font-family:\'Instrument Serif\',serif;font-style:italic;font-size:36px;line-height:1;color:#fff;margin-top:10px;letter-spacing:-1px;">'+nota+'</div>';
     html += '<div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:6px;font-weight:400;">'+notaSub+'</div>';
     html += '</div>';
 
-    // Stat 2: objetivos activos
     html += '<div class="liquid-glass" style="width:160px;padding:16px;border-radius:18px;text-align:left;">';
     html += '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#fff;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>';
     html += '<div style="font-family:\'Instrument Serif\',serif;font-style:italic;font-size:36px;line-height:1;color:#fff;margin-top:10px;letter-spacing:-1px;">'+totalObj+'</div>';
@@ -2111,18 +2196,50 @@ function renderInicio() {
     html += '</div>';
     html += '</div>';
 
-    // Próximo partido chip
-    if (proxRival) {
-      html += '<div class="liquid-glass" style="display:inline-flex;align-items:center;gap:8px;border-radius:9999px;padding:6px 16px;font-size:12px;color:#fff;font-weight:400;">';
-      html += '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-      html += 'Próximo · '+escapeHtml(proxRival)+' · '+proxFecha;
-      html += '</div>';
-    }
-
     html += '</section>';
 
+    // ━━━ DÍA DE HOY ━━━ (NUEVO bloque destacado)
+    html += '<div style="max-width:720px;margin:0 auto 14px;" class="fade-in-up">';
+    html += '<div class="liquid-glass" style="border-radius:20px;padding:20px;border-left:3px solid '+tipoInfo.color+';">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">';
+    html += '<div>';
+    html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,0.5);margin-bottom:4px;">Hoy · '+escapeHtml(fechaHoy)+'</div>';
+    html += '<div style="display:inline-flex;align-items:center;gap:8px;background:'+tipoInfo.bg+';color:'+tipoInfo.color+';padding:6px 12px;border-radius:99px;font-size:12px;font-weight:600;">';
+    html += '<span style="font-size:14px;">'+tipoInfo.ico+'</span>'+escapeHtml(tipoInfo.label);
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Lista de tareas del día
+    tareasHoy.forEach(function(t, i) {
+      var topBorder = i === 0 ? 'border-top:0.5px solid rgba(255,255,255,0.06);' : 'border-top:0.5px solid rgba(255,255,255,0.06);';
+      html += '<div onclick="'+t.action+'" style="display:flex;align-items:center;gap:14px;padding:14px 0;'+topBorder+'cursor:pointer;transition:transform .2s;" onmouseover="this.style.transform=\'translateX(4px)\'" onmouseout="this.style.transform=\'translateX(0)\'">';
+      // Icono check
+      if (t.done) {
+        html += '<div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#000;">';
+        html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        html += '</div>';
+      } else {
+        html += '<div style="width:28px;height:28px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.25);flex-shrink:0;"></div>';
+      }
+      html += '<div style="flex:1;min-width:0;">';
+      html += '<div style="font-size:14px;font-weight:'+(t.done?'400':'500')+';color:'+(t.done?'rgba(255,255,255,0.5)':'#fff')+';'+(t.done?'text-decoration:line-through;text-decoration-color:rgba(255,255,255,0.2);':'')+'">'+t.ico+' '+escapeHtml(t.label)+'</div>';
+      html += '<div style="font-size:11px;color:'+(t.done?'var(--accent)':'rgba(255,255,255,0.5)')+';margin-top:2px;font-weight:'+(t.done?'600':'300')+';">'+(t.done?'Hecho':'Pendiente · toca para ir')+'</div>';
+      html += '</div>';
+      if (!t.done) {
+        html += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(255,255,255,0.4);"><polyline points="9 18 15 12 9 6"/></svg>';
+      }
+      html += '</div>';
+    });
+
+    if (tipoHoy === 'descanso') {
+      html += '<div style="font-size:11px;color:rgba(255,255,255,0.4);font-weight:300;font-style:italic;padding-top:10px;text-align:center;">Hoy descansa la mente. Recarga para mañana.</div>';
+    }
+    html += '</div>';
+    html += '</div>';
+
     // ━━━ ROWS — Objetivos / Plan ━━━
-    html += '<div style="display:grid;gap:14px;max-width:720px;margin:8px auto 0;" class="fade-in-up">';
+    html += '<div style="display:grid;gap:14px;max-width:720px;margin:0 auto;" class="fade-in-up">';
 
     // Card Objetivos
     html += '<div class="liquid-glass" onclick="goSec(\'plan\',document.querySelector(\'.nb[data-id=plan]\'))" style="border-radius:20px;padding:20px;cursor:pointer;transition:transform .3s cubic-bezier(.16,1,.3,1);" onmouseover="this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.transform=\'translateY(0)\'">';
@@ -2130,22 +2247,22 @@ function renderInicio() {
     html += '<div style="width:42px;height:42px;border-radius:12px;background:rgba(168,232,92,0.14);display:flex;align-items:center;justify-content:center;color:var(--accent);">';
     html += '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>';
     html += '</div>';
-    html += '<div style="flex:1;"><div style="font-family:\'Instrument Serif\',serif;font-style:italic;font-size:22px;color:#fff;letter-spacing:-0.5px;line-height:1.1;">Mis objetivos</div>';
-    html += '<div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:300;margin-top:2px;">'+objSub+'</div></div>';
+    html += '<div style="flex:1;"><div style="font-family:\'Instrument Serif\',serif;font-style:italic;font-size:30px;color:#fff;letter-spacing:-0.5px;line-height:1;">Mis objetivos</div>';
+    html += '<div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:300;margin-top:4px;">'+objSub+'</div></div>';
     html += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(255,255,255,0.5);"><polyline points="9 18 15 12 9 6"/></svg>';
     html += '</div>';
     html += objBullets;
     html += '</div>';
 
-    // Card Plan próximo partido
+    // Card Próximo partido (con plan)
     if (proxRival || planBullets) {
       html += '<div class="liquid-glass" onclick="goSec(\'plan\',document.querySelector(\'.nb[data-id=plan]\'))" style="border-radius:20px;padding:20px;cursor:pointer;transition:transform .3s cubic-bezier(.16,1,.3,1);" onmouseover="this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.transform=\'translateY(0)\'">';
       html += '<div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">';
       html += '<div style="width:42px;height:42px;border-radius:12px;background:rgba(96,101,240,0.14);display:flex;align-items:center;justify-content:center;color:#8b8ff5;">';
       html += '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
       html += '</div>';
-      html += '<div style="flex:1;"><div style="font-family:\'Instrument Serif\',serif;font-style:italic;font-size:22px;color:#fff;letter-spacing:-0.5px;line-height:1.1;">Próximo partido</div>';
-      html += '<div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:300;margin-top:2px;">'+(proxRival ? escapeHtml(proxRival)+' · '+proxFecha : 'Sin partido programado')+'</div></div>';
+      html += '<div style="flex:1;"><div style="font-family:\'Instrument Serif\',serif;font-style:italic;font-size:30px;color:#fff;letter-spacing:-0.5px;line-height:1;">Próximo partido</div>';
+      html += '<div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:300;margin-top:4px;">'+(proxRival ? escapeHtml(proxRival)+' · '+proxFecha : 'Sin partido programado')+'</div></div>';
       html += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(255,255,255,0.5);"><polyline points="9 18 15 12 9 6"/></svg>';
       html += '</div>';
       if (planBullets) {
@@ -2155,22 +2272,6 @@ function renderInicio() {
       }
       html += '</div>';
     }
-
-    // Atajos rápidos
-    html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">';
-    var atajos = [
-      { id:'psico',  ico:'🧠', label:'Cuestionario Mental' },
-      { id:'cal',    ico:'📅', label:'Calendario' },
-      { id:'clips',  ico:'▶',  label:'Mis clips' },
-      { id:'informes', ico:'📊', label:'Informes' }
-    ];
-    atajos.forEach(function(a) {
-      html += '<div onclick="goSec(\''+a.id+'\',document.querySelector(\'.nb[data-id='+a.id+']\'))" class="liquid-glass" style="border-radius:16px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:transform .2s;" onmouseover="this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.transform=\'translateY(0)\'">';
-      html += '<div style="font-size:18px;">'+a.ico+'</div>';
-      html += '<div style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.85);">'+a.label+'</div>';
-      html += '</div>';
-    });
-    html += '</div>';
 
     html += '</div>';
 
@@ -2196,6 +2297,35 @@ function escapeHtml(s) {
 
 window.renderInicio = renderInicio;
 
+// Configuración de los heros de cada sección
+window._SECTION_HEROS = {
+  cal:      { kicker: 'CALENDARIO',  title: 'Tu mes',          sub: 'Entrenamientos, partidos y descanso. Toca un día para ver detalles.' },
+  plan:     { kicker: 'PLAN',        title: 'Plan & objetivos', sub: 'El plan táctico del próximo partido y tus objetivos individuales.' },
+  psico:    { kicker: 'MENTAL',      title: 'Tu cabeza',         sub: 'Anclajes, presente y autorregulación. La parte invisible que lo cambia todo.' },
+  nut:      { kicker: 'NUTRICIÓN',   title: 'Combustible',       sub: 'Lo que comes hoy define cómo entrenas mañana.' },
+  clips:    { kicker: 'CLIPS',       title: 'Tus jugadas',       sub: 'Los momentos que tu analista ha marcado para ti.' },
+  informes: { kicker: 'INFORMES',    title: 'Tu progreso',       sub: 'Cada partido analizado. La radiografía de tu juego.' },
+  tareas:   { kicker: 'TAREAS',      title: 'Por hacer',         sub: 'Lo que tienes pendiente de tu analista.' },
+  chat:     { kicker: 'CHAT',        title: 'Conversación',      sub: 'Línea directa con tu analista.' }
+};
+
+// Función que inyecta hero al inicio de la sección activa (idempotente — no duplica)
+window._injectSectionHero = function(id) {
+  var sec = document.getElementById('sec-'+id);
+  if (!sec) return;
+  var cfg = window._SECTION_HEROS[id];
+  if (!cfg) return;
+  // Si ya hay un hero inyectado, no duplicar
+  if (sec.querySelector(':scope > .section-hero')) return;
+  var hero = document.createElement('div');
+  hero.className = 'section-hero fade-in-up';
+  hero.innerHTML =
+    '<div class="section-hero-kicker">'+cfg.kicker+'</div>'+
+    '<div class="section-hero-title">'+cfg.title+'</div>'+
+    '<div class="section-hero-sub">'+cfg.sub+'</div>';
+  sec.insertBefore(hero, sec.firstChild);
+};
+
 function goSec(id, btn) {
   document.querySelectorAll('.sec').forEach(function(s){ s.classList.remove('active'); });
   document.querySelectorAll('.nb').forEach(function(b){ b.classList.remove('active'); });
@@ -2203,6 +2333,8 @@ function goSec(id, btn) {
   if (sec) sec.classList.add('active');
   if (btn) btn.classList.add('active');
   window.scrollTo(0,0);
+  // Inyectar hero premium en la sección (excepto inicio que ya tiene su propio hero)
+  if (id !== 'inicio') window._injectSectionHero(id);
   if (id === 'nut')    renderNut();
   if (id === 'psico')  renderPsico && renderPsico();
   if (id === 'chat')   initChat && initChat(window._jugId);
