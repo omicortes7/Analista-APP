@@ -2177,16 +2177,19 @@ function renderInicio() {
   });
 }
 
-// Helper escape (si no existe ya)
-if (!window.escapeHtml) {
-  window.escapeHtml = function(s) {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/[&<>"']/g, function(c) {
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
-    });
-  };
+// Helper escape — definición segura, sin recursión
+window.escapeHtml = function(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+};
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
 }
-function escapeHtml(s) { return window.escapeHtml(s); }
 
 window.renderInicio = renderInicio;
 
