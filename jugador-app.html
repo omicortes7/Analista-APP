@@ -705,6 +705,65 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
           <textarea id="me_por_que" rows="3" placeholder="Esta es la pregunta top. Respóndela sincero." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;"></textarea>
         </div>
 
+        <!-- BLOQUE 11: ANCLAJES, PRESENTE Y AUTORREGULACIÓN -->
+        <div class="card">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#a371f7;margin-bottom:.75rem;">11 · Anclajes, presente y autorregulación</div>
+
+          <!-- Q1: Calidad del anclaje -->
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;">Tu palabra/gesto, ¿te llevó al cuerpo (sensación física) o solo a la cabeza?</div>
+          <div class="opt-row" data-field="me_ancla_calidad" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+            <button class="opt-btn" data-val="cuerpo" onclick="selOpt(this)" style="flex:1;min-width:100px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Al cuerpo</button>
+            <button class="opt-btn" data-val="cabeza" onclick="selOpt(this)" style="flex:1;min-width:100px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Solo cabeza</button>
+            <button class="opt-btn" data-val="no_use" onclick="selOpt(this)" style="flex:1;min-width:100px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">No usé</button>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:14px;line-height:1.5;">Un anclaje fuerte dispara una sensación física. Si solo lleva a un pensamiento, se pierde bajo presión.</div>
+
+          <!-- Q2: Velocidad de detección -->
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;">Cuando te distraías en una tarea, ¿cuánto tardabas en darte cuenta?</div>
+          <div class="opt-row" data-field="me_meta" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+            <button class="opt-btn" data-val="instante" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Al instante</button>
+            <button class="opt-btn" data-val="segundos" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Pocos segundos</button>
+            <button class="opt-btn" data-val="post_tarea" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Cuando acababa la tarea</button>
+            <button class="opt-btn" data-val="no_daba" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">No me daba cuenta</button>
+          </div>
+
+          <!-- Q3: Práctica deliberada del anclaje (EXCLUSIVA ENTRENO) -->
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;">¿Practicaste tu palabra/gesto con intención consciente (no solo reactivo)?</div>
+          <div class="opt-row" data-field="me_ancla_practica" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+            <button class="opt-btn" data-val="varias" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Sí, varias veces</button>
+            <button class="opt-btn" data-val="una" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Sí, una vez</button>
+            <button class="opt-btn" data-val="reactivo" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Solo reactivo</button>
+            <button class="opt-btn" data-val="nada" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">No usé</button>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:14px;line-height:1.5;">Si solo lo usas reactivo (cuando ya estás mal), no se fortalece. Practicarlo en frío es lo que lo hace fiable en partido.</div>
+
+          <!-- Q4: Frustración -->
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;">Cuando algo te frustró, ¿cómo lo gestionaste?</div>
+          <div class="opt-row" data-field="me_frustra" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+            <button class="opt-btn" data-val="solte" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Respiré y solté</button>
+            <button class="opt-btn" data-val="trague" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Me la tragué</button>
+            <button class="opt-btn" data-val="exploto" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Explotó hacia fuera</button>
+            <button class="opt-btn" data-val="no_frustro" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">No me frustré</button>
+          </div>
+
+          <!-- Q5: Comparación -->
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;">Durante el entreno, ¿con qué te comparabas más?</div>
+          <div class="opt-row" data-field="me_compara" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+            <button class="opt-btn" data-val="conmigo" onclick="selOpt(this)" style="flex:1 1 45%;min-width:140px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Conmigo mismo</button>
+            <button class="opt-btn" data-val="otros" onclick="selOpt(this)" style="flex:1 1 45%;min-width:140px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Con compañeros</button>
+            <button class="opt-btn" data-val="expectativas" onclick="selOpt(this)" style="flex:1 1 45%;min-width:140px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Con expectativas</button>
+            <button class="opt-btn" data-val="no_compara" onclick="selOpt(this)" style="flex:1 1 45%;min-width:140px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">No me comparaba</button>
+          </div>
+
+          <!-- Q6: Identificar momento de aplicación -->
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;">¿Identificaste un momento concreto donde aplicar tu anclaje en el próximo partido?</div>
+          <div class="opt-row" data-field="me_ancla_aplic" style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="opt-btn" data-val="claro" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Sí, lo tengo claro</button>
+            <button class="opt-btn" data-val="mas_o_menos" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Más o menos</button>
+            <button class="opt-btn" data-val="no_pense" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">No lo pensé</button>
+          </div>
+        </div>
+
         <button id="btn-save-mental-entreno" onclick="guardarMentalEntreno()" style="width:100%;height:48px;background:linear-gradient(135deg,#a371f7,#8957e5);border:none;border-radius:var(--radius);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1rem;">💾 Guardar cuestionario de entreno</button>
 
         <div class="card">
@@ -908,15 +967,58 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
           <textarea id="mp_ctrl_texto" rows="2" placeholder="Acción concreta y medible." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;"></textarea>
         </div>
 
-        <!-- BLOQUE 11: TRANSFERENCIA -->
+        <!-- BLOQUE 11: ANCLAJES, PRESENTE Y AUTORREGULACIÓN -->
         <div class="card">
-          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#58a6ff;margin-bottom:.75rem;">11 · Transferencia</div>
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#58a6ff;margin-bottom:.75rem;">11 · Anclajes, presente y autorregulación</div>
 
-          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué harás diferente en los primeros 10 minutos del próximo partido?</div>
-          <textarea id="mp_proximo" rows="2" placeholder="Algo que se pueda ejecutar desde el minuto 0." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;margin-bottom:12px;"></textarea>
+          <!-- Q1: Calidad del anclaje -->
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;">Tu palabra/gesto, ¿te llevó al cuerpo (sensación física) o solo a la cabeza?</div>
+          <div class="opt-row" data-field="mp_ancla_calidad" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+            <button class="opt-btn" data-val="cuerpo" onclick="selOpt(this)" style="flex:1;min-width:100px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Al cuerpo</button>
+            <button class="opt-btn" data-val="cabeza" onclick="selOpt(this)" style="flex:1;min-width:100px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Solo cabeza</button>
+            <button class="opt-btn" data-val="no_use" onclick="selOpt(this)" style="flex:1;min-width:100px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">No usé</button>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:14px;line-height:1.5;">Un anclaje fuerte dispara una sensación física (mandíbula floja, hombros, pies en el suelo). Si solo te lleva a un pensamiento, es débil.</div>
 
-          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">¿Qué herramienta mental usarás seguro la próxima vez?</div>
-          <textarea id="mp_tool_prox" rows="2" placeholder="Tu arma mental para el siguiente partido." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;"></textarea>
+          <!-- Q2: Velocidad de detección -->
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;">Cuando notabas que tu cabeza se iba, ¿cuánto tardabas en darte cuenta?</div>
+          <div class="opt-row" data-field="mp_meta" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+            <button class="opt-btn" data-val="instante" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Al instante</button>
+            <button class="opt-btn" data-val="segundos" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Pocos segundos</button>
+            <button class="opt-btn" data-val="post_jugada" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Tras la jugada</button>
+            <button class="opt-btn" data-val="final" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Al final del partido</button>
+          </div>
+
+          <!-- Q3: Fuente de confianza -->
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;">¿De dónde vino tu confianza hoy?</div>
+          <div class="opt-row" data-field="mp_confianza" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+            <button class="opt-btn" data-val="preparacion" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">De mi preparación</button>
+            <button class="opt-btn" data-val="momento" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">De un buen momento</button>
+            <button class="opt-btn" data-val="companeros" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">De los compañeros</button>
+            <button class="opt-btn" data-val="no_senti" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">No la sentí</button>
+          </div>
+
+          <!-- Q4: Frustración -->
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;">Cuando algo te frustró, ¿cómo lo gestionaste?</div>
+          <div class="opt-row" data-field="mp_frustra" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+            <button class="opt-btn" data-val="solte" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Respiré y solté</button>
+            <button class="opt-btn" data-val="trague" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Me la tragué</button>
+            <button class="opt-btn" data-val="exploto" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Explotó hacia fuera</button>
+            <button class="opt-btn" data-val="no_frustro" onclick="selOpt(this)" style="flex:1 1 45%;min-width:130px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">No me frustré</button>
+          </div>
+
+          <!-- Q5: Comparación -->
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;">Durante el partido, ¿con qué te comparabas más?</div>
+          <div class="opt-row" data-field="mp_compara" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+            <button class="opt-btn" data-val="conmigo" onclick="selOpt(this)" style="flex:1 1 45%;min-width:140px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Conmigo mismo</button>
+            <button class="opt-btn" data-val="otros" onclick="selOpt(this)" style="flex:1 1 45%;min-width:140px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Con otros jugadores</button>
+            <button class="opt-btn" data-val="expectativas" onclick="selOpt(this)" style="flex:1 1 45%;min-width:140px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">Con expectativas externas</button>
+            <button class="opt-btn" data-val="no_compara" onclick="selOpt(this)" style="flex:1 1 45%;min-width:140px;height:36px;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:11px;">No me comparaba</button>
+          </div>
+
+          <!-- Q6: Compromiso primer balón -->
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">En el próximo partido, ¿cuál será tu primera acción mental antes del primer balón?</div>
+          <textarea id="mp_primer_balon" rows="2" placeholder="Ej: 3 respiraciones + palabra 'aquí' + escaneo del campo." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px;font-size:12px;color:var(--text);resize:none;font-family:inherit;outline:none;"></textarea>
         </div>
 
         <button id="btn-save-mental-partido" onclick="guardarMentalPartido()" style="width:100%;height:48px;background:linear-gradient(135deg,#58a6ff,#1f6feb);border:none;border-radius:var(--radius);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1rem;">💾 Guardar cuestionario de partido</button>
