@@ -1,11 +1,11 @@
 {
-  "name": "Mi Panel · Analista",
-  "short_name": "Mi Panel",
-  "description": "Tu espacio personal de jugador",
-  "start_url": "/Analista-APP/jugador-app.html",
+  "name": "Areté Academy",
+  "short_name": "Areté",
+  "description": "Análisis individual de fútbol — Omar Cortés Ferrero",
+  "start_url": "/Analista-APP/",
   "display": "standalone",
-  "background_color": "#0d1117",
-  "theme_color": "#1D9E75",
+  "background_color": "#050A12",
+  "theme_color": "#D4AF37",
   "orientation": "portrait",
   "icons": [
     {
