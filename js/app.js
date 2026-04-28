@@ -6425,53 +6425,57 @@ async function eliminarAnalisis(id) {
 }
 
 // =================================================================
-// PARCHE MULTI-TENANT v3 (cowork) — polling agresivo + filtra robusto
+// PARCHE MULTI-TENANT v4 (cowork) — usa state directo (no window.state)
 // =================================================================
 (function(){
-  const URL='https://ghxwdauwrzupjmrujcns.supabase.co';
-  const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
-  console.log('[mt v3] script cargado');
+  console.log('[mt v4] script cargado');
+  const SBURL='https://ghxwdauwrzupjmrujcns.supabase.co';
+  const SBKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
   let cli=null, applied=false, attempts=0;
   function getCli(){
     if(cli) return cli;
-    if(!window.supabase||!window.supabase.createClient) return null;
-    try { cli=window.supabase.createClient(URL,KEY); return cli; } catch(e){ console.error('[mt v3] createClient err:',e); return null; }
+    if(!window.supabase || !window.supabase.createClient) return null;
+    try { cli=window.supabase.createClient(SBURL,SBKEY); return cli; }
+    catch(e){ console.error('[mt v4] createClient err:',e); return null; }
   }
   async function tick(){
     if(applied) return;
     attempts++;
-    if(attempts>60){ console.warn('[mt v3] giving up after 60 attempts'); return; }
+    if(attempts>120){ console.warn('[mt v4] giving up after 120 attempts'); return; }
     const c=getCli();
-    if(!c||!window.state||!window.state.jugadores){ setTimeout(tick,500); return; }
+    if(!c){ setTimeout(tick,500); return; }
+    if(typeof state==='undefined' || !Array.isArray(state.jugadores)){ setTimeout(tick,500); return; }
     try {
-      const {data:{session}}=await c.auth.getSession();
-      if(!session||!session.user){ console.log('[mt v3] sin sesion (intento '+attempts+')'); setTimeout(tick,800); return; }
+      const sR=await c.auth.getSession();
+      const session = sR.data && sR.data.session;
+      if(!session || !session.user){ console.log('[mt v4] sin sesion attempt='+attempts); setTimeout(tick,800); return; }
       const aid=session.user.id;
-      console.log('[mt v3] APLICANDO para',session.user.email,'/',aid);
-      window.state.currentAnalistaId=aid;
-      window.state.currentUser=session.user;
-      const {data:jugs}=await c.from('jugadores').select('*').eq('analista_id',aid).order('created_at',{ascending:false});
-      window.state.jugadores=jugs||[];
-      const ids=new Set((jugs||[]).map(j=>j.id));
-      ['objetivos','observaciones','notasVideo','informesPartido','clipsInforme','clipsJugador','planesPartido','eventos']
-        .forEach(k=>{
-          if(Array.isArray(window.state[k])){
-            const b=window.state[k].length;
-            window.state[k]=window.state[k].filter(r=>r.jugador_id&&ids.has(r.jugador_id));
-            if(b!==window.state[k].length) console.log('[mt v3] '+k+': '+b+' -> '+window.state[k].length);
-          }
-        });
-      const {data:evs}=await c.from('eventos_calendario').select('*').eq('analista_id',aid).order('fecha');
-      window.state.eventos=evs||[];
-      console.log('[mt v3] OK. jugs='+window.state.jugadores.length+' objs='+window.state.objetivos.length);
+      console.log('[mt v4] APLICANDO para',session.user.email,'/',aid);
+      state.currentAnalistaId=aid;
+      state.currentUser=session.user;
+      const jR=await c.from('jugadores').select('*').eq('analista_id',aid).order('created_at',{ascending:false});
+      if(jR.error){ console.error('[mt v4] err jugadores:',jR.error.message); setTimeout(tick,1000); return; }
+      state.jugadores = jR.data || [];
+      const ids = new Set((jR.data||[]).map(function(j){return j.id;}));
+      ['objetivos','observaciones','notasVideo','informesPartido','clipsInforme','clipsJugador','planesPartido','eventos'].forEach(function(k){
+        if(Array.isArray(state[k])){
+          var b=state[k].length;
+          state[k]=state[k].filter(function(r){return r.jugador_id && ids.has(r.jugador_id);});
+          if(b!==state[k].length) console.log('[mt v4] '+k+': '+b+' -> '+state[k].length);
+        }
+      });
+      const eR=await c.from('eventos_calendario').select('*').eq('analista_id',aid).order('fecha');
+      state.eventos = eR.data || [];
+      console.log('[mt v4] OK jugs='+state.jugadores.length+' objs='+state.objetivos.length);
       applied=true;
-      try{ if(typeof renderInicio==='function')renderInicio(); }catch(e){}
-      try{ if(typeof renderJugadores==='function')renderJugadores(); }catch(e){}
-    } catch(e){ console.error('[mt v3] err:',e); setTimeout(tick,1000); }
+      try{ if(typeof renderInicio==='function') renderInicio(); }catch(e){ console.error(e); }
+      try{ if(typeof renderJugadores==='function') renderJugadores(); }catch(e){ console.error(e); }
+    } catch(e){ console.error('[mt v4] err:',e); setTimeout(tick,1000); }
   }
   setTimeout(tick, 200);
   setTimeout(tick, 1500);
   setTimeout(tick, 3000);
   setTimeout(tick, 5000);
-  if(document.readyState!=='complete') window.addEventListener('load', ()=>setTimeout(tick,500));
+  setTimeout(tick, 8000);
+  if(document.readyState!=='complete') window.addEventListener('load', function(){ setTimeout(tick,500); });
 })();
