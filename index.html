@@ -607,17 +607,15 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
     <p id="ls-sub">Accede a tu panel de análisis individual. Donde el <em style="font-style:italic;color:rgba(244,236,216,.7);">talento</em> se transforma en <em style="font-style:italic;color:rgba(244,236,216,.7);">maestría</em>.</p>
 
     <!-- Form -->
-    <input type="email" id="login-email" class="ls-inp" placeholder="Correo electrónico" autocomplete="email"
-      onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
-    <input type="password" id="login-pass" class="ls-inp" placeholder="Contraseña" autocomplete="current-password"
-      onkeydown="if(event.key==='Enter')loginAnalista()">
+    <input type="email" id="login-email" class="ls-inp" placeholder="Correo electrónico" autocomplete="email">
+    <input type="password" id="login-pass" class="ls-inp" placeholder="Contraseña" autocomplete="current-password">
 
     <div id="ls-row">
       <label><input type="checkbox" checked> Mantener sesión</label>
       <a href="#">¿Olvidaste tu contraseña?</a>
     </div>
 
-    <button id="ls-btn" onclick="loginAnalista()">Entrar a la academia</button>
+    <button id="ls-btn" type="button">Entrar a la academia</button>
 
     <div id="login-error"></div>
 
@@ -628,10 +626,23 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
 </div>
 
 <!-- ╔══════════════════════════════════════════════════════════╗
-     ║  AUTH AUTOSUFICIENTE — no depende de patches externos    ║
+     ║  AUTH AUTOSUFICIENTE v3 — testado en jsdom               ║
      ║  Define loginAnalista, autosignin, forgot password       ║
+     ║  + wire-up alternativo, log de carga, error handler      ║
      ╚══════════════════════════════════════════════════════════╝ -->
 <script>
+console.log('%c[auth v3] script de login cargado','color:#f4c542;font-weight:bold;');
+
+// Handler global — cualquier error no capturado se muestra en pantalla
+window.addEventListener('error', function(ev){
+  const errEl = document.getElementById('login-error');
+  if(errEl && errEl.offsetParent !== null){ // solo si el login está visible
+    errEl.textContent = 'Error JS: ' + (ev.message || 'desconocido') + ' (mira consola F12)';
+    errEl.style.display = 'block';
+  }
+  console.error('[auth] error global:', ev.message, ev.filename, ev.lineno);
+});
+
 (function(){
   const SUPA_URL = 'https://ghxwdauwrzupjmrujcns.supabase.co';
   const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
@@ -774,11 +785,36 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
     } catch(e){ console.warn('[auth] getSession falló:', e); }
   });
 
-  // Wire del link "¿Olvidaste tu contraseña?"
-  document.addEventListener('DOMContentLoaded', function(){
+  // Wire alternativo del botón (por si el onclick inline se pierde)
+  function wireBoton(){
+    const btn = document.getElementById('ls-btn');
+    if(!btn){ console.warn('[auth] #ls-btn no encontrado'); return; }
+    if(btn.dataset._wired) return;
+    btn.dataset._wired = '1';
+    btn.addEventListener('click', function(ev){
+      console.log('[auth] click en botón detectado');
+      ev.preventDefault();
+      window.loginAnalista();
+    });
+    console.log('[auth] botón cableado correctamente');
+
+    // También el link de forgot
     const link = document.querySelector('#ls-row a');
-    if(link) link.addEventListener('click', window.recuperarPassword);
-  });
+    if(link){ link.addEventListener('click', window.recuperarPassword); }
+
+    // Enter en cualquiera de los 2 inputs
+    ['login-email','login-pass'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.addEventListener('keydown', e=>{
+        if(e.key==='Enter'){ e.preventDefault(); window.loginAnalista(); }
+      });
+    });
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', wireBoton);
+  } else {
+    wireBoton();
+  }
 })();
 </script>
 
