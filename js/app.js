@@ -41,6 +41,29 @@ let state = {
   folderState:{},
 };
 
+// ─── HELPERS MULTI-TENANT (siempre disponibles) ───
+function _miAnalistaId(){
+  // 1. State actual (si init() ya lo cargó)
+  if(typeof state !== 'undefined' && state.currentAnalistaId) return state.currentAnalistaId;
+  // 2. Fallback: leer la sesión Supabase desde localStorage (siempre disponible si entraste)
+  try {
+    for(const k of Object.keys(localStorage)){
+      if(!k.includes('auth-token')) continue;
+      try {
+        const raw = localStorage.getItem(k);
+        if(!raw) continue;
+        const data = JSON.parse(raw);
+        const uid = data?.user?.id || data?.currentSession?.user?.id;
+        if(uid){
+          if(typeof state !== 'undefined') state.currentAnalistaId = uid;
+          return uid;
+        }
+      } catch(e){}
+    }
+  } catch(e){}
+  return null;
+}
+
 // ─── INIT ───
 async function init() {
   try {
@@ -158,13 +181,19 @@ function renderInicio(){
   const now=new Date();const h=now.getHours();
   document.getElementById('greeting').textContent=`${h<14?'Buenos días':h<21?'Buenas tardes':'Buenas noches'}, Omar.`;
   document.getElementById('hdate').textContent=now.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('stat-jugadores').textContent=state.jugadores.length;
-  document.getElementById('stat-objetivos').textContent=state.objetivos.length;
-  document.getElementById('stat-micros').textContent=state.objetivos.filter(function(o){return o.superado;}).length;
-  document.getElementById('stat-obs').textContent=state.observaciones.length;
+  // [multi-tenant] filtrar siempre al renderizar — independiente del timing
+  const _aid = _miAnalistaId();
+  const _misJ = _aid ? state.jugadores.filter(function(j){return j.analista_id===_aid;}) : state.jugadores;
+  const _misIds = new Set(_misJ.map(function(j){return j.id;}));
+  const _misObj = _aid ? state.objetivos.filter(function(o){return o.jugador_id && _misIds.has(o.jugador_id);}) : state.objetivos;
+  const _misObs = _aid ? state.observaciones.filter(function(o){return o.jugador_id && _misIds.has(o.jugador_id);}) : state.observaciones;
+  document.getElementById('stat-jugadores').textContent=_misJ.length;
+  document.getElementById('stat-objetivos').textContent=_misObj.length;
+  document.getElementById('stat-micros').textContent=_misObj.filter(function(o){return o.superado;}).length;
+  document.getElementById('stat-obs').textContent=_misObs.length;
 
-  // Sesiones pendientes — diseño mejorado
-  const pend=state.jugadores.filter(j=>j.sesion_fecha).sort((a,b)=>a.sesion_fecha.localeCompare(b.sesion_fecha));
+  // Sesiones pendientes — diseño mejorado (filtrado multi-tenant)
+  const pend=_misJ.filter(j=>j.sesion_fecha).sort((a,b)=>a.sesion_fecha.localeCompare(b.sesion_fecha));
   document.getElementById('hpend').innerHTML=pend.length?pend.map(j=>{
     const ss=ssBadge(j.sesion_fecha);
     const pc=AV_COLORS[j.posicion]||{bg:'#eee',color:'#666'};
@@ -185,7 +214,8 @@ function renderInicio(){
   // Últimos informes — nuevo bloque
   const hInf=document.getElementById('h-informes');
   if(hInf){
-    const allInf=[...state.informesPartido].sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,3);
+    const _misInf = _aid ? state.informesPartido.filter(i=>i.jugador_id && _misIds.has(i.jugador_id)) : state.informesPartido;
+    const allInf=[..._misInf].sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,3);
     hInf.innerHTML=allInf.length?allInf.map(inf=>{
       const nota=parseFloat(inf.nota_decimal)||0;
       const nc=nota>=8?'#1D9E75':nota>=6?'#E07B00':'#D85A30';
@@ -207,7 +237,10 @@ function renderJugadores(){
   const q=(document.getElementById('jq')?.value||'').toLowerCase();
   const fp=document.getElementById('jfp')?.value||'';
   document.getElementById('jptabs').innerHTML=['Todas',...POSICIONES].map(p=>`<button class="pos-pill${state.filtros.jugadores.pos===p?' active':''}" onclick="setJP('${p}')">${p}</button>`).join('');
-  let f=state.jugadores.filter(j=>(!q||j.nombre.toLowerCase().includes(q)||(j.equipo||'').toLowerCase().includes(q))&&(state.filtros.jugadores.pos==='Todas'||j.posicion===state.filtros.jugadores.pos));
+  // [multi-tenant] solo jugadores del analista logueado
+  const _aidJ = _miAnalistaId();
+  const _baseJ = _aidJ ? state.jugadores.filter(j=>j.analista_id===_aidJ) : state.jugadores;
+  let f=_baseJ.filter(j=>(!q||j.nombre.toLowerCase().includes(q)||(j.equipo||'').toLowerCase().includes(q))&&(state.filtros.jugadores.pos==='Todas'||j.posicion===state.filtros.jugadores.pos));
   document.getElementById('jcb').textContent=`${f.length} jugador${f.length!==1?'es':''}`;
   const g=document.getElementById('jgrid');
   if(!f.length){g.innerHTML='<div class="empty">No hay jugadores. Añade el primero.</div>';return;}
@@ -6423,59 +6456,3 @@ async function eliminarAnalisis(id) {
   await DB.from('analisis_semanal').delete().eq('id', id);
   renderAnalisisTab();
 }
-
-// =================================================================
-// PARCHE MULTI-TENANT v4 (cowork) — usa state directo (no window.state)
-// =================================================================
-(function(){
-  console.log('[mt v4] script cargado');
-  const SBURL='https://ghxwdauwrzupjmrujcns.supabase.co';
-  const SBKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
-  let cli=null, applied=false, attempts=0;
-  function getCli(){
-    if(cli) return cli;
-    if(!window.supabase || !window.supabase.createClient) return null;
-    try { cli=window.supabase.createClient(SBURL,SBKEY); return cli; }
-    catch(e){ console.error('[mt v4] createClient err:',e); return null; }
-  }
-  async function tick(){
-    if(applied) return;
-    attempts++;
-    if(attempts>120){ console.warn('[mt v4] giving up after 120 attempts'); return; }
-    const c=getCli();
-    if(!c){ setTimeout(tick,500); return; }
-    if(typeof state==='undefined' || !Array.isArray(state.jugadores)){ setTimeout(tick,500); return; }
-    try {
-      const sR=await c.auth.getSession();
-      const session = sR.data && sR.data.session;
-      if(!session || !session.user){ console.log('[mt v4] sin sesion attempt='+attempts); setTimeout(tick,800); return; }
-      const aid=session.user.id;
-      console.log('[mt v4] APLICANDO para',session.user.email,'/',aid);
-      state.currentAnalistaId=aid;
-      state.currentUser=session.user;
-      const jR=await c.from('jugadores').select('*').eq('analista_id',aid).order('created_at',{ascending:false});
-      if(jR.error){ console.error('[mt v4] err jugadores:',jR.error.message); setTimeout(tick,1000); return; }
-      state.jugadores = jR.data || [];
-      const ids = new Set((jR.data||[]).map(function(j){return j.id;}));
-      ['objetivos','observaciones','notasVideo','informesPartido','clipsInforme','clipsJugador','planesPartido','eventos'].forEach(function(k){
-        if(Array.isArray(state[k])){
-          var b=state[k].length;
-          state[k]=state[k].filter(function(r){return r.jugador_id && ids.has(r.jugador_id);});
-          if(b!==state[k].length) console.log('[mt v4] '+k+': '+b+' -> '+state[k].length);
-        }
-      });
-      const eR=await c.from('eventos_calendario').select('*').eq('analista_id',aid).order('fecha');
-      state.eventos = eR.data || [];
-      console.log('[mt v4] OK jugs='+state.jugadores.length+' objs='+state.objetivos.length);
-      applied=true;
-      try{ if(typeof renderInicio==='function') renderInicio(); }catch(e){ console.error(e); }
-      try{ if(typeof renderJugadores==='function') renderJugadores(); }catch(e){ console.error(e); }
-    } catch(e){ console.error('[mt v4] err:',e); setTimeout(tick,1000); }
-  }
-  setTimeout(tick, 200);
-  setTimeout(tick, 1500);
-  setTimeout(tick, 3000);
-  setTimeout(tick, 5000);
-  setTimeout(tick, 8000);
-  if(document.readyState!=='complete') window.addEventListener('load', function(){ setTimeout(tick,500); });
-})();
