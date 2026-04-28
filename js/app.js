@@ -45,103 +45,28 @@ let state = {
 async function init() {
   try {
     DB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    // ── COMPROBAR SESIÓN ACTIVA ──
-    const { data: { session } } = await DB.auth.getSession();
-    if(!session) {
-      // Sin sesión — mostrar login
-      document.getElementById('login-screen').style.display = 'flex';
-      document.getElementById('main-app').style.display = 'none';
-      return;
-    }
-
-    // Sesión activa — verificar que es analista autorizado
-    const { data: perfil } = await DB.from('analistas').select('id,nombre,activo').eq('email', session.user.email).single();
-    if(!perfil || !perfil.activo) {
-      await DB.auth.signOut();
-      document.getElementById('login-screen').style.display = 'flex';
-      document.getElementById('main-app').style.display = 'none';
-      showLoginError('No tienes acceso autorizado. Contacta con Omar.');
-      return;
-    }
-
-    // Todo OK — mostrar app
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('main-app').style.display = 'flex';
+    // Obtener sesión activa (multi-tenant): identificar al analista logueado
+    try {
+      const { data: { session } } = await DB.auth.getSession();
+      state.currentUser = session?.user || null;
+      state.currentAnalistaId = session?.user?.id || null;
+      if(state.currentUser) console.log('[multi-tenant] analista:', state.currentUser.email, 'id:', state.currentAnalistaId);
+    } catch(e) { console.warn('[multi-tenant] no hay sesión:', e); state.currentUser = null; state.currentAnalistaId = null; }
     await loadAll();
-
   } catch(e) {
     console.error('Error conectando con Supabase:', e);
     showToast('Error de conexión. Comprueba la configuración.');
   }
 }
 
-// ── FUNCIONES DE LOGIN ──
-window.loginAnalista = async function() {
-  const email = document.getElementById('login-email').value.trim();
-  const pass  = document.getElementById('login-pass').value;
-  const btn   = document.getElementById('login-btn');
-  const err   = document.getElementById('login-error');
-
-  if(!email || !pass) { showLoginError('Introduce email y contraseña'); return; }
-
-  btn.textContent = 'Entrando...';
-  btn.style.opacity = '0.7';
-  btn.disabled = true;
-  err.style.display = 'none';
-
-  try {
-    const { data, error } = await DB.auth.signInWithPassword({ email, password: pass });
-    if(error) {
-      showLoginError('Email o contraseña incorrectos');
-      btn.textContent = 'Entrar';
-      btn.style.opacity = '1';
-      btn.disabled = false;
-      return;
-    }
-
-    // Verificar que está en la tabla analistas y activo
-    const { data: perfil } = await DB.from('analistas').select('id,nombre,activo').eq('email', email).single();
-    if(!perfil || !perfil.activo) {
-      await DB.auth.signOut();
-      showLoginError('No tienes acceso autorizado. Contacta con Omar.');
-      btn.textContent = 'Entrar';
-      btn.style.opacity = '1';
-      btn.disabled = false;
-      return;
-    }
-
-    // ¡Acceso concedido!
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('main-app').style.display = 'flex';
-    await loadAll();
-
-  } catch(e) {
-    showLoginError('Error de conexión');
-    btn.textContent = 'Entrar';
-    btn.style.opacity = '1';
-    btn.disabled = false;
-  }
-};
-
-function showLoginError(msg) {
-  const err = document.getElementById('login-error');
-  if(err) { err.textContent = msg; err.style.display = 'block'; }
-}
-
-// Botón cerrar sesión — añadir a la sidebar
-window.cerrarSesion = async function() {
-  if(!confirm('¿Cerrar sesión?')) return;
-  await DB.auth.signOut();
-  document.getElementById('main-app').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('login-email').value = '';
-  document.getElementById('login-pass').value = '';
-};
-
 async function loadAll() {
+  // Multi-tenant: si hay analista logueado, filtrar jugadores por analista_id
+  // Si no hay sesión, no cargar nada (debería estar en pantalla de login)
+  const aid = state.currentAnalistaId;
+  let qJugadores = DB.from('jugadores').select('*').order('created_at',{ascending:false});
+  if(aid) qJugadores = qJugadores.eq('analista_id', aid);
   const [j,o,obs,n,m,inf,cl] = await Promise.all([
-    DB.from('jugadores').select('*').order('created_at',{ascending:false}),
+    qJugadores,
     DB.from('objetivos').select('*').order('created_at',{ascending:false}),
     DB.from('observaciones').select('*').order('fecha',{ascending:false}),
     DB.from('notas_video').select('*').order('fecha',{ascending:false}),
@@ -234,158 +159,48 @@ function renderInicio(){
   document.getElementById('greeting').textContent=`${h<14?'Buenos días':h<21?'Buenas tardes':'Buenas noches'}, Omar.`;
   document.getElementById('hdate').textContent=now.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('stat-jugadores').textContent=state.jugadores.length;
-  document.getElementById('stat-objetivos').textContent=state.objetivos.filter(o=>!o.superado).length;
-  document.getElementById('stat-micros').textContent=state.objetivos.filter(o=>o.superado).length;
-  document.getElementById('stat-obs').textContent=state.informesPartido.length;
+  document.getElementById('stat-objetivos').textContent=state.objetivos.length;
+  document.getElementById('stat-micros').textContent=state.microconceptos.length;
+  document.getElementById('stat-obs').textContent=state.observaciones.length;
 
-  // ── DASHBOARD DE JUGADORES ──
-  const cont = document.getElementById('hpend');
-  if(!cont) return;
+  // Sesiones pendientes — diseño mejorado
+  const pend=state.jugadores.filter(j=>j.sesion_fecha).sort((a,b)=>a.sesion_fecha.localeCompare(b.sesion_fecha));
+  document.getElementById('hpend').innerHTML=pend.length?pend.map(j=>{
+    const ss=ssBadge(j.sesion_fecha);
+    const pc=AV_COLORS[j.posicion]||{bg:'#eee',color:'#666'};
+    const inf=getInformesJugador(j.id)[0];
+    const nota=inf?parseFloat(inf.nota_decimal)||0:0;
+    const nc=nota>=8?'#1D9E75':nota>=6?'#E07B00':'#D85A30';
+    return`<div onclick="openJug('${j.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg);border:0.5px solid var(--border);margin-bottom:7px;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div class="avatar" style="width:36px;height:36px;font-size:12px;font-weight:700;background:${pc.bg};color:${pc.color};flex-shrink:0;">${initials(j.nombre)}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${j.nombre}</div>
+        <div style="font-size:10px;color:var(--text2);">${j.posicion}${j.equipo?' · '+j.equipo:''}</div>
+      </div>
+      ${nota?`<div style="width:32px;height:32px;border-radius:50%;background:${nc}15;color:${nc};border:1.5px solid ${nc}40;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">${nota.toFixed(1)}</div>`:''}
+      <span style="font-size:9px;padding:3px 8px;border-radius:99px;background:${ss.col}20;color:${ss.col};font-weight:700;white-space:nowrap;flex-shrink:0;">${ss.l}</span>
+    </div>`;
+  }).join(''):'<div style="font-size:12px;color:var(--text3);padding:1.5rem;text-align:center;background:var(--bg2);border-radius:10px;">No hay sesiones programadas.</div>';
 
-  const hoy = now.toISOString().slice(0,10);
-
-  if(!state.jugadores.length){
-    cont.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:2rem;text-align:center;background:var(--bg2);border-radius:10px;">Sin jugadores todavía. Añade tu primer jugador.</div>';
-    return;
+  // Últimos informes — nuevo bloque
+  const hInf=document.getElementById('h-informes');
+  if(hInf){
+    const allInf=[...state.informesPartido].sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,3);
+    hInf.innerHTML=allInf.length?allInf.map(inf=>{
+      const nota=parseFloat(inf.nota_decimal)||0;
+      const nc=nota>=8?'#1D9E75':nota>=6?'#E07B00':'#D85A30';
+      const jug=state.jugadores.find(x=>x.id===inf.jugador_id);
+      return`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg);border:0.5px solid var(--border);margin-bottom:7px;">
+        ${nota?`<div style="width:36px;height:36px;border-radius:50%;background:${nc}12;color:${nc};border:1.5px solid ${nc}40;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:13px;font-weight:800;line-height:1;">${nota.toFixed(1)}</span><span style="font-size:7px;color:${nc};letter-spacing:.04em;">/10</span></div>`:''}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${jug?jug.nombre:'Jugador'} · ${inf.partido||'Partido'}</div>
+          <div style="font-size:10px;color:var(--text2);">${fmtDate(inf.fecha)}${inf.resultado?' · '+inf.resultado:''}</div>
+        </div>
+        <button onclick="generarInformeVisual('${inf.jugador_id}','${inf.id}')" style="background:#1a1a2e;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:10px;cursor:pointer;font-weight:600;flex-shrink:0;">PDF</button>
+      </div>`;
+    }).join(''):'<div style="font-size:12px;color:var(--text3);padding:1.5rem;text-align:center;background:var(--bg2);border-radius:10px;">Sin informes todavía.</div>';
   }
-
-  // Cargar datos de hoy de Supabase para todos los jugadores
-  const jugIds = state.jugadores.map(j=>j.id);
-
-  Promise.all([
-    DB.from('psico_diario').select('jugador_id,mood,created_at').in('jugador_id', jugIds).eq('fecha', hoy),
-    DB.from('nutricion_log').select('jugador_id,created_at').in('jugador_id', jugIds).eq('fecha', hoy),
-    DB.from('calendario_semana').select('jugador_id,tipo,hora,foco').in('jugador_id', jugIds).eq('fecha', hoy),
-  ]).then(([psico, nut, cal]) => {
-    const psicoHoy = (psico.data||[]);
-    const nutHoy = (nut.data||[]);
-    const calHoy = (cal.data||[]);
-
-    let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
-
-    state.jugadores.forEach(jug => {
-      const pc = AV_COLORS[jug.posicion]||{bg:'#1a2040',color:'#8090d0'};
-
-      // Informes — nota media
-      const informesJug = getInformesJugador(jug.id);
-      const notas = informesJug.filter(i=>i.nota_decimal).map(i=>parseFloat(i.nota_decimal));
-      const notaMedia = notas.length ? (notas.reduce((a,b)=>a+b,0)/notas.length).toFixed(1) : null;
-      const nc = notaMedia ? (notaMedia>=8?'#1D9E75':notaMedia>=6?'#E07B00':'#D85A30') : '#666';
-
-      // Objetivos activos este mes
-      const objActivos = state.objetivos.filter(o=>o.jugador_id===jug.id && !o.superado);
-      const objSuperados = state.objetivos.filter(o=>o.jugador_id===jug.id && o.superado);
-
-      // Checks de hoy
-      const tieneCheck = psicoHoy.some(p=>p.jugador_id===jug.id);
-      const tieneNut = nutHoy.some(n=>n.jugador_id===jug.id);
-      const eventoHoy = calHoy.find(c=>c.jugador_id===jug.id);
-
-      // Último informe
-      const ultInf = informesJug[0];
-
-      html += `<div onclick="openJug('${jug.id}')" style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:border-color .15s;display:flex;gap:14px;align-items:flex-start;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">`;
-
-      // Foto / Avatar
-      html += '<div style="flex-shrink:0;">';
-      if(jug.foto_jugador){
-        html += `<img src="${jug.foto_jugador}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:top;border:2px solid ${pc.color}40;">`;
-      } else {
-        html += `<div class="avatar" style="width:52px;height:52px;font-size:16px;font-weight:700;background:${pc.bg};color:${pc.color};">${initials(jug.nombre)}</div>`;
-      }
-      html += '</div>';
-
-      // Info principal
-      html += '<div style="flex:1;min-width:0;">';
-
-      // Nombre + posición
-      html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">`;
-      html += `<div style="font-size:14px;font-weight:700;">${jug.nombre}</div>`;
-      html += `<span style="font-size:10px;background:${pc.bg};color:${pc.color};padding:2px 7px;border-radius:4px;font-weight:600;">${jug.posicion}</span>`;
-      if(jug.equipo) html += `<span style="font-size:10px;color:var(--text3);">${jug.equipo}</span>`;
-      html += '</div>';
-
-      // Evento de hoy
-      if(eventoHoy){
-        const tipoColor = eventoHoy.tipo==='partido'?'#E07B00':eventoHoy.tipo==='entreno'?'#1D9E75':'#7C6FF0';
-        html += `<div style="font-size:11px;color:${tipoColor};margin-bottom:6px;display:flex;align-items:center;gap:5px;">`;
-        html += `<span style="width:6px;height:6px;border-radius:50%;background:${tipoColor};display:inline-block;box-shadow:0 0 6px ${tipoColor};"></span>`;
-        html += `${eventoHoy.tipo==='partido'?'⚽ Partido':eventoHoy.tipo==='entreno'?'🏃 Entrenamiento':'📅 '+eventoHoy.tipo}`;
-        if(eventoHoy.hora) html += ` · ${eventoHoy.hora}`;
-        if(eventoHoy.foco) html += ` — ${eventoHoy.foco}`;
-        html += '</div>';
-      } else {
-        html += '<div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Sin eventos hoy</div>';
-      }
-
-      // Row de stats
-      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">';
-
-      // Nota media
-      if(notaMedia){
-        html += `<div style="display:flex;align-items:center;gap:4px;background:${nc}12;border:0.5px solid ${nc}30;border-radius:6px;padding:3px 8px;">`;
-        html += `<span style="font-size:11px;font-weight:800;color:${nc};">⭐ ${notaMedia}</span>`;
-        html += `<span style="font-size:9px;color:var(--text3);">media (${notas.length})</span>`;
-        html += '</div>';
-      }
-
-      // Objetivos
-      if(objActivos.length || objSuperados.length){
-        html += `<div style="display:flex;align-items:center;gap:4px;background:rgba(88,166,255,0.08);border:0.5px solid rgba(88,166,255,0.2);border-radius:6px;padding:3px 8px;">`;
-        html += `<span style="font-size:11px;color:#58a6ff;">🎯 ${objActivos.length} activos`;
-        if(objSuperados.length) html += ` · <span style="color:#3fb950;">✓${objSuperados.length}</span>`;
-        html += '</span></div>';
-      }
-
-      // Check mental hoy
-      html += `<div style="display:flex;align-items:center;gap:3px;background:${tieneCheck?'rgba(63,185,80,0.08)':'rgba(255,255,255,0.03)'};border:0.5px solid ${tieneCheck?'rgba(63,185,80,0.25)':'var(--border)'};border-radius:6px;padding:3px 8px;">`;
-      html += `<span style="font-size:10px;color:${tieneCheck?'#3fb950':'var(--text3)'};">${tieneCheck?'✓':'○'} Mental</span>`;
-      html += '</div>';
-
-      // Check nutrición hoy
-      html += `<div style="display:flex;align-items:center;gap:3px;background:${tieneNut?'rgba(210,153,34,0.08)':'rgba(255,255,255,0.03)'};border:0.5px solid ${tieneNut?'rgba(210,153,34,0.25)':'var(--border)'};border-radius:6px;padding:3px 8px;">`;
-      html += `<span style="font-size:10px;color:${tieneNut?'#d29922':'var(--text3)'};">${tieneNut?'✓':'○'} Nutrición</span>`;
-      html += '</div>';
-
-      html += '</div>'; // row stats
-
-      // Último informe si existe
-      if(ultInf){
-        html += `<div style="margin-top:6px;font-size:10px;color:var(--text3);">Último informe: ${fmtDate(ultInf.fecha)}${ultInf.partido?' · '+ultInf.partido:''}</div>`;
-      }
-
-      html += '</div>'; // info principal
-      html += '</div>'; // card
-    });
-
-    html += '</div>';
-    cont.innerHTML = html;
-  }).catch(e => {
-    console.warn('Dashboard error:', e);
-    // Fallback sin datos de hoy
-    let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
-    state.jugadores.forEach(jug => {
-      const pc = AV_COLORS[jug.posicion]||{bg:'#1a2040',color:'#8090d0'};
-      const informesJug = getInformesJugador(jug.id);
-      const notas = informesJug.filter(i=>i.nota_decimal).map(i=>parseFloat(i.nota_decimal));
-      const notaMedia = notas.length ? (notas.reduce((a,b)=>a+b,0)/notas.length).toFixed(1) : null;
-      const nc = notaMedia ? (notaMedia>=8?'#1D9E75':notaMedia>=6?'#E07B00':'#D85A30') : '#666';
-      html += `<div onclick="openJug('${jug.id}')" style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;display:flex;gap:12px;align-items:center;">`;
-      if(jug.foto_jugador){
-        html += `<img src="${jug.foto_jugador}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:top;flex-shrink:0;">`;
-      } else {
-        html += `<div class="avatar" style="width:44px;height:44px;font-size:14px;font-weight:700;background:${pc.bg};color:${pc.color};flex-shrink:0;">${initials(jug.nombre)}</div>`;
-      }
-      html += `<div style="flex:1;"><div style="font-size:13px;font-weight:700;">${jug.nombre}</div>`;
-      html += `<div style="font-size:11px;color:var(--text2);">${jug.posicion}${jug.equipo?' · '+jug.equipo:''}</div></div>`;
-      if(notaMedia) html += `<div style="width:36px;height:36px;border-radius:50%;background:${nc}12;color:${nc};border:1.5px solid ${nc}40;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">${notaMedia}</div>`;
-      html += '</div>';
-    });
-    html += '</div>';
-    cont.innerHTML = html;
-  });
 }
-
 
 // ─── JUGADORES ───
 function renderJugadores(){
@@ -2693,7 +2508,11 @@ let calState = { year: new Date().getFullYear(), month: new Date().getMonth() };
 
 async function loadEventos() {
   try {
-    const { data } = await DB.from('eventos_calendario').select('*').order('fecha');
+    // Multi-tenant: filtrar por analista_id si hay sesión activa
+    const aid = state.currentAnalistaId;
+    let q = DB.from('eventos_calendario').select('*').order('fecha');
+    if(aid) q = q.eq('analista_id', aid);
+    const { data } = await q;
     state.eventos = data || [];
   } catch(e) { state.eventos = []; }
 }
@@ -6604,3 +6423,71 @@ async function eliminarAnalisis(id) {
   await DB.from('analisis_semanal').delete().eq('id', id);
   renderAnalisisTab();
 }
+
+
+// =================================================================
+// PARCHE MULTI-TENANT (añadido por Cowork)
+// Filtra jugadores y eventos del calendario por analista logueado.
+// Es aditivo: corre 1.5s después de loadAll() y refiltra los datos
+// y la UI sin tocar el código existente.
+// =================================================================
+(function multiTenantPatch(){
+  function rerender(){
+    try { if(typeof renderInicio==='function') renderInicio(); } catch(e){}
+    try { if(typeof renderJugadores==='function') renderJugadores(); } catch(e){}
+    try { if(typeof renderCalendario==='function') renderCalendario(); } catch(e){}
+  }
+  async function applyTenant(){
+    if(!window.DB) { setTimeout(applyTenant, 500); return; }
+    try {
+      const { data: { session } } = await window.DB.auth.getSession();
+      if(!session || !session.user) {
+        console.log('[multi-tenant] sin sesion — datos cargados sin filtrar');
+        return;
+      }
+      const aid = session.user.id;
+      window.state = window.state || {};
+      window.state.currentAnalistaId = aid;
+      window.state.currentUser = session.user;
+      console.log('[multi-tenant] analista logueado:', session.user.email, '/', aid);
+
+      // Recargar jugadores filtrando por analista_id
+      const { data: jugs, error: e1 } = await window.DB
+        .from('jugadores').select('*')
+        .eq('analista_id', aid)
+        .order('created_at', { ascending: false });
+      if(!e1 && jugs) {
+        window.state.jugadores = jugs;
+        const ids = new Set(jugs.map(j => j.id));
+        // Filtrar tablas hijas en memoria por jugador_id valido del analista
+        ['objetivos','observaciones','notasVideo','informesPartido',
+         'clipsInforme','clipsJugador','planesPartido','eventos']
+          .forEach(k => {
+            if(Array.isArray(window.state[k])) {
+              window.state[k] = window.state[k].filter(r => !r.jugador_id || ids.has(r.jugador_id));
+            }
+          });
+        console.log('[multi-tenant] jugadores filtrados:', jugs.length);
+      } else if(e1) console.error('[multi-tenant] error jugadores:', e1.message);
+
+      // Recargar eventos del calendario filtrando por analista_id
+      const { data: evs, error: e2 } = await window.DB
+        .from('eventos_calendario').select('*')
+        .eq('analista_id', aid)
+        .order('fecha');
+      if(!e2 && evs) {
+        window.state.eventos = evs;
+        console.log('[multi-tenant] eventos filtrados:', evs.length);
+      }
+
+      rerender();
+    } catch(e) {
+      console.error('[multi-tenant] excepcion:', e);
+    }
+  }
+  if(document.readyState === 'complete') {
+    setTimeout(applyTenant, 1500);
+  } else {
+    window.addEventListener('load', () => setTimeout(applyTenant, 1500));
+  }
+})();
