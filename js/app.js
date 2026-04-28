@@ -45,12 +45,99 @@ let state = {
 async function init() {
   try {
     DB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ── COMPROBAR SESIÓN ACTIVA ──
+    const { data: { session } } = await DB.auth.getSession();
+    if(!session) {
+      // Sin sesión — mostrar login
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('main-app').style.display = 'none';
+      return;
+    }
+
+    // Sesión activa — verificar que es analista autorizado
+    const { data: perfil } = await DB.from('analistas').select('id,nombre,activo').eq('email', session.user.email).single();
+    if(!perfil || !perfil.activo) {
+      await DB.auth.signOut();
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('main-app').style.display = 'none';
+      showLoginError('No tienes acceso autorizado. Contacta con Omar.');
+      return;
+    }
+
+    // Todo OK — mostrar app
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'flex';
     await loadAll();
+
   } catch(e) {
     console.error('Error conectando con Supabase:', e);
     showToast('Error de conexión. Comprueba la configuración.');
   }
 }
+
+// ── FUNCIONES DE LOGIN ──
+window.loginAnalista = async function() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const btn   = document.getElementById('login-btn');
+  const err   = document.getElementById('login-error');
+
+  if(!email || !pass) { showLoginError('Introduce email y contraseña'); return; }
+
+  btn.textContent = 'Entrando...';
+  btn.style.opacity = '0.7';
+  btn.disabled = true;
+  err.style.display = 'none';
+
+  try {
+    const { data, error } = await DB.auth.signInWithPassword({ email, password: pass });
+    if(error) {
+      showLoginError('Email o contraseña incorrectos');
+      btn.textContent = 'Entrar';
+      btn.style.opacity = '1';
+      btn.disabled = false;
+      return;
+    }
+
+    // Verificar que está en la tabla analistas y activo
+    const { data: perfil } = await DB.from('analistas').select('id,nombre,activo').eq('email', email).single();
+    if(!perfil || !perfil.activo) {
+      await DB.auth.signOut();
+      showLoginError('No tienes acceso autorizado. Contacta con Omar.');
+      btn.textContent = 'Entrar';
+      btn.style.opacity = '1';
+      btn.disabled = false;
+      return;
+    }
+
+    // ¡Acceso concedido!
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'flex';
+    await loadAll();
+
+  } catch(e) {
+    showLoginError('Error de conexión');
+    btn.textContent = 'Entrar';
+    btn.style.opacity = '1';
+    btn.disabled = false;
+  }
+};
+
+function showLoginError(msg) {
+  const err = document.getElementById('login-error');
+  if(err) { err.textContent = msg; err.style.display = 'block'; }
+}
+
+// Botón cerrar sesión — añadir a la sidebar
+window.cerrarSesion = async function() {
+  if(!confirm('¿Cerrar sesión?')) return;
+  await DB.auth.signOut();
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pass').value = '';
+};
 
 async function loadAll() {
   const [j,o,obs,n,m,inf,cl] = await Promise.all([
