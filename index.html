@@ -1348,7 +1348,9 @@ window.addEventListener('error', function(ev){
       return null;
     }
     _authCli = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
-      auth: { persistSession:true, autoRefreshToken:true, storageKey:'arete-auth' }
+      // Sin storageKey custom: usa el por defecto sb-{project}-auth-token
+      // para que app.js y los patches vean la misma sesión
+      auth: { persistSession:true, autoRefreshToken:true }
     });
     return _authCli;
   }
@@ -1379,15 +1381,11 @@ window.addEventListener('error', function(ev){
   }
 
   // Mostrar app principal y esconder login
+  // Recargamos la página para que app.js arranque fresco con la sesión ya en localStorage
+  // (evita conflictos con patches que esperan init() sólo una vez en page load)
   function abrirApp(){
-    const ls = document.getElementById('login-screen');
-    const ma = document.getElementById('main-app');
-    if(ls) ls.style.display = 'none';
-    if(ma) ma.style.display = '';
-    // Inicializar la app si está disponible
-    if(typeof window.init === 'function'){
-      try { window.init(); } catch(e){ console.error('init() falló:', e); }
-    }
+    console.log('[auth] login OK — recargando para arrancar app con sesión activa');
+    window.location.reload();
   }
 
   // ── LOGIN ──
@@ -1472,13 +1470,19 @@ window.addEventListener('error', function(ev){
   };
 
   // ── AUTO-SIGN-IN si ya hay sesión activa ──
+  // Aquí NO recargamos (haría loop). Sólo ocultamos el login y dejamos que app.js
+  // arranque normal porque la sesión ya está en localStorage al cargar la página.
   window.addEventListener('load', async function(){
     const cli = authCli();
     if(!cli) return;
     try {
       const { data:{ session } } = await cli.auth.getSession();
       if(session && session.user){
-        abrirApp();
+        console.log('[auth] sesión activa detectada — ocultando login');
+        const ls = document.getElementById('login-screen');
+        const ma = document.getElementById('main-app');
+        if(ls) ls.style.display = 'none';
+        if(ma) ma.style.display = '';
       }
     } catch(e){ console.warn('[auth] getSession falló:', e); }
   });
