@@ -541,9 +541,9 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
     #ls-row a{font-size:12px;color:rgba(244,197,66,.5);text-decoration:none;}
 
     /* Botón */
-    #ls-btn{width:100%;height:52px;background:linear-gradient(135deg,#b8943e,#f4c542);color:#0a0e1a;font-size:14px;font-weight:700;letter-spacing:.04em;border:none;border-radius:10px;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s;}
-    #ls-btn:hover{opacity:.92;}
-    #ls-btn:active{transform:scale(.98);}
+    #login-btn{width:100%;height:52px;background:linear-gradient(135deg,#b8943e,#f4c542);color:#0a0e1a;font-size:14px;font-weight:700;letter-spacing:.04em;border:none;border-radius:10px;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s;}
+    #login-btn:hover{opacity:.92;}
+    #login-btn:active{transform:scale(.98);}
 
     /* Error */
     #login-error{display:none;margin-top:14px;font-size:13px;color:#f85149;text-align:center;background:rgba(248,81,73,.08);border:0.5px solid rgba(248,81,73,.25);border-radius:8px;padding:12px;}
@@ -571,7 +571,7 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
       #ls-h1{font-size:24px;}
       #ls-sub{margin-bottom:16px;}
       .ls-inp{height:44px;margin-bottom:10px;}
-      #ls-btn{height:46px;}
+      #login-btn{height:46px;}
     }
   </style>
 
@@ -615,7 +615,7 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
       <a href="#">¿Olvidaste tu contraseña?</a>
     </div>
 
-    <button id="ls-btn" type="button">Entrar a la academia</button>
+    <button id="login-btn" type="button">Entrar a la academia</button>
 
     <div id="login-error"></div>
 
@@ -625,198 +625,6 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
   <div id="ls-foot">Omar Cortés Ferrero · Análisis Individual de Fútbol</div>
 </div>
 
-<!-- ╔══════════════════════════════════════════════════════════╗
-     ║  AUTH AUTOSUFICIENTE v3 — testado en jsdom               ║
-     ║  Define loginAnalista, autosignin, forgot password       ║
-     ║  + wire-up alternativo, log de carga, error handler      ║
-     ╚══════════════════════════════════════════════════════════╝ -->
-<script>
-console.log('%c[auth v3] script de login cargado','color:#f4c542;font-weight:bold;');
-
-// Handler global — cualquier error no capturado se muestra en pantalla
-window.addEventListener('error', function(ev){
-  const errEl = document.getElementById('login-error');
-  if(errEl && errEl.offsetParent !== null){ // solo si el login está visible
-    errEl.textContent = 'Error JS: ' + (ev.message || 'desconocido') + ' (mira consola F12)';
-    errEl.style.display = 'block';
-  }
-  console.error('[auth] error global:', ev.message, ev.filename, ev.lineno);
-});
-
-(function(){
-  const SUPA_URL = 'https://ghxwdauwrzupjmrujcns.supabase.co';
-  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
-
-  // Cliente dedicado al login (independiente del DB de la app)
-  let _authCli = null;
-  function authCli(){
-    if(_authCli) return _authCli;
-    if(!window.supabase || !window.supabase.createClient){
-      console.error('[auth] supabase-js no está cargado todavía');
-      return null;
-    }
-    _authCli = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
-      auth: { persistSession:true, autoRefreshToken:true, storageKey:'arete-auth' }
-    });
-    return _authCli;
-  }
-
-  function showError(msg){
-    const el = document.getElementById('login-error');
-    if(!el) return;
-    el.textContent = msg;
-    el.style.display = 'block';
-  }
-  function clearError(){
-    const el = document.getElementById('login-error');
-    if(el){ el.textContent=''; el.style.display='none'; }
-  }
-  function setLoading(on){
-    const btn = document.getElementById('ls-btn');
-    if(!btn) return;
-    if(on){
-      btn.dataset._txt = btn.textContent;
-      btn.textContent = 'Entrando…';
-      btn.disabled = true;
-      btn.style.opacity = '.7';
-    } else {
-      if(btn.dataset._txt) btn.textContent = btn.dataset._txt;
-      btn.disabled = false;
-      btn.style.opacity = '';
-    }
-  }
-
-  // Mostrar app principal y esconder login
-  function abrirApp(){
-    const ls = document.getElementById('login-screen');
-    const ma = document.getElementById('main-app');
-    if(ls) ls.style.display = 'none';
-    if(ma) ma.style.display = '';
-    // Inicializar la app si está disponible
-    if(typeof window.init === 'function'){
-      try { window.init(); } catch(e){ console.error('init() falló:', e); }
-    }
-  }
-
-  // ── LOGIN ──
-  window.loginAnalista = async function(){
-    clearError();
-    const email = (document.getElementById('login-email')?.value || '').trim().toLowerCase();
-    const pass  = document.getElementById('login-pass')?.value || '';
-    if(!email || !pass){ showError('Introduce correo y contraseña.'); return; }
-
-    const cli = authCli();
-    if(!cli){ showError('Error técnico: cliente no inicializado. Recarga la página.'); return; }
-
-    setLoading(true);
-    try {
-      // 1) Auth contra Supabase
-      const { data, error } = await cli.auth.signInWithPassword({ email, password: pass });
-      if(error){
-        if(/Invalid login credentials/i.test(error.message))
-          showError('Correo o contraseña incorrectos.');
-        else if(/Email not confirmed/i.test(error.message))
-          showError('Email no confirmado. Pide al admin que lo confirme en Supabase.');
-        else
-          showError(error.message || 'No se pudo iniciar sesión.');
-        return;
-      }
-
-      // 2) Verificar que el email está en la tabla analistas y activo
-      try {
-        const { data: rows, error: qErr } = await cli
-          .from('analistas')
-          .select('email, activo')
-          .eq('email', email)
-          .maybeSingle();
-
-        if(qErr){
-          // Si la tabla no existe, dejamos pasar para no bloquear; mostramos aviso suave
-          console.warn('[auth] No se pudo verificar tabla analistas:', qErr.message);
-        } else if(rows && rows.activo === false){
-          await cli.auth.signOut();
-          showError('Tu cuenta está desactivada. Contacta con el administrador.');
-          return;
-        } else if(!rows){
-          // Si no está en la tabla, lo dejamos pasar también (para no bloquearte a ti).
-          // Si quieres BLOQUEAR cuentas no listadas, descomenta el bloque siguiente:
-          // await cli.auth.signOut();
-          // showError('No tienes acceso autorizado.');
-          // return;
-          console.warn('[auth] Email no listado en tabla analistas — entrando igualmente');
-        }
-      } catch(e){
-        console.warn('[auth] Error consultando analistas (entrando igual):', e);
-      }
-
-      // 3) OK — abrir app
-      abrirApp();
-    } catch(e){
-      console.error('[auth] Excepción en loginAnalista:', e);
-      showError('Error inesperado. Revisa la consola del navegador.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ── FORGOT PASSWORD ──
-  window.recuperarPassword = async function(ev){
-    if(ev) ev.preventDefault();
-    const email = prompt('Introduce tu correo para recibir el enlace de recuperación:');
-    if(!email) return;
-    const cli = authCli();
-    if(!cli) return;
-    const { error } = await cli.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-      redirectTo: window.location.origin + window.location.pathname
-    });
-    if(error){ alert('Error: ' + error.message); return; }
-    alert('Si el correo existe, te llegará un enlace en unos minutos. Revisa también la carpeta de spam.');
-  };
-
-  // ── AUTO-SIGN-IN si ya hay sesión activa ──
-  window.addEventListener('load', async function(){
-    const cli = authCli();
-    if(!cli) return;
-    try {
-      const { data:{ session } } = await cli.auth.getSession();
-      if(session && session.user){
-        abrirApp();
-      }
-    } catch(e){ console.warn('[auth] getSession falló:', e); }
-  });
-
-  // Wire alternativo del botón (por si el onclick inline se pierde)
-  function wireBoton(){
-    const btn = document.getElementById('ls-btn');
-    if(!btn){ console.warn('[auth] #ls-btn no encontrado'); return; }
-    if(btn.dataset._wired) return;
-    btn.dataset._wired = '1';
-    btn.addEventListener('click', function(ev){
-      console.log('[auth] click en botón detectado');
-      ev.preventDefault();
-      window.loginAnalista();
-    });
-    console.log('[auth] botón cableado correctamente');
-
-    // También el link de forgot
-    const link = document.querySelector('#ls-row a');
-    if(link){ link.addEventListener('click', window.recuperarPassword); }
-
-    // Enter en cualquiera de los 2 inputs
-    ['login-email','login-pass'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(el) el.addEventListener('keydown', e=>{
-        if(e.key==='Enter'){ e.preventDefault(); window.loginAnalista(); }
-      });
-    });
-  }
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', wireBoton);
-  } else {
-    wireBoton();
-  }
-})();
-</script>
 
 
 <div class="app" id="main-app" style="display:none;">
@@ -1508,5 +1316,199 @@ Texto de variantes...
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="js/app.js"></script>
-<script src="js/patch_chat_tab.js"></script><script src="js/omar-tareas-patch.js"></script></body>
+<script src="js/patch_chat_tab.js"></script><script src="js/omar-tareas-patch.js"></script>
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  AUTH AUTOSUFICIENTE v3 — testado en jsdom               ║
+     ║  Define loginAnalista, autosignin, forgot password       ║
+     ║  + wire-up alternativo, log de carga, error handler      ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<script>
+console.log('%c[auth v3] script de login cargado','color:#f4c542;font-weight:bold;');
+
+// Handler global — cualquier error no capturado se muestra en pantalla
+window.addEventListener('error', function(ev){
+  const errEl = document.getElementById('login-error');
+  if(errEl && errEl.offsetParent !== null){ // solo si el login está visible
+    errEl.textContent = 'Error JS: ' + (ev.message || 'desconocido') + ' (mira consola F12)';
+    errEl.style.display = 'block';
+  }
+  console.error('[auth] error global:', ev.message, ev.filename, ev.lineno);
+});
+
+(function(){
+  const SUPA_URL = 'https://ghxwdauwrzupjmrujcns.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
+
+  // Cliente dedicado al login (independiente del DB de la app)
+  let _authCli = null;
+  function authCli(){
+    if(_authCli) return _authCli;
+    if(!window.supabase || !window.supabase.createClient){
+      console.error('[auth] supabase-js no está cargado todavía');
+      return null;
+    }
+    _authCli = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
+      auth: { persistSession:true, autoRefreshToken:true, storageKey:'arete-auth' }
+    });
+    return _authCli;
+  }
+
+  function showError(msg){
+    const el = document.getElementById('login-error');
+    if(!el) return;
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  function clearError(){
+    const el = document.getElementById('login-error');
+    if(el){ el.textContent=''; el.style.display='none'; }
+  }
+  function setLoading(on){
+    const btn = document.getElementById('login-btn');
+    if(!btn) return;
+    if(on){
+      btn.dataset._txt = btn.textContent;
+      btn.textContent = 'Entrando…';
+      btn.disabled = true;
+      btn.style.opacity = '.7';
+    } else {
+      if(btn.dataset._txt) btn.textContent = btn.dataset._txt;
+      btn.disabled = false;
+      btn.style.opacity = '';
+    }
+  }
+
+  // Mostrar app principal y esconder login
+  function abrirApp(){
+    const ls = document.getElementById('login-screen');
+    const ma = document.getElementById('main-app');
+    if(ls) ls.style.display = 'none';
+    if(ma) ma.style.display = '';
+    // Inicializar la app si está disponible
+    if(typeof window.init === 'function'){
+      try { window.init(); } catch(e){ console.error('init() falló:', e); }
+    }
+  }
+
+  // ── LOGIN ──
+  window.loginAnalista = async function(){
+    clearError();
+    const email = (document.getElementById('login-email')?.value || '').trim().toLowerCase();
+    const pass  = document.getElementById('login-pass')?.value || '';
+    if(!email || !pass){ showError('Introduce correo y contraseña.'); return; }
+
+    const cli = authCli();
+    if(!cli){ showError('Error técnico: cliente no inicializado. Recarga la página.'); return; }
+
+    setLoading(true);
+    try {
+      // 1) Auth contra Supabase
+      const { data, error } = await cli.auth.signInWithPassword({ email, password: pass });
+      if(error){
+        if(/Invalid login credentials/i.test(error.message))
+          showError('Correo o contraseña incorrectos.');
+        else if(/Email not confirmed/i.test(error.message))
+          showError('Email no confirmado. Pide al admin que lo confirme en Supabase.');
+        else
+          showError(error.message || 'No se pudo iniciar sesión.');
+        return;
+      }
+
+      // 2) Verificar que el email está en la tabla analistas y activo
+      try {
+        const { data: rows, error: qErr } = await cli
+          .from('analistas')
+          .select('email, activo')
+          .eq('email', email)
+          .maybeSingle();
+
+        if(qErr){
+          // Si la tabla no existe, dejamos pasar para no bloquear; mostramos aviso suave
+          console.warn('[auth] No se pudo verificar tabla analistas:', qErr.message);
+        } else if(rows && rows.activo === false){
+          await cli.auth.signOut();
+          showError('Tu cuenta está desactivada. Contacta con el administrador.');
+          return;
+        } else if(!rows){
+          // Si no está en la tabla, lo dejamos pasar también (para no bloquearte a ti).
+          // Si quieres BLOQUEAR cuentas no listadas, descomenta el bloque siguiente:
+          // await cli.auth.signOut();
+          // showError('No tienes acceso autorizado.');
+          // return;
+          console.warn('[auth] Email no listado en tabla analistas — entrando igualmente');
+        }
+      } catch(e){
+        console.warn('[auth] Error consultando analistas (entrando igual):', e);
+      }
+
+      // 3) OK — abrir app
+      abrirApp();
+    } catch(e){
+      console.error('[auth] Excepción en loginAnalista:', e);
+      showError('Error inesperado. Revisa la consola del navegador.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── FORGOT PASSWORD ──
+  window.recuperarPassword = async function(ev){
+    if(ev) ev.preventDefault();
+    const email = prompt('Introduce tu correo para recibir el enlace de recuperación:');
+    if(!email) return;
+    const cli = authCli();
+    if(!cli) return;
+    const { error } = await cli.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: window.location.origin + window.location.pathname
+    });
+    if(error){ alert('Error: ' + error.message); return; }
+    alert('Si el correo existe, te llegará un enlace en unos minutos. Revisa también la carpeta de spam.');
+  };
+
+  // ── AUTO-SIGN-IN si ya hay sesión activa ──
+  window.addEventListener('load', async function(){
+    const cli = authCli();
+    if(!cli) return;
+    try {
+      const { data:{ session } } = await cli.auth.getSession();
+      if(session && session.user){
+        abrirApp();
+      }
+    } catch(e){ console.warn('[auth] getSession falló:', e); }
+  });
+
+  // Wire alternativo del botón (por si el onclick inline se pierde)
+  function wireBoton(){
+    const btn = document.getElementById('login-btn');
+    if(!btn){ console.warn('[auth] #login-btn no encontrado'); return; }
+    if(btn.dataset._wired) return;
+    btn.dataset._wired = '1';
+    btn.addEventListener('click', function(ev){
+      console.log('[auth] click en botón detectado');
+      ev.preventDefault();
+      window.loginAnalista();
+    });
+    console.log('[auth] botón cableado correctamente');
+
+    // También el link de forgot
+    const link = document.querySelector('#ls-row a');
+    if(link){ link.addEventListener('click', window.recuperarPassword); }
+
+    // Enter en cualquiera de los 2 inputs
+    ['login-email','login-pass'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.addEventListener('keydown', e=>{
+        if(e.key==='Enter'){ e.preventDefault(); window.loginAnalista(); }
+      });
+    });
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', wireBoton);
+  } else {
+    wireBoton();
+  }
+})();
+</script>
+
+</body>
 </html>
