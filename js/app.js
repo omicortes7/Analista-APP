@@ -147,48 +147,158 @@ function renderInicio(){
   document.getElementById('greeting').textContent=`${h<14?'Buenos días':h<21?'Buenas tardes':'Buenas noches'}, Omar.`;
   document.getElementById('hdate').textContent=now.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('stat-jugadores').textContent=state.jugadores.length;
-  document.getElementById('stat-objetivos').textContent=state.objetivos.length;
-  document.getElementById('stat-micros').textContent=state.microconceptos.length;
-  document.getElementById('stat-obs').textContent=state.observaciones.length;
+  document.getElementById('stat-objetivos').textContent=state.objetivos.filter(o=>!o.superado).length;
+  document.getElementById('stat-micros').textContent=state.objetivos.filter(o=>o.superado).length;
+  document.getElementById('stat-obs').textContent=state.informesPartido.length;
 
-  // Sesiones pendientes — diseño mejorado
-  const pend=state.jugadores.filter(j=>j.sesion_fecha).sort((a,b)=>a.sesion_fecha.localeCompare(b.sesion_fecha));
-  document.getElementById('hpend').innerHTML=pend.length?pend.map(j=>{
-    const ss=ssBadge(j.sesion_fecha);
-    const pc=AV_COLORS[j.posicion]||{bg:'#eee',color:'#666'};
-    const inf=getInformesJugador(j.id)[0];
-    const nota=inf?parseFloat(inf.nota_decimal)||0:0;
-    const nc=nota>=8?'#1D9E75':nota>=6?'#E07B00':'#D85A30';
-    return`<div onclick="openJug('${j.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg);border:0.5px solid var(--border);margin-bottom:7px;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
-      <div class="avatar" style="width:36px;height:36px;font-size:12px;font-weight:700;background:${pc.bg};color:${pc.color};flex-shrink:0;">${initials(j.nombre)}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${j.nombre}</div>
-        <div style="font-size:10px;color:var(--text2);">${j.posicion}${j.equipo?' · '+j.equipo:''}</div>
-      </div>
-      ${nota?`<div style="width:32px;height:32px;border-radius:50%;background:${nc}15;color:${nc};border:1.5px solid ${nc}40;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">${nota.toFixed(1)}</div>`:''}
-      <span style="font-size:9px;padding:3px 8px;border-radius:99px;background:${ss.col}20;color:${ss.col};font-weight:700;white-space:nowrap;flex-shrink:0;">${ss.l}</span>
-    </div>`;
-  }).join(''):'<div style="font-size:12px;color:var(--text3);padding:1.5rem;text-align:center;background:var(--bg2);border-radius:10px;">No hay sesiones programadas.</div>';
+  // ── DASHBOARD DE JUGADORES ──
+  const cont = document.getElementById('hpend');
+  if(!cont) return;
 
-  // Últimos informes — nuevo bloque
-  const hInf=document.getElementById('h-informes');
-  if(hInf){
-    const allInf=[...state.informesPartido].sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,3);
-    hInf.innerHTML=allInf.length?allInf.map(inf=>{
-      const nota=parseFloat(inf.nota_decimal)||0;
-      const nc=nota>=8?'#1D9E75':nota>=6?'#E07B00':'#D85A30';
-      const jug=state.jugadores.find(x=>x.id===inf.jugador_id);
-      return`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg);border:0.5px solid var(--border);margin-bottom:7px;">
-        ${nota?`<div style="width:36px;height:36px;border-radius:50%;background:${nc}12;color:${nc};border:1.5px solid ${nc}40;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:13px;font-weight:800;line-height:1;">${nota.toFixed(1)}</span><span style="font-size:7px;color:${nc};letter-spacing:.04em;">/10</span></div>`:''}
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${jug?jug.nombre:'Jugador'} · ${inf.partido||'Partido'}</div>
-          <div style="font-size:10px;color:var(--text2);">${fmtDate(inf.fecha)}${inf.resultado?' · '+inf.resultado:''}</div>
-        </div>
-        <button onclick="generarInformeVisual('${inf.jugador_id}','${inf.id}')" style="background:#1a1a2e;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:10px;cursor:pointer;font-weight:600;flex-shrink:0;">PDF</button>
-      </div>`;
-    }).join(''):'<div style="font-size:12px;color:var(--text3);padding:1.5rem;text-align:center;background:var(--bg2);border-radius:10px;">Sin informes todavía.</div>';
+  const hoy = now.toISOString().slice(0,10);
+
+  if(!state.jugadores.length){
+    cont.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:2rem;text-align:center;background:var(--bg2);border-radius:10px;">Sin jugadores todavía. Añade tu primer jugador.</div>';
+    return;
   }
+
+  // Cargar datos de hoy de Supabase para todos los jugadores
+  const jugIds = state.jugadores.map(j=>j.id);
+
+  Promise.all([
+    DB.from('psico_diario').select('jugador_id,mood,created_at').in('jugador_id', jugIds).eq('fecha', hoy),
+    DB.from('nutricion_log').select('jugador_id,created_at').in('jugador_id', jugIds).eq('fecha', hoy),
+    DB.from('calendario_semana').select('jugador_id,tipo,hora,foco').in('jugador_id', jugIds).eq('fecha', hoy),
+  ]).then(([psico, nut, cal]) => {
+    const psicoHoy = (psico.data||[]);
+    const nutHoy = (nut.data||[]);
+    const calHoy = (cal.data||[]);
+
+    let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+
+    state.jugadores.forEach(jug => {
+      const pc = AV_COLORS[jug.posicion]||{bg:'#1a2040',color:'#8090d0'};
+
+      // Informes — nota media
+      const informesJug = getInformesJugador(jug.id);
+      const notas = informesJug.filter(i=>i.nota_decimal).map(i=>parseFloat(i.nota_decimal));
+      const notaMedia = notas.length ? (notas.reduce((a,b)=>a+b,0)/notas.length).toFixed(1) : null;
+      const nc = notaMedia ? (notaMedia>=8?'#1D9E75':notaMedia>=6?'#E07B00':'#D85A30') : '#666';
+
+      // Objetivos activos este mes
+      const objActivos = state.objetivos.filter(o=>o.jugador_id===jug.id && !o.superado);
+      const objSuperados = state.objetivos.filter(o=>o.jugador_id===jug.id && o.superado);
+
+      // Checks de hoy
+      const tieneCheck = psicoHoy.some(p=>p.jugador_id===jug.id);
+      const tieneNut = nutHoy.some(n=>n.jugador_id===jug.id);
+      const eventoHoy = calHoy.find(c=>c.jugador_id===jug.id);
+
+      // Último informe
+      const ultInf = informesJug[0];
+
+      html += `<div onclick="openJug('${jug.id}')" style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:border-color .15s;display:flex;gap:14px;align-items:flex-start;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">`;
+
+      // Foto / Avatar
+      html += '<div style="flex-shrink:0;">';
+      if(jug.foto_jugador){
+        html += `<img src="${jug.foto_jugador}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:top;border:2px solid ${pc.color}40;">`;
+      } else {
+        html += `<div class="avatar" style="width:52px;height:52px;font-size:16px;font-weight:700;background:${pc.bg};color:${pc.color};">${initials(jug.nombre)}</div>`;
+      }
+      html += '</div>';
+
+      // Info principal
+      html += '<div style="flex:1;min-width:0;">';
+
+      // Nombre + posición
+      html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">`;
+      html += `<div style="font-size:14px;font-weight:700;">${jug.nombre}</div>`;
+      html += `<span style="font-size:10px;background:${pc.bg};color:${pc.color};padding:2px 7px;border-radius:4px;font-weight:600;">${jug.posicion}</span>`;
+      if(jug.equipo) html += `<span style="font-size:10px;color:var(--text3);">${jug.equipo}</span>`;
+      html += '</div>';
+
+      // Evento de hoy
+      if(eventoHoy){
+        const tipoColor = eventoHoy.tipo==='partido'?'#E07B00':eventoHoy.tipo==='entreno'?'#1D9E75':'#7C6FF0';
+        html += `<div style="font-size:11px;color:${tipoColor};margin-bottom:6px;display:flex;align-items:center;gap:5px;">`;
+        html += `<span style="width:6px;height:6px;border-radius:50%;background:${tipoColor};display:inline-block;box-shadow:0 0 6px ${tipoColor};"></span>`;
+        html += `${eventoHoy.tipo==='partido'?'⚽ Partido':eventoHoy.tipo==='entreno'?'🏃 Entrenamiento':'📅 '+eventoHoy.tipo}`;
+        if(eventoHoy.hora) html += ` · ${eventoHoy.hora}`;
+        if(eventoHoy.foco) html += ` — ${eventoHoy.foco}`;
+        html += '</div>';
+      } else {
+        html += '<div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Sin eventos hoy</div>';
+      }
+
+      // Row de stats
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">';
+
+      // Nota media
+      if(notaMedia){
+        html += `<div style="display:flex;align-items:center;gap:4px;background:${nc}12;border:0.5px solid ${nc}30;border-radius:6px;padding:3px 8px;">`;
+        html += `<span style="font-size:11px;font-weight:800;color:${nc};">⭐ ${notaMedia}</span>`;
+        html += `<span style="font-size:9px;color:var(--text3);">media (${notas.length})</span>`;
+        html += '</div>';
+      }
+
+      // Objetivos
+      if(objActivos.length || objSuperados.length){
+        html += `<div style="display:flex;align-items:center;gap:4px;background:rgba(88,166,255,0.08);border:0.5px solid rgba(88,166,255,0.2);border-radius:6px;padding:3px 8px;">`;
+        html += `<span style="font-size:11px;color:#58a6ff;">🎯 ${objActivos.length} activos`;
+        if(objSuperados.length) html += ` · <span style="color:#3fb950;">✓${objSuperados.length}</span>`;
+        html += '</span></div>';
+      }
+
+      // Check mental hoy
+      html += `<div style="display:flex;align-items:center;gap:3px;background:${tieneCheck?'rgba(63,185,80,0.08)':'rgba(255,255,255,0.03)'};border:0.5px solid ${tieneCheck?'rgba(63,185,80,0.25)':'var(--border)'};border-radius:6px;padding:3px 8px;">`;
+      html += `<span style="font-size:10px;color:${tieneCheck?'#3fb950':'var(--text3)'};">${tieneCheck?'✓':'○'} Mental</span>`;
+      html += '</div>';
+
+      // Check nutrición hoy
+      html += `<div style="display:flex;align-items:center;gap:3px;background:${tieneNut?'rgba(210,153,34,0.08)':'rgba(255,255,255,0.03)'};border:0.5px solid ${tieneNut?'rgba(210,153,34,0.25)':'var(--border)'};border-radius:6px;padding:3px 8px;">`;
+      html += `<span style="font-size:10px;color:${tieneNut?'#d29922':'var(--text3)'};">${tieneNut?'✓':'○'} Nutrición</span>`;
+      html += '</div>';
+
+      html += '</div>'; // row stats
+
+      // Último informe si existe
+      if(ultInf){
+        html += `<div style="margin-top:6px;font-size:10px;color:var(--text3);">Último informe: ${fmtDate(ultInf.fecha)}${ultInf.partido?' · '+ultInf.partido:''}</div>`;
+      }
+
+      html += '</div>'; // info principal
+      html += '</div>'; // card
+    });
+
+    html += '</div>';
+    cont.innerHTML = html;
+  }).catch(e => {
+    console.warn('Dashboard error:', e);
+    // Fallback sin datos de hoy
+    let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+    state.jugadores.forEach(jug => {
+      const pc = AV_COLORS[jug.posicion]||{bg:'#1a2040',color:'#8090d0'};
+      const informesJug = getInformesJugador(jug.id);
+      const notas = informesJug.filter(i=>i.nota_decimal).map(i=>parseFloat(i.nota_decimal));
+      const notaMedia = notas.length ? (notas.reduce((a,b)=>a+b,0)/notas.length).toFixed(1) : null;
+      const nc = notaMedia ? (notaMedia>=8?'#1D9E75':notaMedia>=6?'#E07B00':'#D85A30') : '#666';
+      html += `<div onclick="openJug('${jug.id}')" style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;display:flex;gap:12px;align-items:center;">`;
+      if(jug.foto_jugador){
+        html += `<img src="${jug.foto_jugador}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:top;flex-shrink:0;">`;
+      } else {
+        html += `<div class="avatar" style="width:44px;height:44px;font-size:14px;font-weight:700;background:${pc.bg};color:${pc.color};flex-shrink:0;">${initials(jug.nombre)}</div>`;
+      }
+      html += `<div style="flex:1;"><div style="font-size:13px;font-weight:700;">${jug.nombre}</div>`;
+      html += `<div style="font-size:11px;color:var(--text2);">${jug.posicion}${jug.equipo?' · '+jug.equipo:''}</div></div>`;
+      if(notaMedia) html += `<div style="width:36px;height:36px;border-radius:50%;background:${nc}12;color:${nc};border:1.5px solid ${nc}40;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">${notaMedia}</div>`;
+      html += '</div>';
+    });
+    html += '</div>';
+    cont.innerHTML = html;
+  });
 }
+
 
 // ─── JUGADORES ───
 function renderJugadores(){
