@@ -160,7 +160,7 @@ function renderInicio(){
   document.getElementById('hdate').textContent=now.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('stat-jugadores').textContent=state.jugadores.length;
   document.getElementById('stat-objetivos').textContent=state.objetivos.length;
-  document.getElementById('stat-micros').textContent=state.microconceptos.length;
+  document.getElementById('stat-micros').textContent=state.objetivos.filter(function(o){return o.superado;}).length;
   document.getElementById('stat-obs').textContent=state.observaciones.length;
 
   // Sesiones pendientes — diseño mejorado
@@ -6424,65 +6424,54 @@ async function eliminarAnalisis(id) {
   renderAnalisisTab();
 }
 
-
 // =================================================================
-// PARCHE MULTI-TENANT v2 (añadido por Cowork)
-// Arregla: usa cliente Supabase propio + filtro estricto sin huérfanos
+// PARCHE MULTI-TENANT v3 (cowork) — polling agresivo + filtra robusto
 // =================================================================
-(function multiTenantPatchV2(){
-  const SUPA_URL='https://ghxwdauwrzupjmrujcns.supabase.co';
-  const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
-  let _cli=null;
+(function(){
+  const URL='https://ghxwdauwrzupjmrujcns.supabase.co';
+  const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
+  console.log('[mt v3] script cargado');
+  let cli=null, applied=false, attempts=0;
   function getCli(){
-    if(_cli) return _cli;
+    if(cli) return cli;
     if(!window.supabase||!window.supabase.createClient) return null;
-    _cli=window.supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
-    return _cli;
+    try { cli=window.supabase.createClient(URL,KEY); return cli; } catch(e){ console.error('[mt v3] createClient err:',e); return null; }
   }
-  function rerender(){
-    try{ if(typeof renderInicio==='function') renderInicio(); }catch(e){}
-    try{ if(typeof renderJugadores==='function') renderJugadores(); }catch(e){}
-    try{ if(typeof renderCalendario==='function') renderCalendario(); }catch(e){}
-  }
-  async function applyTenant(){
-    const cli=getCli();
-    if(!cli){ setTimeout(applyTenant,500); return; }
-    if(!window.state){ setTimeout(applyTenant,500); return; }
+  async function tick(){
+    if(applied) return;
+    attempts++;
+    if(attempts>60){ console.warn('[mt v3] giving up after 60 attempts'); return; }
+    const c=getCli();
+    if(!c||!window.state||!window.state.jugadores){ setTimeout(tick,500); return; }
     try {
-      const {data:{session}}=await cli.auth.getSession();
-      if(!session||!session.user){ console.log('[multi-tenant v2] sin sesión'); return; }
+      const {data:{session}}=await c.auth.getSession();
+      if(!session||!session.user){ console.log('[mt v3] sin sesion (intento '+attempts+')'); setTimeout(tick,800); return; }
       const aid=session.user.id;
+      console.log('[mt v3] APLICANDO para',session.user.email,'/',aid);
       window.state.currentAnalistaId=aid;
       window.state.currentUser=session.user;
-      console.log('[multi-tenant v2] analista logueado:',session.user.email,'/',aid);
-
-      // Recargar jugadores con filtro estricto
-      const {data:jugs,error:e1}=await cli.from('jugadores').select('*').eq('analista_id',aid).order('created_at',{ascending:false});
-      if(!e1){
-        window.state.jugadores=jugs||[];
-        const ids=new Set((jugs||[]).map(j=>j.id));
-        // Filtro ESTRICTO: descarta huérfanos (sin jugador_id) y los que no son del analista
-        ['objetivos','observaciones','notasVideo','informesPartido','clipsInforme','clipsJugador','planesPartido','eventos']
-          .forEach(k=>{
-            if(Array.isArray(window.state[k])){
-              const before=window.state[k].length;
-              window.state[k]=window.state[k].filter(r=>r.jugador_id && ids.has(r.jugador_id));
-              const after=window.state[k].length;
-              if(before!==after) console.log('[multi-tenant v2] '+k+': '+before+' -> '+after);
-            }
-          });
-        console.log('[multi-tenant v2] jugadores filtrados:',jugs?.length||0);
-      } else { console.error('[multi-tenant v2] error jugadores:',e1.message); }
-
-      // Recargar eventos del calendario
-      const {data:evs,error:e2}=await cli.from('eventos_calendario').select('*').eq('analista_id',aid).order('fecha');
-      if(!e2){
-        window.state.eventos=evs||[];
-        console.log('[multi-tenant v2] eventos filtrados:',evs?.length||0);
-      }
-      rerender();
-    } catch(e) { console.error('[multi-tenant v2] excepción:',e); }
+      const {data:jugs}=await c.from('jugadores').select('*').eq('analista_id',aid).order('created_at',{ascending:false});
+      window.state.jugadores=jugs||[];
+      const ids=new Set((jugs||[]).map(j=>j.id));
+      ['objetivos','observaciones','notasVideo','informesPartido','clipsInforme','clipsJugador','planesPartido','eventos']
+        .forEach(k=>{
+          if(Array.isArray(window.state[k])){
+            const b=window.state[k].length;
+            window.state[k]=window.state[k].filter(r=>r.jugador_id&&ids.has(r.jugador_id));
+            if(b!==window.state[k].length) console.log('[mt v3] '+k+': '+b+' -> '+window.state[k].length);
+          }
+        });
+      const {data:evs}=await c.from('eventos_calendario').select('*').eq('analista_id',aid).order('fecha');
+      window.state.eventos=evs||[];
+      console.log('[mt v3] OK. jugs='+window.state.jugadores.length+' objs='+window.state.objetivos.length);
+      applied=true;
+      try{ if(typeof renderInicio==='function')renderInicio(); }catch(e){}
+      try{ if(typeof renderJugadores==='function')renderJugadores(); }catch(e){}
+    } catch(e){ console.error('[mt v3] err:',e); setTimeout(tick,1000); }
   }
-  if(document.readyState==='complete'){ setTimeout(applyTenant,1500); }
-  else { window.addEventListener('load',()=>setTimeout(applyTenant,1500)); }
+  setTimeout(tick, 200);
+  setTimeout(tick, 1500);
+  setTimeout(tick, 3000);
+  setTimeout(tick, 5000);
+  if(document.readyState!=='complete') window.addEventListener('load', ()=>setTimeout(tick,500));
 })();
