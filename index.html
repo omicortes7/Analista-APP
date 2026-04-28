@@ -1391,7 +1391,8 @@ window.addEventListener('error', function(ev){
   }
 
   // ── LOGIN ──
-  window.loginAnalista = async function(){
+  // Función local — referencia inmune a sobrescritura de window.loginAnalista por patches externos
+  const _myLoginAnalista = async function(){
     clearError();
     const email = (document.getElementById('login-email')?.value || '').trim().toLowerCase();
     const pass  = document.getElementById('login-pass')?.value || '';
@@ -1451,6 +1452,11 @@ window.addEventListener('error', function(ev){
     }
   };
 
+  // Exponer en window. Re-asignar también más tarde por si los patches sobrescriben.
+  window.loginAnalista = _myLoginAnalista;
+  window.addEventListener('load', () => { window.loginAnalista = _myLoginAnalista; });
+  setTimeout(() => { window.loginAnalista = _myLoginAnalista; }, 1500);
+
   // ── FORGOT PASSWORD ──
   window.recuperarPassword = async function(ev){
     if(ev) ev.preventDefault();
@@ -1483,11 +1489,13 @@ window.addEventListener('error', function(ev){
     if(!btn){ console.warn('[auth] #login-btn no encontrado'); return; }
     if(btn.dataset._wired) return;
     btn.dataset._wired = '1';
+    // Listener en CAPTURE phase para ganar a cualquier otro listener de los patches
     btn.addEventListener('click', function(ev){
-      console.log('[auth] click en botón detectado');
+      console.log('[auth] click en botón detectado — llamando _myLoginAnalista');
       ev.preventDefault();
-      window.loginAnalista();
-    });
+      ev.stopImmediatePropagation();
+      _myLoginAnalista();  // ← referencia LOCAL inmune a sobrescritura de window
+    }, true);
     console.log('[auth] botón cableado correctamente');
 
     // También el link de forgot
@@ -1498,7 +1506,7 @@ window.addEventListener('error', function(ev){
     ['login-email','login-pass'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.addEventListener('keydown', e=>{
-        if(e.key==='Enter'){ e.preventDefault(); window.loginAnalista(); }
+        if(e.key==='Enter'){ e.preventDefault(); _myLoginAnalista(); }
       });
     });
   }
