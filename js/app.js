@@ -6426,68 +6426,63 @@ async function eliminarAnalisis(id) {
 
 
 // =================================================================
-// PARCHE MULTI-TENANT (añadido por Cowork)
-// Filtra jugadores y eventos del calendario por analista logueado.
-// Es aditivo: corre 1.5s después de loadAll() y refiltra los datos
-// y la UI sin tocar el código existente.
+// PARCHE MULTI-TENANT v2 (añadido por Cowork)
+// Arregla: usa cliente Supabase propio + filtro estricto sin huérfanos
 // =================================================================
-(function multiTenantPatch(){
+(function multiTenantPatchV2(){
+  const SUPA_URL='https://ghxwdauwrzupjmrujcns.supabase.co';
+  const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U';
+  let _cli=null;
+  function getCli(){
+    if(_cli) return _cli;
+    if(!window.supabase||!window.supabase.createClient) return null;
+    _cli=window.supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+    return _cli;
+  }
   function rerender(){
-    try { if(typeof renderInicio==='function') renderInicio(); } catch(e){}
-    try { if(typeof renderJugadores==='function') renderJugadores(); } catch(e){}
-    try { if(typeof renderCalendario==='function') renderCalendario(); } catch(e){}
+    try{ if(typeof renderInicio==='function') renderInicio(); }catch(e){}
+    try{ if(typeof renderJugadores==='function') renderJugadores(); }catch(e){}
+    try{ if(typeof renderCalendario==='function') renderCalendario(); }catch(e){}
   }
   async function applyTenant(){
-    if(!window.DB) { setTimeout(applyTenant, 500); return; }
+    const cli=getCli();
+    if(!cli){ setTimeout(applyTenant,500); return; }
+    if(!window.state){ setTimeout(applyTenant,500); return; }
     try {
-      const { data: { session } } = await window.DB.auth.getSession();
-      if(!session || !session.user) {
-        console.log('[multi-tenant] sin sesion — datos cargados sin filtrar');
-        return;
-      }
-      const aid = session.user.id;
-      window.state = window.state || {};
-      window.state.currentAnalistaId = aid;
-      window.state.currentUser = session.user;
-      console.log('[multi-tenant] analista logueado:', session.user.email, '/', aid);
+      const {data:{session}}=await cli.auth.getSession();
+      if(!session||!session.user){ console.log('[multi-tenant v2] sin sesión'); return; }
+      const aid=session.user.id;
+      window.state.currentAnalistaId=aid;
+      window.state.currentUser=session.user;
+      console.log('[multi-tenant v2] analista logueado:',session.user.email,'/',aid);
 
-      // Recargar jugadores filtrando por analista_id
-      const { data: jugs, error: e1 } = await window.DB
-        .from('jugadores').select('*')
-        .eq('analista_id', aid)
-        .order('created_at', { ascending: false });
-      if(!e1 && jugs) {
-        window.state.jugadores = jugs;
-        const ids = new Set(jugs.map(j => j.id));
-        // Filtrar tablas hijas en memoria por jugador_id valido del analista
-        ['objetivos','observaciones','notasVideo','informesPartido',
-         'clipsInforme','clipsJugador','planesPartido','eventos']
-          .forEach(k => {
-            if(Array.isArray(window.state[k])) {
-              window.state[k] = window.state[k].filter(r => !r.jugador_id || ids.has(r.jugador_id));
+      // Recargar jugadores con filtro estricto
+      const {data:jugs,error:e1}=await cli.from('jugadores').select('*').eq('analista_id',aid).order('created_at',{ascending:false});
+      if(!e1){
+        window.state.jugadores=jugs||[];
+        const ids=new Set((jugs||[]).map(j=>j.id));
+        // Filtro ESTRICTO: descarta huérfanos (sin jugador_id) y los que no son del analista
+        ['objetivos','observaciones','notasVideo','informesPartido','clipsInforme','clipsJugador','planesPartido','eventos']
+          .forEach(k=>{
+            if(Array.isArray(window.state[k])){
+              const before=window.state[k].length;
+              window.state[k]=window.state[k].filter(r=>r.jugador_id && ids.has(r.jugador_id));
+              const after=window.state[k].length;
+              if(before!==after) console.log('[multi-tenant v2] '+k+': '+before+' -> '+after);
             }
           });
-        console.log('[multi-tenant] jugadores filtrados:', jugs.length);
-      } else if(e1) console.error('[multi-tenant] error jugadores:', e1.message);
+        console.log('[multi-tenant v2] jugadores filtrados:',jugs?.length||0);
+      } else { console.error('[multi-tenant v2] error jugadores:',e1.message); }
 
-      // Recargar eventos del calendario filtrando por analista_id
-      const { data: evs, error: e2 } = await window.DB
-        .from('eventos_calendario').select('*')
-        .eq('analista_id', aid)
-        .order('fecha');
-      if(!e2 && evs) {
-        window.state.eventos = evs;
-        console.log('[multi-tenant] eventos filtrados:', evs.length);
+      // Recargar eventos del calendario
+      const {data:evs,error:e2}=await cli.from('eventos_calendario').select('*').eq('analista_id',aid).order('fecha');
+      if(!e2){
+        window.state.eventos=evs||[];
+        console.log('[multi-tenant v2] eventos filtrados:',evs?.length||0);
       }
-
       rerender();
-    } catch(e) {
-      console.error('[multi-tenant] excepcion:', e);
-    }
+    } catch(e) { console.error('[multi-tenant v2] excepción:',e); }
   }
-  if(document.readyState === 'complete') {
-    setTimeout(applyTenant, 1500);
-  } else {
-    window.addEventListener('load', () => setTimeout(applyTenant, 1500));
-  }
+  if(document.readyState==='complete'){ setTimeout(applyTenant,1500); }
+  else { window.addEventListener('load',()=>setTimeout(applyTenant,1500)); }
 })();
