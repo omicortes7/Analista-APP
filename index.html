@@ -462,13 +462,13 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body style="overflow:hidden;">
 
 <!-- LOGIN SCREEN -->
-<div id="login-screen" style="position:fixed;inset:0;z-index:9999;overflow:hidden;">
+<div id="login-screen" style="position:fixed;inset:0;z-index:9999;overflow:hidden;width:100vw;height:100vh;">
 
   <style>
-    #ls-root{position:absolute;inset:0;display:flex;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+    #ls-root{position:absolute;inset:0;width:100%;height:100%;display:flex;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
     #ls-bg{position:absolute;inset:0;background:#04060d;}
     #ls-bg::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 90% 70% at 20% 50%,rgba(40,28,8,.95) 0%,transparent 55%),radial-gradient(ellipse 70% 60% at 80% 50%,rgba(10,14,26,.9) 0%,transparent 55%);}
     #ls-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,197,66,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(244,197,66,.018) 1px,transparent 1px);background-size:55px 55px;pointer-events:none;}
@@ -477,8 +477,8 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
     @keyframes lorb{0%,100%{transform:translate(0,0)}50%{transform:translate(40px,-30px)}}
     #ls-vignette{position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 50% 50%,transparent 35%,rgba(0,0,0,.75) 100%);pointer-events:none;}
     /* Layout */
-    #ls-left{flex:1;display:flex;flex-direction:column;justify-content:center;padding:60px 80px;min-width:0;overflow:hidden;}
-    #ls-right{width:480px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:40px;border-left:1px solid rgba(244,197,66,.08);background:rgba(0,0,0,.3);}
+    #ls-left{flex:1;display:flex;flex-direction:column;justify-content:center;padding:50px 60px;min-width:0;overflow:hidden;flex:1;max-width:calc(100% - 420px);}
+    #ls-right{width:420px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:40px;border-left:1px solid rgba(244,197,66,.08);background:rgba(0,0,0,.3);}
     /* Card */
     #ls-card{width:100%;background:rgba(10,14,22,.8);border:0.5px solid rgba(244,197,66,.2);border-radius:20px;padding:40px;backdrop-filter:blur(20px);box-shadow:0 0 0 1px rgba(0,0,0,.5),0 24px 60px rgba(0,0,0,.6);}
     /* Inputs */
@@ -519,7 +519,7 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
       <!-- Hero -->
       <div class="la2">
         <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:rgba(244,197,66,.55);margin-bottom:20px;">Panel del Analista</div>
-        <div style="font-size:64px;font-weight:800;line-height:.88;letter-spacing:-.03em;color:#f4ecd8;margin-bottom:22px;">
+        <div style="font-size:52px;font-weight:800;line-height:.88;letter-spacing:-.03em;color:#f4ecd8;margin-bottom:18px;">
           Excelencia<br>en cada<br><span style="font-family:'Georgia',serif;font-style:italic;color:#f4c542;font-weight:400;">detalle.</span>
         </div>
         <p style="font-size:16px;line-height:1.7;color:rgba(244,236,216,.42);max-width:420px;">
