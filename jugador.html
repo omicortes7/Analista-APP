@@ -121,36 +121,134 @@
 </head>
 <body>
 
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  PANTALLA DE PIN — Areté Academy · Cinematic dark UI     ║
+     ║  Video background + liquid glass + Instrument Serif      ║
+     ╚══════════════════════════════════════════════════════════╝ -->
 <style>
-  /* === PANTALLA PIN === */
-  #pin-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#0a0e1a 0%,#1a1f2e 100%);display:flex;align-items:center;justify-content:center;padding:24px;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
-  #pin-card{width:100%;max-width:380px;background:rgba(20,25,40,.85);border:0.5px solid rgba(124,111,240,.25);border-radius:18px;padding:36px 28px;backdrop-filter:blur(20px);text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.5);}
-  #pin-icon{width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,#7c6ff0,#5a4fd6);margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:28px;}
-  #pin-title{color:#fff;font-size:20px;font-weight:700;margin-bottom:6px;letter-spacing:-.01em;}
-  #pin-sub{color:rgba(255,255,255,.55);font-size:13px;margin-bottom:24px;line-height:1.5;}
-  #pin-jug-nombre{color:#7c6ff0;font-weight:600;}
-  #pin-input{width:100%;height:60px;background:rgba(255,255,255,.06);border:0.5px solid rgba(124,111,240,.3);border-radius:12px;color:#fff;font-size:24px;font-weight:600;text-align:center;letter-spacing:.4em;font-family:inherit;outline:none;transition:all .15s;margin-bottom:14px;padding-left:.4em;box-sizing:border-box;}
-  #pin-input:focus{border-color:rgba(124,111,240,.7);background:rgba(124,111,240,.08);}
-  #pin-btn{width:100%;height:50px;background:linear-gradient(135deg,#7c6ff0,#5a4fd6);color:#fff;font-size:14px;font-weight:700;letter-spacing:.04em;border:none;border-radius:12px;cursor:pointer;transition:opacity .15s,transform .1s;font-family:inherit;}
-  #pin-btn:hover{opacity:.92;}
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Cinzel:wght@400;500;600&family=Manrope:wght@300;400;500;600;700&display=swap');
+
+  #pin-screen{position:fixed;inset:0;z-index:9999;background:#04060d;overflow:hidden;font-family:Manrope,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#f4ecd8;}
+
+  /* Video / fallback fondo cinematográfico */
+  #pin-bg-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:translateY(8%) scale(1.05);opacity:0;transition:opacity .6s ease;will-change:opacity;filter:brightness(.55) saturate(1.05);z-index:0;}
+  #pin-bg-fallback{position:absolute;inset:0;background:radial-gradient(ellipse 90% 70% at 25% 45%,rgba(40,28,8,.95) 0%,transparent 55%),radial-gradient(ellipse 70% 60% at 75% 60%,rgba(10,14,26,.9) 0%,transparent 55%),#04060d;z-index:0;}
+  #pin-bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,197,66,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,197,66,.025) 1px,transparent 1px);background-size:55px 55px;mask-image:radial-gradient(ellipse 70% 70% at 50% 50%,#000 0%,transparent 80%);-webkit-mask-image:radial-gradient(ellipse 70% 70% at 50% 50%,#000 0%,transparent 80%);pointer-events:none;z-index:1;}
+  #pin-bg-orb1{position:absolute;width:600px;height:600px;top:-180px;left:-150px;border-radius:50%;background:radial-gradient(circle,rgba(244,197,66,.14) 0%,transparent 65%);filter:blur(80px);pointer-events:none;animation:porb 16s ease-in-out infinite;z-index:1;}
+  #pin-bg-orb2{position:absolute;width:500px;height:500px;bottom:-150px;right:-120px;border-radius:50%;background:radial-gradient(circle,rgba(244,197,66,.10) 0%,transparent 65%);filter:blur(80px);pointer-events:none;animation:porb 20s ease-in-out infinite reverse;z-index:1;}
+  #pin-bg-vignette{position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 50% 50%,transparent 30%,rgba(0,0,0,.78) 100%);pointer-events:none;z-index:2;}
+  @keyframes porb{0%,100%{transform:translate(0,0)}50%{transform:translate(40px,-30px)}}
+
+  /* Layout */
+  #pin-root{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;z-index:5;}
+
+  /* Liquid glass card */
+  #pin-card{position:relative;width:100%;max-width:440px;border-radius:24px;padding:42px 38px 32px;text-align:center;background:rgba(255,255,255,.01);background-blend-mode:luminosity;backdrop-filter:blur(8px) saturate(1.2);-webkit-backdrop-filter:blur(8px) saturate(1.2);box-shadow:inset 0 1px 1px rgba(255,255,255,.1),0 24px 70px rgba(0,0,0,.65);overflow:hidden;animation:pinFade .9s ease-out .1s both;}
+  #pin-card::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.4px;background:linear-gradient(180deg,rgba(244,197,66,.5) 0%,rgba(244,197,66,.15) 20%,rgba(255,255,255,0) 40%,rgba(255,255,255,0) 60%,rgba(244,197,66,.15) 80%,rgba(244,197,66,.5) 100%);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
+
+  /* Brand */
+  #pin-brand{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:30px;}
+  #pin-logo{width:56px;height:56px;border-radius:50%;border:1px solid rgba(244,197,66,.4);background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;box-shadow:0 0 28px rgba(244,197,66,.18);overflow:hidden;flex-shrink:0;}
+  #pin-logo img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+  #pin-brand-txt{text-align:left;}
+  #pin-brand-name{font-size:18px;font-weight:700;color:#f4ecd8;line-height:1.1;letter-spacing:-.01em;}
+  #pin-brand-tag{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,197,66,.6);margin-top:5px;}
+
+  /* Status pill */
+  #pin-pill{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,197,66,.65);margin-bottom:18px;}
+  #pin-pill .dot{width:7px;height:7px;border-radius:50%;background:#f4c542;animation:ppulse 2s ease-in-out infinite;}
+
+  /* Heading */
+  #pin-h1{font-family:'Instrument Serif',serif;font-size:38px;font-weight:400;color:#f4ecd8;line-height:1.05;margin-bottom:6px;letter-spacing:-.01em;}
+  #pin-h1 em{font-style:italic;color:#f4c542;}
+  #pin-sub{font-size:13px;color:rgba(244,236,216,.5);margin-bottom:26px;line-height:1.55;font-weight:300;}
+  #pin-jug-nombre{color:#f4c542;font-weight:500;font-style:italic;font-family:'Instrument Serif',serif;font-size:15px;}
+
+  /* PIN input */
+  #pin-input{width:100%;height:64px;background:rgba(255,255,255,.04);border:0.5px solid rgba(244,197,66,.22);border-radius:14px;color:#f4ecd8;font-size:30px;font-weight:600;text-align:center;letter-spacing:.5em;font-family:'Manrope',sans-serif;outline:none;transition:all .2s;margin-bottom:14px;padding-left:.5em;box-sizing:border-box;}
+  #pin-input:focus{border-color:rgba(244,197,66,.55);background:rgba(244,197,66,.05);box-shadow:0 0 0 3px rgba(244,197,66,.08);}
+  #pin-input::placeholder{color:rgba(244,236,216,.18);}
+
+  /* Botón con icono */
+  #pin-btn{width:100%;height:54px;background:linear-gradient(135deg,#b8943e,#f4c542);color:#0a0e1a;font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:none;border-radius:14px;cursor:pointer;transition:opacity .15s,transform .1s,box-shadow .2s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 8px 24px rgba(244,197,66,.25);}
+  #pin-btn:hover{opacity:.95;box-shadow:0 12px 32px rgba(244,197,66,.35);}
   #pin-btn:active{transform:scale(.98);}
-  #pin-btn:disabled{opacity:.5;cursor:not-allowed;}
-  #pin-error{display:none;margin-top:12px;color:#f85149;font-size:13px;background:rgba(248,81,73,.08);border:0.5px solid rgba(248,81,73,.2);border-radius:8px;padding:10px;}
-  #pin-remember{margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:rgba(255,255,255,.45);cursor:pointer;}
-  #pin-remember input{accent-color:#7c6ff0;}
+  #pin-btn:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}
+  #pin-btn svg{width:16px;height:16px;}
+
+  /* Error */
+  #pin-error{display:none;margin-top:14px;color:#f85149;font-size:13px;background:rgba(248,81,73,.06);border:0.5px solid rgba(248,81,73,.22);border-radius:10px;padding:10px 12px;}
+
+  /* Remember */
+  #pin-remember{margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:rgba(244,236,216,.42);cursor:pointer;font-weight:300;}
+  #pin-remember input{accent-color:#f4c542;}
+
+  /* Footer fijo */
+  #pin-foot{position:absolute;left:0;right:0;bottom:18px;text-align:center;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,236,216,.25);pointer-events:none;z-index:5;}
+
+  @keyframes pinFade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes ppulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}
+
+  @media (max-height:640px){
+    #pin-card{padding:28px 30px 22px;}
+    #pin-brand{margin-bottom:18px;}
+    #pin-h1{font-size:30px;}
+    #pin-sub{margin-bottom:18px;}
+    #pin-input{height:54px;margin-bottom:10px;font-size:24px;}
+    #pin-btn{height:48px;}
+  }
 </style>
 
-<!-- Pantalla de PIN — visible al cargar, se esconde tras validación -->
 <div id="pin-screen">
-  <div id="pin-card">
-    <div id="pin-icon">🔒</div>
-    <div id="pin-title">Acceso al panel</div>
-    <div id="pin-sub">Hola <span id="pin-jug-nombre">jugador</span>, introduce tu PIN para entrar.</div>
-    <input type="tel" id="pin-input" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000" autofocus>
-    <button id="pin-btn" type="button">Entrar</button>
-    <div id="pin-error"></div>
-    <label id="pin-remember"><input type="checkbox" id="pin-remember-chk" checked> Recordar en este dispositivo</label>
+  <!-- Capas decorativas + video -->
+  <video id="pin-bg-video" autoplay muted loop playsinline preload="auto"
+    src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_115001_bcdaa3b4-03de-47e7-ad63-ae3e392c32d4.mp4"></video>
+  <div id="pin-bg-fallback"></div>
+  <div id="pin-bg-orb1"></div>
+  <div id="pin-bg-orb2"></div>
+  <div id="pin-bg-grid"></div>
+  <div id="pin-bg-vignette"></div>
+
+  <div id="pin-root">
+    <div id="pin-card">
+      <!-- Brand -->
+      <div id="pin-brand">
+        <div id="pin-logo">
+          <!-- Si tienes logo PNG, ponlo aquí -->
+          <svg viewBox="0 0 60 60" width="32" height="32" fill="none" stroke="#f4c542" stroke-width="1.6">
+            <circle cx="30" cy="30" r="22" stroke-opacity=".5"/>
+            <path d="M16 40 L30 16 L44 40 M22 32 L38 32"/>
+          </svg>
+        </div>
+        <div id="pin-brand-txt">
+          <div id="pin-brand-name">Areté Academy</div>
+          <div id="pin-brand-tag">El detalle marca la diferencia</div>
+        </div>
+      </div>
+
+      <!-- Pill -->
+      <div id="pin-pill"><span class="dot"></span>Acceso seguro · panel del jugador</div>
+
+      <!-- Heading -->
+      <div id="pin-h1">Bienvenido, <em><span id="pin-jug-nombre">jugador</span></em></div>
+      <p id="pin-sub">Introduce tu PIN de 4 dígitos para entrar a tu panel.</p>
+
+      <!-- Input + botón -->
+      <input type="tel" id="pin-input" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="• • • •" autofocus>
+      <button id="pin-btn" type="button">
+        <span id="pin-btn-txt">Entrar</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+
+      <div id="pin-error"></div>
+
+      <label id="pin-remember">
+        <input type="checkbox" id="pin-remember-chk" checked> Recordar en este dispositivo
+      </label>
+    </div>
   </div>
+
+  <div id="pin-foot">Omar Cortés Ferrero · Análisis Individual de Fútbol</div>
 </div>
 
 <div id="app-loading" class="loading" style="display:none;">
@@ -250,92 +348,95 @@ const FRASES_POST = [
 
 let DB, jug, objetivos, informes, microconceptos;
 
-// === PIN GATE ===
+// === PIN GATE v2 — wiring INMEDIATO (no depende de init async) ===
 const PIN_REMEMBER_DAYS = 30;
 
+// Wiring del botón: se hace al cargar el script, sin esperar a init/Supabase.
+// Si supabase aún no está, el handler espera al click y luego usa DB.
+function wireButtonNow(){
+  const inp = document.getElementById('pin-input');
+  const btn = document.getElementById('pin-btn');
+  const btnTxt = document.getElementById('pin-btn-txt');
+  const err = document.getElementById('pin-error');
+  if(!inp || !btn) { console.error('[pin] inputs no encontrados'); return; }
+  console.log('[pin] botón cableado');
+
+  function clearErr(){ err.style.display='none'; err.textContent=''; }
+  function showErr(m){ err.textContent=m; err.style.display='block'; }
+  function setLoading(on){
+    btn.disabled = on;
+    btnTxt.textContent = on ? 'Comprobando…' : 'Entrar';
+  }
+
+  inp.addEventListener('input', clearErr);
+  inp.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); tryPin(); }});
+  btn.addEventListener('click', e => { e.preventDefault(); tryPin(); });
+
+  async function tryPin(){
+    const p = (inp.value || '').trim();
+    if(p.length !== 4 || !/^\d{4}$/.test(p)){ showErr('El PIN son 4 dígitos.'); return; }
+    if(!DB){
+      try { DB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
+      catch(e){ showErr('Error técnico. Recarga la página.'); return; }
+    }
+    setLoading(true);
+    clearErr();
+    try {
+      const r = await DB.from('jugadores').select('id,nombre,pin').eq('pin', p).limit(2);
+      if(r.error){ showErr('Error: ' + r.error.message); setLoading(false); return; }
+      const rows = r.data || [];
+      if(rows.length === 0){ showErr('PIN incorrecto. Verifica con tu analista.'); inp.value=''; inp.focus(); setLoading(false); return; }
+      if(rows.length > 1){ showErr('Conflicto de PIN. Avisa a tu analista.'); setLoading(false); return; }
+      const jug = rows[0];
+      if(document.getElementById('pin-remember-chk').checked){ saveRememberedPin(jug.id, jug.pin); saveLastJugadorId(jug.id); }
+      // Mostrar nombre antes de cargar
+      document.getElementById('pin-jug-nombre').textContent = jug.nombre || 'jugador';
+      await loadFullData(jug.id);
+    } catch(e){ console.error('[pin] error:', e); showErr('Error de conexión: ' + (e.message||e)); setLoading(false); }
+  }
+}
+
+// Init: solo se encarga de auto-login (si hay PIN recordado) y URL legacy.
+// El wiring del botón es independiente.
 async function init() {
   try {
     DB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  } catch(e){ console.error('[init] supabase init falló:', e); return; }
 
-    // Modo URL legacy: ?id=xxx (compatibilidad con links antiguos)
-    const params = new URLSearchParams(window.location.search);
-    const jugIdLegacy = params.get('id');
-    if(jugIdLegacy){
+  // Modo URL legacy: ?id=xxx (links antiguos)
+  const params = new URLSearchParams(window.location.search);
+  const jugIdLegacy = params.get('id');
+  if(jugIdLegacy){
+    try {
       const jr = await DB.from('jugadores').select('id,nombre,pin').eq('id', jugIdLegacy).single();
-      if(jr.error || !jr.data){ showPinError('Jugador no encontrado.'); return; }
-      const j = jr.data;
-      document.getElementById('pin-jug-nombre').textContent = j.nombre || 'jugador';
-      if(!j.pin){ return loadFullData(j.id); }
-      const rem = readRememberedPin(j.id);
-      if(rem && rem === j.pin){ return loadFullData(j.id); }
-      wirePinGateForJugador(j.id, j.pin);
-      return;
-    }
+      if(jr.data){
+        document.getElementById('pin-jug-nombre').textContent = jr.data.nombre || 'jugador';
+        const rem = readRememberedPin(jr.data.id);
+        if(rem && rem === jr.data.pin){ return loadFullData(jr.data.id); }
+      }
+    } catch(e){ console.warn('[init] legacy id falló:', e); }
+    return;
+  }
 
-    // Modo nuevo (sin ID): el jugador entra solo con su PIN
-    // Auto-login si hay PIN guardado de visita anterior
-    const lastJugId = readLastJugadorId();
-    if(lastJugId){
+  // Auto-login si hay PIN recordado
+  const lastJugId = readLastJugadorId();
+  if(lastJugId){
+    try {
       const jr = await DB.from('jugadores').select('id,nombre,pin').eq('id', lastJugId).single();
-      if(!jr.error && jr.data){
+      if(jr.data){
         const rem = readRememberedPin(jr.data.id);
         if(rem && rem === jr.data.pin){ return loadFullData(jr.data.id); }
         document.getElementById('pin-jug-nombre').textContent = jr.data.nombre || 'jugador';
       }
-    }
-    document.getElementById('pin-sub').innerHTML = 'Introduce tu PIN para entrar a tu panel.';
-    document.getElementById('pin-jug-nombre').textContent = 'jugador';
-    wirePinGateGlobal();
-  } catch(e) {
-    showPinError('Error de conexión: ' + (e.message || e));
+    } catch(e){ console.warn('[init] last jug falló:', e); }
   }
 }
 
-function wirePinGateForJugador(jugId, expectedPin){
-  const inp = document.getElementById('pin-input');
-  const btn = document.getElementById('pin-btn');
-  const err = document.getElementById('pin-error');
-  function clearErr(){ err.style.display='none'; err.textContent=''; }
-  function showErr(m){ err.textContent=m; err.style.display='block'; }
-  inp.focus();
-  inp.addEventListener('input', clearErr);
-  inp.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); tryPin(); }});
-  btn.addEventListener('click', tryPin);
-  function tryPin(){
-    const p=(inp.value||'').trim();
-    if(!p){ showErr('Introduce el PIN.'); return; }
-    if(p !== expectedPin){ showErr('PIN incorrecto. Inténtalo de nuevo.'); inp.value=''; inp.focus(); return; }
-    if(document.getElementById('pin-remember-chk').checked){ saveRememberedPin(jugId, expectedPin); saveLastJugadorId(jugId); }
-    loadFullData(jugId);
-  }
-}
-
-function wirePinGateGlobal(){
-  const inp = document.getElementById('pin-input');
-  const btn = document.getElementById('pin-btn');
-  const err = document.getElementById('pin-error');
-  function clearErr(){ err.style.display='none'; err.textContent=''; }
-  function showErr(m){ err.textContent=m; err.style.display='block'; }
-  inp.focus();
-  inp.addEventListener('input', clearErr);
-  inp.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); tryPin(); }});
-  btn.addEventListener('click', tryPin);
-  async function tryPin(){
-    const p=(inp.value||'').trim();
-    if(!p){ showErr('Introduce el PIN.'); return; }
-    if(p.length !== 4 || !/^\d{4}$/.test(p)){ showErr('El PIN son 4 dígitos.'); return; }
-    btn.disabled = true; btn.textContent = 'Comprobando…';
-    try {
-      const r = await DB.from('jugadores').select('id,nombre,pin').eq('pin', p).limit(2);
-      if(r.error){ showErr('Error: ' + r.error.message); btn.disabled=false; btn.textContent='Entrar'; return; }
-      const rows = r.data || [];
-      if(rows.length === 0){ showErr('PIN incorrecto. Verifica con tu analista.'); inp.value=''; inp.focus(); btn.disabled=false; btn.textContent='Entrar'; return; }
-      if(rows.length > 1){ showErr('Conflicto de PIN. Avisa a tu analista.'); btn.disabled=false; btn.textContent='Entrar'; return; }
-      const jug = rows[0];
-      if(document.getElementById('pin-remember-chk').checked){ saveRememberedPin(jug.id, jug.pin); saveLastJugadorId(jug.id); }
-      loadFullData(jug.id);
-    } catch(e){ showErr('Error de conexión: ' + (e.message||e)); btn.disabled=false; btn.textContent='Entrar'; }
-  }
+// Wire INMEDIATO al cargar el DOM
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', wireButtonNow);
+} else {
+  wireButtonNow();
 }
 
 function showPinError(msg){
