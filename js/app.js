@@ -932,7 +932,9 @@ function renderMicros(){
   POSICIONES.forEach(pc=>{
     const av=AV_COLORS[pc];const ic=FOLDER_ICONS[pc];
     if(fp&&fp!==pc)return;
-    const mp=state.microconceptos.filter(m=>m.posicion===pc&&(!ff||m.fase===ff)&&(!q||m.titulo.toLowerCase().includes(q)||(m.referencia||'').toLowerCase().includes(q)));
+    let mp=state.microconceptos.filter(m=>m.posicion===pc&&(!ff||m.fase===ff)&&(!q||m.titulo.toLowerCase().includes(q)||(m.referencia||'').toLowerCase().includes(q)));
+    // Defensa en profundidad: dedup en runtime por (fase+lower(titulo)). Si hay duplicados en BD, se muestra solo el primero.
+    { const _seen=new Set(); mp = mp.filter(m=>{ const k=(m.fase||'')+'|'+(m.titulo||'').trim().toLowerCase(); if(_seen.has(k))return false; _seen.add(k); return true; }); }
     if(!mp.length)return;
     const op=state.folderState[pc]!==false;
     h+=`<div class="folder"><div class="folder-header" onclick="tC('${pc}')"><div class="folder-icon" style="background:${av.bg};color:${av.color};">${ic}</div><div class="folder-name">${pc}</div><div class="folder-count">${mp.length}</div><span style="font-size:12px;color:var(--text3);">${op?'▲':'▼'}</span></div><div class="folder-body${op?' open':''}">`;
@@ -990,13 +992,32 @@ function openMic(id){
 
 async function saveMicro(){
   const titulo=document.getElementById('mc-titulo').value.trim();if(!titulo){alert('Título obligatorio');return;}
+  const posicion=document.getElementById('mc-pos').value;
+  const fase=document.getElementById('mc-fase').value;
+  const norm=s=>(s||'').trim().toLowerCase();
+  const existing=state.microconceptos.find(m=>norm(m.titulo)===norm(titulo)&&m.posicion===posicion&&m.fase===fase);
   let video_url=document.getElementById('mc-video').value.trim();
   const fi=document.getElementById('mc-video-file');
   if(fi&&fi.files&&fi.files[0]){showToast('Subiendo vídeo...');const u=await uploadVideoClip(fi.files[0]);if(u)video_url=u;}
-  const data={titulo,descripcion:document.getElementById('mc-desc').value.trim(),posicion:document.getElementById('mc-pos').value,fase:document.getElementById('mc-fase').value,referencia:document.getElementById('mc-ref').value.trim(),video_url};
+  if(existing){
+    if(video_url){
+      const {data:cd,error:ce}=await DB.from('clips_microconcepto').insert({micro_id:existing.id,titulo:'',tipo:'general',url:video_url}).select();
+      if(ce){showToast('Error añadiendo clip: '+ce.message);return;}
+      if(!state.micClips)state.micClips=[];state.micClips.push(cd[0]);
+      showToast('Ya existía «'+existing.titulo+'» — clip añadido');
+    } else {
+      showToast('Ya existe «'+existing.titulo+'»');
+    }
+    closeModal('modal-nuevo-micro');renderMicros();openMic(existing.id);return;
+  }
+  const data={titulo,descripcion:document.getElementById('mc-desc').value.trim(),posicion,fase,referencia:document.getElementById('mc-ref').value.trim(),video_url:''};
   const{data:res,error}=await DB.from('microconceptos').insert(data).select();
-  if(error){showToast('Error');return;}
+  if(error){showToast('Error: '+error.message);return;}
   state.microconceptos.push(res[0]);state.microconceptos.sort((a,b)=>a.titulo.localeCompare(b.titulo,'es'));
+  if(video_url){
+    const {data:cd,error:ce}=await DB.from('clips_microconcepto').insert({micro_id:res[0].id,titulo:'',tipo:'general',url:video_url}).select();
+    if(!ce&&cd&&cd[0]){if(!state.micClips)state.micClips=[];state.micClips.push(cd[0]);}
+  }
   closeModal('modal-nuevo-micro');renderMicros();showToast('Microconcepto añadido');
 }
 
@@ -1006,12 +1027,17 @@ async function saveClip(){
   const fi=document.getElementById('dm-video-file');
   if(fi&&fi.files&&fi.files[0]){if(fi.files[0].size>50*1024*1024){showToast('El archivo supera 50MB');return;}showToast('Subiendo vídeo...');const u=await uploadVideoClip(fi.files[0]);if(u)video_url=u;else return;}
   if(!video_url){showToast('Selecciona un archivo o pega un enlace');return;}
-  const{error}=await DB.from('microconceptos').update({video_url}).eq('id',id);
-  if(error){showToast('Error');return;}
-  const m=state.microconceptos.find(x=>String(x.id)===String(id));if(m)m.video_url=video_url;
-  document.getElementById('dm-video').innerHTML=renderVideoPlayer(video_url);
-  document.getElementById('dm-video-file').value='';document.getElementById('dm-video-url').value='';
-  showToast('Clip guardado');renderMicros();
+  // Modelo único: todo vídeo va a clips_microconcepto (permite múltiples clips por micro)
+  const {data:cd,error}=await DB.from('clips_microconcepto').insert({micro_id:id,titulo:'',tipo:'general',url:video_url}).select();
+  if(error){showToast('Error: '+error.message);return;}
+  if(!state.micClips)state.micClips=[];state.micClips.push(cd[0]);
+  // Refrescar carrusel del modal
+  const carruselEl=document.getElementById('dm-carrusel');
+  if(carruselEl)carruselEl.innerHTML=renderMicCarrusel(id);
+  if(typeof renderMicClipsPanel==='function')renderMicClipsPanel(id);
+  const dvf=document.getElementById('dm-video-file');if(dvf)dvf.value='';
+  const dvu=document.getElementById('dm-video-url');if(dvu)dvu.value='';
+  showToast('Clip añadido ✓');renderMicros();
 }
 
 async function uploadVideoClip(file){
@@ -3463,11 +3489,7 @@ async function addMicClip(microId) {
 
   if(!url) { showToast('Selecciona archivo o pega enlace'); return; }
 
-  const clips = getMicClips(microId);
-  const mForCheck = state.microconceptos.find(x=>x.id===microId);
-  const mainSlot = mForCheck?.video_url ? 1 : 0;
-  if(clips.length >= (3 - mainSlot)) { showToast('Máximo de clips adicionales alcanzado'); return; }
-
+  // Sin límite artificial: el usuario puede añadir todos los clips que quiera por micro
   const { data, error } = await DB.from('clips_microconcepto').insert({
     micro_id: microId,
     titulo: tituloInput?.value.trim() || '',
@@ -3518,7 +3540,7 @@ function renderMicClipsPanel(microId) {
 
   panel.innerHTML = `
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);margin-bottom:10px;">
-      Clips adicionales (${clips.length}/${totalSlots - (hasMain?1:0)})
+      Clips adicionales (${clips.length})
       ${hasMain ? '<span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;"> · El clip principal está arriba</span>' : ''}
     </div>
 
@@ -3534,9 +3556,9 @@ function renderMicClipsPanel(microId) {
         ${renderVideoClipItem(c)}
       </div>`).join('')}
 
-    ${clips.length < (hasMain ? 2 : 3) ? `
+    ${true ? `
       <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:.875rem;border:0.5px dashed var(--border2);">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:7px;">Añadir clip ${clips.length+1} de 3</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:7px;">Añadir clip ${clips.length+1}</div>
         <input type="text" id="mc-clip-titulo-${microId}" placeholder="Título del clip" style="${SI}">
         <select id="mc-clip-tipo-${microId}" style="${SI}">
           <option value="general">General</option>
