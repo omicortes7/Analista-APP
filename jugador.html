@@ -2471,17 +2471,18 @@ function renderInicio() {
     };
     var tipoInfo = tipoHoy ? TIPOS_LABEL[tipoHoy] : { label:'Sin evento programado', color:'rgba(255,255,255,0.5)', bg:'rgba(255,255,255,0.04)', ico:'·' };
 
-    // Tareas del día según el tipo
+    // Tareas del día — mental SIEMPRE visible, etiqueta adaptable según tipoHoy
     var tareasHoy = [];
-    if (tipoHoy === 'entreno' || tipoHoy === 'partido') {
-      var doneM = (tipoHoy === 'partido') ? mentalPartidoDone : mentalEntrenoDone;
-      tareasHoy.push({
-        ico: '🧠',
-        label: 'Cuestionario mental ' + (tipoHoy === 'partido' ? '· post-partido' : '· post-entreno'),
-        done: doneM,
-        action: 'goSec(\'psico\',document.querySelector(\'.nb[data-id=psico]\'))'
-      });
-    }
+    var mentalDone = mentalHoy.length > 0; // hizo cualquier check mental hoy (entreno/partido/general)
+    var mentalLabel = 'Cuestionario mental';
+    if (tipoHoy === 'partido') mentalLabel = 'Cuestionario mental · post-partido';
+    else if (tipoHoy === 'entreno') mentalLabel = 'Cuestionario mental · post-entreno';
+    tareasHoy.push({
+      ico: '🧠',
+      label: mentalLabel,
+      done: mentalDone,
+      action: 'goSec(\'psico\',document.querySelector(\'.nb[data-id=psico]\'))'
+    });
     // Nutrición todos los días
     tareasHoy.push({
       ico: '🥗',
@@ -2490,13 +2491,21 @@ function renderInicio() {
       action: 'goSec(\'nut\',document.querySelector(\'.nb[data-id=nut]\'))'
     });
 
-    // Plan del partido del finde — solo si hay próximo partido
-    if (proxPartido) {
-      var rivalCorto = proxPartido.rival ? (' vs ' + proxPartido.rival) : '';
+    // Plan del partido del finde — SIEMPRE visible si hay partido en calendario o si hay algún plan
+    if (proxPartido || planesAll.length > 0) {
+      var rivalCorto = (proxPartido && proxPartido.rival) ? (' vs ' + proxPartido.rival) : '';
+      // done: tiene plan específico para el próximo partido, o (sin partido en cal) tiene un plan creado en últimos 14 días
+      var hasRecentPlan = false;
+      if (planesAll.length > 0) {
+        var lastPlanDate = new Date(planesAll[0].created_at);
+        var diffDays = (Date.now() - lastPlanDate.getTime()) / (1000*60*60*24);
+        hasRecentPlan = diffDays <= 14;
+      }
+      var planDone = !!planFinde || (!proxPartido && hasRecentPlan);
       tareasHoy.push({
         ico: '📋',
         label: 'Plan del partido del finde' + rivalCorto,
-        done: !!planFinde,
+        done: planDone,
         action: 'goSec(\'plan\',document.querySelector(\'.nb[data-id=plan]\'))'
       });
     }
