@@ -230,6 +230,107 @@ function renderInicio(){
       </div>`;
     }).join(''):'<div style="font-size:12px;color:var(--text3);padding:1.5rem;text-align:center;background:var(--bg2);border-radius:10px;">Sin informes todavía.</div>';
   }
+  // Estado de hoy por jugador (mental / nutrición / plan finde)
+  if (typeof renderChecksHoy === 'function') renderChecksHoy().catch(function(e){ console.warn('checksHoy', e); });
+}
+
+// ─── ESTADO DE HOY por jugador ───
+async function renderChecksHoy(){
+  const _aid = _miAnalistaId();
+  const _misJ = _aid ? state.jugadores.filter(function(j){return j.analista_id===_aid;}) : state.jugadores;
+  if(!_misJ.length) return;
+  const ids = _misJ.map(function(j){return j.id;});
+  const hoy = new Date().toISOString().slice(0,10);
+
+  // Asegurar contenedor (debajo de hpend)
+  let host = document.getElementById('h-checks-hoy');
+  if(!host){
+    host = document.createElement('div');
+    host.id = 'h-checks-hoy';
+    host.style.marginTop = '22px';
+    const hpend = document.getElementById('hpend');
+    if(hpend && hpend.parentNode){
+      // Insertar tras "Tus jugadores hoy"
+      hpend.parentNode.insertBefore(host, hpend.nextSibling);
+    } else {
+      return;
+    }
+  }
+  host.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:10px 0;">Cargando estado de hoy…</div>';
+
+  try {
+    const [calRes, mentalRes, nutRes, planesRes, partidosRes] = await Promise.all([
+      DB.from('calendario_semana').select('jugador_id,tipo,rival,fecha').in('jugador_id', ids).eq('fecha', hoy),
+      DB.from('mental_log').select('jugador_id,tipo').in('jugador_id', ids).eq('fecha', hoy),
+      DB.from('nutricion_log').select('jugador_id').in('jugador_id', ids).eq('fecha', hoy),
+      DB.from('planes_partido').select('jugador_id,fecha,rival,created_at').in('jugador_id', ids).order('created_at',{ascending:false}),
+      DB.from('calendario_semana').select('jugador_id,fecha,rival').in('jugador_id', ids).eq('tipo','partido').gte('fecha', hoy).order('fecha')
+    ]);
+    const calByJ = {}, menByJ = {}, nutByJ = {}, planesByJ = {}, proxByJ = {};
+    (calRes.data||[]).forEach(function(r){ calByJ[r.jugador_id] = r; });
+    (mentalRes.data||[]).forEach(function(r){ menByJ[r.jugador_id] = true; });
+    (nutRes.data||[]).forEach(function(r){ nutByJ[r.jugador_id] = true; });
+    (planesRes.data||[]).forEach(function(r){ (planesByJ[r.jugador_id] = planesByJ[r.jugador_id]||[]).push(r); });
+    (partidosRes.data||[]).forEach(function(r){ if(!proxByJ[r.jugador_id]) proxByJ[r.jugador_id] = r; });
+
+    function badge(label, ico, done){
+      const bg = done ? 'rgba(63,185,80,0.14)' : 'rgba(120,120,120,0.10)';
+      const col = done ? '#1D9E75' : 'var(--text3)';
+      const sym = done ? '✓' : '·';
+      return '<span title="'+label+'" style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;background:'+bg+';color:'+col+';font-size:10px;font-weight:600;line-height:1;">'+ico+' '+sym+'</span>';
+    }
+
+    const fechaTxt = new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+    let h = '<div style="display:flex;align-items:center;gap:8px;margin:18px 0 8px;">'+
+      '<div style="font-size:13px;font-weight:600;color:var(--text);">Estado de hoy</div>'+
+      '<div style="font-size:11px;color:var(--text3);">· '+fechaTxt+'</div></div>';
+
+    h += _misJ.map(function(j){
+      const cal = calByJ[j.id];
+      const tipo = cal ? cal.tipo : null;
+      const TIPOS = {
+        partido:  {l:'⚽ Partido',  c:'#58a6ff'},
+        entreno:  {l:'💪 Entreno',  c:'#1D9E75'},
+        descanso: {l:'😴 Descanso', c:'#888'},
+        otros:    {l:'📌 Especial', c:'#E07B00'}
+      };
+      const ti = tipo && TIPOS[tipo] ? TIPOS[tipo] : {l:'— Sin evento programado', c:'var(--text3)'};
+
+      const mDone = !!menByJ[j.id];
+      const nDone = !!nutByJ[j.id];
+      const pPart = proxByJ[j.id];
+      const planList = planesByJ[j.id] || [];
+      let planFinde = null;
+      if(pPart){
+        planFinde = planList.find(function(p){ return p.fecha === pPart.fecha; })
+                 || (pPart.rival ? planList.find(function(p){ return p.rival && p.rival.trim().toLowerCase() === pPart.rival.trim().toLowerCase(); }) : null);
+      }
+      let pDone = !!planFinde;
+      if(!pDone && !pPart && planList.length){
+        const days = (Date.now() - new Date(planList[0].created_at).getTime()) / (1000*60*60*24);
+        if(days <= 14) pDone = true;
+      }
+      const showPlan = !!pPart || planList.length > 0;
+
+      const pc = (typeof AV_COLORS !== 'undefined' && AV_COLORS[j.posicion]) ? AV_COLORS[j.posicion] : {bg:'#eee',color:'#666'};
+      return '<div onclick="openJug(\''+j.id+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg);border:0.5px solid var(--border);margin-bottom:7px;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--border2)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'+
+        '<div class="avatar" style="width:32px;height:32px;font-size:11px;font-weight:700;background:'+pc.bg+';color:'+pc.color+';flex-shrink:0;">'+(typeof initials==='function'?initials(j.nombre):(j.nombre||'·').slice(0,2).toUpperCase())+'</div>'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+j.nombre+'</div>'+
+          '<div style="font-size:10px;color:'+ti.c+';">'+ti.l+'</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">'+
+          badge('Mental', '🧠', mDone)+
+          badge('Nutrición', '🥗', nDone)+
+          (showPlan ? badge('Plan partido del finde', '📋', pDone) : '')+
+        '</div>'+
+      '</div>';
+    }).join('');
+
+    host.innerHTML = h;
+  } catch(e){
+    host.innerHTML = '<div style="font-size:11px;color:#D85A30;padding:8px 0;">Error: '+(e.message||e)+'</div>';
+  }
 }
 
 // ─── JUGADORES ───
