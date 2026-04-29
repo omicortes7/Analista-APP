@@ -2135,10 +2135,26 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
   };
 
   window.doLogout = function() {
-    DB.auth.signOut().then(function() {
-      document.getElementById('app-screen').style.display = 'none';
-      document.getElementById('login-screen').style.display = 'flex';
-    });
+    // Cerrar sesión PIN: borrar todos los datos guardados en localStorage
+    try {
+      Object.keys(localStorage).forEach(function(k){
+        if(k.startsWith('arete-pin-') || k === 'arete-last-jugador') {
+          localStorage.removeItem(k);
+        }
+      });
+    } catch(e){}
+    // Limpiar caches en memoria
+    try {
+      window._jugId = null;
+      window._jug = null;
+      window._jugadorData = null;
+      window._clips = [];
+      window._informes = [];
+    } catch(e){}
+    // También cerrar sesión de Supabase Auth (por si quedaba alguna)
+    try { if(DB && DB.auth) DB.auth.signOut(); } catch(e){}
+    // Recargar para volver a la pantalla de PIN limpia
+    window.location.reload();
   };
 
   function loadApp(user) {
