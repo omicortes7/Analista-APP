@@ -2135,26 +2135,23 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
   };
 
   window.doLogout = function() {
-    // Cerrar sesión PIN: borrar todos los datos guardados en localStorage
+    // 1. Borrar TODO lo de PIN del localStorage
     try {
-      Object.keys(localStorage).forEach(function(k){
-        if(k.startsWith('arete-pin-') || k === 'arete-last-jugador') {
+      var keys = [];
+      for(var i=0; i<localStorage.length; i++){ keys.push(localStorage.key(i)); }
+      keys.forEach(function(k){
+        if(k && (k.indexOf('arete-pin-')===0 || k==='arete-last-jugador' || k.indexOf('sb-')===0 || k.indexOf('auth-token')>=0)){
           localStorage.removeItem(k);
         }
       });
-    } catch(e){}
-    // Limpiar caches en memoria
+    } catch(e){ console.warn('logout localStorage:', e); }
+    // 2. Forzar navegación a la URL base SIN parámetros — asegura volver a pantalla de PIN
     try {
-      window._jugId = null;
-      window._jug = null;
-      window._jugadorData = null;
-      window._clips = [];
-      window._informes = [];
-    } catch(e){}
-    // También cerrar sesión de Supabase Auth (por si quedaba alguna)
-    try { if(DB && DB.auth) DB.auth.signOut(); } catch(e){}
-    // Recargar para volver a la pantalla de PIN limpia
-    window.location.reload();
+      var baseUrl = window.location.origin + window.location.pathname;
+      window.location.replace(baseUrl);
+    } catch(e){
+      window.location.href = window.location.pathname;
+    }
   };
 
   function loadApp(user) {
