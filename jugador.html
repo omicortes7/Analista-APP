@@ -146,7 +146,7 @@
     <div id="pin-icon">🔒</div>
     <div id="pin-title">Acceso al panel</div>
     <div id="pin-sub">Hola <span id="pin-jug-nombre">jugador</span>, introduce tu PIN para entrar.</div>
-    <input type="tel" id="pin-input" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••" autofocus>
+    <input type="tel" id="pin-input" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000" autofocus>
     <button id="pin-btn" type="button">Entrar</button>
     <div id="pin-error"></div>
     <label id="pin-remember"><input type="checkbox" id="pin-remember-chk" checked> Recordar en este dispositivo</label>
@@ -254,57 +254,87 @@ let DB, jug, objetivos, informes, microconceptos;
 const PIN_REMEMBER_DAYS = 30;
 
 async function init() {
-  const params = new URLSearchParams(window.location.search);
-  const jugId = params.get('id');
-  if(!jugId) { showPinError('Falta el ID del jugador en la URL.'); return; }
-
   try {
     DB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    // 1) Cargar SOLO el jugador (id, nombre, pin) para validar acceso
-    const jr = await DB.from('jugadores').select('id,nombre,pin').eq('id', jugId).single();
-    if(jr.error || !jr.data) { showPinError('Jugador no encontrado.'); return; }
-    const jugLite = jr.data;
-    document.getElementById('pin-jug-nombre').textContent = jugLite.nombre || 'jugador';
 
-    // 2) Si NO hay PIN configurado, dejarlo entrar directamente (legacy)
-    if(!jugLite.pin) { return loadFullData(jugId); }
-
-    // 3) Si hay PIN guardado en localStorage para este jugador y aún válido, entrar directo
-    const remembered = readRememberedPin(jugId);
-    if(remembered && remembered === jugLite.pin) {
-      return loadFullData(jugId);
+    // Modo URL legacy: ?id=xxx (compatibilidad con links antiguos)
+    const params = new URLSearchParams(window.location.search);
+    const jugIdLegacy = params.get('id');
+    if(jugIdLegacy){
+      const jr = await DB.from('jugadores').select('id,nombre,pin').eq('id', jugIdLegacy).single();
+      if(jr.error || !jr.data){ showPinError('Jugador no encontrado.'); return; }
+      const j = jr.data;
+      document.getElementById('pin-jug-nombre').textContent = j.nombre || 'jugador';
+      if(!j.pin){ return loadFullData(j.id); }
+      const rem = readRememberedPin(j.id);
+      if(rem && rem === j.pin){ return loadFullData(j.id); }
+      wirePinGateForJugador(j.id, j.pin);
+      return;
     }
 
-    // 4) Mostrar pantalla de PIN
-    wirePinGate(jugId, jugLite.pin);
+    // Modo nuevo (sin ID): el jugador entra solo con su PIN
+    // Auto-login si hay PIN guardado de visita anterior
+    const lastJugId = readLastJugadorId();
+    if(lastJugId){
+      const jr = await DB.from('jugadores').select('id,nombre,pin').eq('id', lastJugId).single();
+      if(!jr.error && jr.data){
+        const rem = readRememberedPin(jr.data.id);
+        if(rem && rem === jr.data.pin){ return loadFullData(jr.data.id); }
+        document.getElementById('pin-jug-nombre').textContent = jr.data.nombre || 'jugador';
+      }
+    }
+    document.getElementById('pin-sub').innerHTML = 'Introduce tu PIN para entrar a tu panel.';
+    document.getElementById('pin-jug-nombre').textContent = 'jugador';
+    wirePinGateGlobal();
   } catch(e) {
-    showPinError('Error de conexión: ' + e.message);
+    showPinError('Error de conexión: ' + (e.message || e));
   }
 }
 
-function wirePinGate(jugId, expectedPin){
+function wirePinGateForJugador(jugId, expectedPin){
   const inp = document.getElementById('pin-input');
   const btn = document.getElementById('pin-btn');
   const err = document.getElementById('pin-error');
   function clearErr(){ err.style.display='none'; err.textContent=''; }
-  function showErr(msg){ err.textContent=msg; err.style.display='block'; }
+  function showErr(m){ err.textContent=m; err.style.display='block'; }
   inp.focus();
   inp.addEventListener('input', clearErr);
   inp.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); tryPin(); }});
   btn.addEventListener('click', tryPin);
   function tryPin(){
-    const p = (inp.value||'').trim();
+    const p=(inp.value||'').trim();
     if(!p){ showErr('Introduce el PIN.'); return; }
-    if(p !== expectedPin){
-      showErr('PIN incorrecto. Inténtalo de nuevo.');
-      inp.value=''; inp.focus();
-      return;
-    }
-    // OK
-    if(document.getElementById('pin-remember-chk').checked){
-      saveRememberedPin(jugId, expectedPin);
-    }
+    if(p !== expectedPin){ showErr('PIN incorrecto. Inténtalo de nuevo.'); inp.value=''; inp.focus(); return; }
+    if(document.getElementById('pin-remember-chk').checked){ saveRememberedPin(jugId, expectedPin); saveLastJugadorId(jugId); }
     loadFullData(jugId);
+  }
+}
+
+function wirePinGateGlobal(){
+  const inp = document.getElementById('pin-input');
+  const btn = document.getElementById('pin-btn');
+  const err = document.getElementById('pin-error');
+  function clearErr(){ err.style.display='none'; err.textContent=''; }
+  function showErr(m){ err.textContent=m; err.style.display='block'; }
+  inp.focus();
+  inp.addEventListener('input', clearErr);
+  inp.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); tryPin(); }});
+  btn.addEventListener('click', tryPin);
+  async function tryPin(){
+    const p=(inp.value||'').trim();
+    if(!p){ showErr('Introduce el PIN.'); return; }
+    if(p.length !== 4 || !/^\d{4}$/.test(p)){ showErr('El PIN son 4 dígitos.'); return; }
+    btn.disabled = true; btn.textContent = 'Comprobando…';
+    try {
+      const r = await DB.from('jugadores').select('id,nombre,pin').eq('pin', p).limit(2);
+      if(r.error){ showErr('Error: ' + r.error.message); btn.disabled=false; btn.textContent='Entrar'; return; }
+      const rows = r.data || [];
+      if(rows.length === 0){ showErr('PIN incorrecto. Verifica con tu analista.'); inp.value=''; inp.focus(); btn.disabled=false; btn.textContent='Entrar'; return; }
+      if(rows.length > 1){ showErr('Conflicto de PIN. Avisa a tu analista.'); btn.disabled=false; btn.textContent='Entrar'; return; }
+      const jug = rows[0];
+      if(document.getElementById('pin-remember-chk').checked){ saveRememberedPin(jug.id, jug.pin); saveLastJugadorId(jug.id); }
+      loadFullData(jug.id);
+    } catch(e){ showErr('Error de conexión: ' + (e.message||e)); btn.disabled=false; btn.textContent='Entrar'; }
   }
 }
 
@@ -331,6 +361,12 @@ function readRememberedPin(jugId){
     if(Date.now() > obj.exp){ localStorage.removeItem('arete-pin-'+jugId); return null; }
     return obj.pin;
   } catch(e){ return null; }
+}
+function saveLastJugadorId(jugId){
+  try { localStorage.setItem('arete-last-jugador', jugId); } catch(e){}
+}
+function readLastJugadorId(){
+  try { return localStorage.getItem('arete-last-jugador') || null; } catch(e){ return null; }
 }
 
 async function loadFullData(jugId){
