@@ -913,6 +913,20 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
 <style>
   /* Forzar ocultar app-screen cuando no hay login (mayor prioridad que el media query con !important) */
   #app-screen[data-hidden="true"]{ display: none !important; }
+  /* Login screen fixed encima de TODO (fondo cinematográfico, nav, logout-floating, etc.) */
+  body:has(#app-screen[data-hidden="true"]) #login-screen{
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 9999 !important;
+    background: radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.08) 0%, transparent 60%), #0a0e1a !important;
+    overflow-y: auto !important;
+  }
+  /* Ocultar elementos del app shell que están fuera de #app-screen cuando no hay sesión */
+  body:has(#app-screen[data-hidden="true"]) nav.bnav,
+  body:has(#app-screen[data-hidden="true"]) .app-cine-bg,
+  body:has(#app-screen[data-hidden="true"]) .logout-floating{
+    display: none !important;
+  }
 </style>
 <div id="app-screen" data-hidden="true" style="display:none;">
 
