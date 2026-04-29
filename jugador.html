@@ -2073,26 +2073,60 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
     }).catch(function(e){ btn.disabled=false; btn.textContent=origTxt; err.textContent='Error: '+(e.message||e); });
   }
 
-  // Wrapper sobre loadApp(user) — recibe directamente el objeto jugador
-  // y simula un user con su email para que loadApp lo encuentre.
+  // Login por PIN — recibe el objeto jugador y carga TODO el panel
   function loginByPin(jug){
-    // Simulamos un objeto user con el email del jugador para que loadApp funcione
-    var fakeUser = { email: jug.email_jugador || ('jug-'+jug.id+'@arete.local'), user_metadata: { nombre: jug.nombre } };
-    // Pre-poblar caches globales con los datos del jugador
     window._jugId = jug.id;
     window._jug = jug;
     window._jugadorData = jug;
-    // Inyectar el jug directamente sin esperar al lookup por email
+    // Mostrar app-screen
     document.getElementById('login-screen').style.display = 'none';
     var appScr = document.getElementById('app-screen'); if(appScr) appScr.style.display = '';
     var nm = document.getElementById('app-nombre'); if(nm) nm.textContent = jug.nombre || '';
     var ps = document.getElementById('app-pos'); if(ps) ps.textContent = (jug.posicion||'') + (jug.equipo?' · '+jug.equipo:'') + (jug.categoria?' · '+jug.categoria:'');
-    // Llamar a loadDatos directamente (carga objetivos, informes, clips, planes, tareas)
-    if(typeof loadDatos === 'function') loadDatos(jug);
-    // También intentar la versión async loadApp si existe (por si añade cosas extras)
-    setTimeout(function(){
-      try { if(typeof loadApp === 'function') loadApp(fakeUser); } catch(e){}
-    }, 200);
+
+    // Cargar TODO en paralelo (clips, informes, objetivos, planes, tareas, micros)
+    var dbRef = window.DB_REF || DB;
+    Promise.all([
+      dbRef.from('clips_jugador').select('*').eq('jugador_id', jug.id).order('created_at', {ascending:false}),
+      dbRef.from('informes_partido').select('*').eq('jugador_id', jug.id).order('fecha', {ascending:false}),
+      dbRef.from('objetivos').select('*').eq('jugador_id', jug.id).order('created_at'),
+      dbRef.from('planes_partido').select('*').eq('jugador_id', jug.id).order('created_at', {ascending:false}),
+      dbRef.from('notas_video').select('*').eq('jugador_id', jug.id).order('fecha', {ascending:false}),
+      dbRef.from('microconceptos').select('*')
+    ]).then(function(results){
+      var clips    = results[0].data || [];
+      var informes = results[1].data || [];
+      var objs     = results[2].data || [];
+      var planes   = results[3].data || [];
+      var tareas   = (results[4].data || []).filter(function(n){ return n.texto && n.texto.indexOf('TAREA ASIGNADA:') === 0; });
+      var micros   = results[5].data || [];
+
+      // Cachear globalmente — todas las variantes que el código pueda esperar
+      window._clips = clips;          // ← lo que renderClipsSec lee
+      window._clipsData = clips;
+      window._informes = informes;
+      window._informesData = informes;
+      window._objsData = objs;
+      window._planesData = planes;
+      window._tareasData = tareas;
+      window._jugData = jug;
+      window._microconceptos = micros;
+      try { _clips = clips; _informes = informes; _jugData = jug; } catch(e){}
+
+      // Render inicial
+      if (window._setAppData) {
+        window._setAppData(clips, informes, jug);
+      } else {
+        if (typeof renderInicio === 'function') renderInicio();
+        if (typeof renderClipsSec === 'function') renderClipsSec(window._clipsFiltroActivo || 'mejorar');
+      }
+      // Cargar datos extras (renderDashboard de la versión vieja)
+      if (typeof loadDatos === 'function') {
+        try { loadDatos(jug); } catch(e){ console.warn('loadDatos err:', e); }
+      }
+    }).catch(function(e){
+      console.error('[loginByPin] error cargando datos:', e);
+    });
   }
 
   window._currentMoodVal = 0;
