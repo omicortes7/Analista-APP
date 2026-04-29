@@ -292,8 +292,14 @@ async function saveJugador(){
     const r2=new FileReader();
     foto_jugador=await new Promise(res=>{r2.onload=e=>res(e.target.result);r2.readAsDataURL(ff2.files[0]);});
   }
-  // Auto-generar PIN de 4 dígitos al crear el jugador
-  const pin = String(Math.floor(1000 + Math.random()*9000));
+  // PIN secuencial de 4 dígitos: 0000, 0001, 0002, ...
+  // Tomamos el max actual GLOBAL (todos los analistas) y sumamos 1
+  const allPinsRes = await DB.from('jugadores').select('pin');
+  const nums = (allPinsRes.data||[])
+    .map(r => /^\d{4}$/.test(r.pin) ? parseInt(r.pin, 10) : -1)
+    .filter(n => n >= 0);
+  const next = nums.length ? Math.max(...nums) + 1 : 0;
+  const pin = String(next).padStart(4, '0');
   const data={nombre,posicion:document.getElementById('npp').value,equipo:document.getElementById('npe').value.trim(),sesion_fecha:document.getElementById('nps').value||null,logo_club,foto_jugador,email_jugador:document.getElementById('npe-mail')?.value.trim()||'',pin};
   const{data:res,error}=await DB.from('jugadores').insert(data).select();
   if(error){showToast('Error al guardar');return;}
@@ -1880,17 +1886,17 @@ function genSes(){
 
 // ─── URL JUGADOR ───
 function copiarURLJugador(jugId) {
+  // URL única para todos los jugadores (entran solo con PIN)
   const base = window.location.origin + window.location.pathname.replace('index.html','').replace(/\/[^/]*$/, '/');
-  const url = `${base}jugador.html?id=${jugId}`;
+  const url = `${base}jugador.html`;
   const j = (state.jugadores||[]).find(x=>x.id===jugId);
   const pin = j && j.pin ? j.pin : '';
   const nombre = j && j.nombre ? j.nombre : 'tu jugador';
-  // Mensaje listo para WhatsApp con link + PIN
   const msg = pin
-    ? `Hola ${nombre}, este es tu acceso al panel:\n\n${url}\n\nPIN: ${pin}`
-    : `Hola ${nombre}, este es tu acceso al panel:\n\n${url}`;
+    ? `Hola ${nombre}, este es tu acceso al panel de Areté Academy:\n\n${url}\n\nTu PIN: ${pin}`
+    : `Hola ${nombre}, este es tu acceso al panel de Areté Academy:\n\n${url}\n\n(Falta asignar PIN)`;
   navigator.clipboard.writeText(msg).then(() => {
-    showToast(pin ? `URL + PIN copiados ✓ (PIN: ${pin})` : 'URL copiada ✓');
+    showToast(pin ? `Acceso copiado ✓ (PIN: ${pin})` : 'URL copiada — falta PIN');
   }).catch(() => {
     prompt('Copia este mensaje y envíaselo al jugador:', msg);
   });
@@ -2410,18 +2416,18 @@ function loadTareasCustom() {
   } catch(e) {}
 }
 
-// ─── URL DEL JUGADOR (con PIN) ───
+// ─── URL DEL JUGADOR (URL única + PIN) ───
 function copiarUrlJugador(id) {
   const base = window.location.origin + window.location.pathname.replace('index.html','').replace(/\/[^/]*$/, '/');
-  const url = `${base}jugador.html?id=${id}`;
+  const url = `${base}jugador.html`;
   const j = (state.jugadores||[]).find(x=>x.id===id);
   const pin = j && j.pin ? j.pin : '';
   const nombre = j && j.nombre ? j.nombre : 'tu jugador';
   const msg = pin
-    ? `Hola ${nombre}, este es tu acceso al panel:\n\n${url}\n\nPIN: ${pin}`
-    : `Hola ${nombre}, este es tu acceso al panel:\n\n${url}`;
+    ? `Hola ${nombre}, este es tu acceso al panel de Areté Academy:\n\n${url}\n\nTu PIN: ${pin}`
+    : `Hola ${nombre}, este es tu acceso al panel de Areté Academy:\n\n${url}\n\n(Falta asignar PIN)`;
   navigator.clipboard.writeText(msg).then(() => {
-    showToast(pin ? `URL + PIN copiados ✓ (PIN: ${pin})` : 'URL copiada ✓');
+    showToast(pin ? `Acceso copiado ✓ (PIN: ${pin})` : 'URL copiada — falta PIN');
   }).catch(() => {
     prompt('Copia este mensaje y envíaselo al jugador:', msg);
   });
@@ -5415,7 +5421,7 @@ function abrirEditarJugador() {
   if(!pinInp){
     const wrap = document.createElement('div');
     wrap.style.cssText = 'margin-top:.875rem;';
-    wrap.innerHTML = '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">PIN del jugador (4-6 dígitos)</label><div style="display:flex;gap:8px;align-items:center;"><input id="ej-pin" type="text" maxlength="6" inputmode="numeric" style="flex:1;background:var(--bg);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;letter-spacing:.18em;font-weight:600;"><button type="button" onclick="document.getElementById(\'ej-pin\').value=String(Math.floor(1000+Math.random()*9000));" style="background:var(--bg);border:0.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--text2);cursor:pointer;">↻ Generar</button></div><div style="font-size:10px;color:var(--text3);margin-top:4px;">Compártelo con el jugador junto al link.</div>';
+    wrap.innerHTML = '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">PIN del jugador (4 dígitos · único)</label><div style="display:flex;gap:8px;align-items:center;"><input id="ej-pin" type="text" maxlength="4" inputmode="numeric" style="flex:1;background:var(--bg);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;letter-spacing:.18em;font-weight:600;"></div><div style="font-size:10px;color:var(--text3);margin-top:4px;">El jugador entra a la app con SOLO este PIN. Compártelo junto al link.</div>';
     const modal = document.getElementById('modal-edit-jug');
     const emailInp = document.getElementById('ej-email');
     if(emailInp && emailInp.parentElement && emailInp.parentElement.parentElement){
@@ -5444,7 +5450,7 @@ async function guardarEdicionJugador() {
     equipo: document.getElementById('ej-equipo').value.trim(),
     sesion_fecha: document.getElementById('ej-sesion').value || null,
     email_jugador: document.getElementById('ej-email').value.trim(),
-    pin: pinNuevo || j.pin || String(Math.floor(1000 + Math.random()*9000)),
+    pin: pinNuevo || j.pin || '0000',
   };
 
   // Foto nueva
