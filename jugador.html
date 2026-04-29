@@ -2429,7 +2429,7 @@ function renderInicio() {
     window.DB_REF.from('informes_partido').select('*').eq('jugador_id', jugId).order('fecha', { ascending: false }).limit(1),
     window.DB_REF.from('objetivos').select('*').eq('jugador_id', jugId),
     window.DB_REF.from('calendario_semana').select('*').eq('jugador_id', jugId).eq('tipo','partido').gte('fecha', hoyStr).order('fecha').limit(1),
-    window.DB_REF.from('planes_partido').select('*').eq('jugador_id', jugId).order('created_at', { ascending: false }).limit(1),
+    window.DB_REF.from('planes_partido').select('*').eq('jugador_id', jugId).order('created_at', { ascending: false }),
     window.DB_REF.from('calendario_semana').select('*').eq('jugador_id', jugId).eq('fecha', hoyStr).limit(1),
     window.DB_REF.from('mental_log').select('id,tipo').eq('jugador_id', jugId).eq('fecha', hoyStr),
     window.DB_REF.from('nutricion_log').select('id').eq('jugador_id', jugId).eq('fecha', hoyStr).limit(1)
@@ -2437,7 +2437,9 @@ function renderInicio() {
     var ultInforme  = (results[0].data || [])[0] || null;
     var objetivos   = results[1].data || [];
     var proxPartido = (results[2].data || [])[0] || null;
-    var ultPlan     = (results[3].data || [])[0] || null;
+    var planesAll   = results[3].data || [];
+    var ultPlan     = planesAll[0] || null;
+    var planFinde   = null; // Plan del próximo partido (por fecha exacta o por rival, si coincide)
     var hoyCal      = (results[4].data || [])[0] || null;
     var mentalHoy   = results[5].data || [];
     var nutHoy      = (results[6].data || []).length > 0;
@@ -2488,6 +2490,17 @@ function renderInicio() {
       action: 'goSec(\'nut\',document.querySelector(\'.nb[data-id=nut]\'))'
     });
 
+    // Plan del partido del finde — solo si hay próximo partido
+    if (proxPartido) {
+      var rivalCorto = proxPartido.rival ? (' vs ' + proxPartido.rival) : '';
+      tareasHoy.push({
+        ico: '📋',
+        label: 'Plan del partido del finde' + rivalCorto,
+        done: !!planFinde,
+        action: 'goSec(\'plan\',document.querySelector(\'.nb[data-id=plan]\'))'
+      });
+    }
+
     // Valoración del último informe
     var nota = '–';
     var notaSub = 'Sin informes aún';
@@ -2511,6 +2524,10 @@ function renderInicio() {
       var d = new Date(proxPartido.fecha + 'T12:00:00');
       proxFecha = d.toLocaleDateString('es-ES',{day:'numeric',month:'long'});
       proxRival = proxPartido.rival ? ('vs ' + proxPartido.rival) : 'Próximo partido';
+      // Localizar plan: por fecha exacta primero, luego por rival no vacío
+      planFinde = planesAll.find(function(p){ return p.fecha === proxPartido.fecha; })
+              || (proxPartido.rival ? planesAll.find(function(p){ return p.rival && p.rival.trim().toLowerCase() === proxPartido.rival.trim().toLowerCase(); }) : null)
+              || null;
     }
 
     // Lista de bullets de objetivos (top 3)
@@ -2525,10 +2542,11 @@ function renderInicio() {
       objBullets = '<div style="font-size:13px;color:rgba(255,255,255,0.5);font-weight:300;padding:12px 0;border-top:0.5px solid rgba(255,255,255,0.06);">Tu analista aún no ha definido objetivos.</div>';
     }
 
-    // Plan de partido bullets
+    // Plan de partido bullets — preferir el plan del próximo partido
     var planBullets = '';
-    if (ultPlan) {
-      var planTxt = ultPlan.plan || ultPlan.contenido || ultPlan.texto || ultPlan.descripcion || '';
+    var planForCard = planFinde || ultPlan;
+    if (planForCard) {
+      var planTxt = planForCard.plan || planForCard.contenido || planForCard.texto || planForCard.descripcion || planForCard.notas || planForCard.items || '';
       if (typeof planTxt === 'object' && planTxt !== null) planTxt = JSON.stringify(planTxt);
       planTxt = String(planTxt).trim();
       if (planTxt) {
@@ -2642,7 +2660,7 @@ function renderInicio() {
       html += '</div>';
       if (planBullets) {
         html += '<div style="border-top:0.5px solid rgba(255,255,255,0.06);padding-top:10px;margin-top:6px;">'+planBullets+'</div>';
-      } else if (ultPlan) {
+      } else if (planForCard) {
         html += '<div style="font-size:12px;color:rgba(255,255,255,0.55);font-weight:300;padding-top:10px;border-top:0.5px solid rgba(255,255,255,0.06);margin-top:6px;">Toca para ver el plan completo →</div>';
       }
       html += '</div>';
