@@ -910,7 +910,11 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
   <div class="app-cine-orb" style="width:40vw;height:40vw;max-width:420px;max-height:420px;bottom:5%;left:25%;background:radial-gradient(circle,rgba(255,140,90,0.14) 0%,transparent 65%);animation-delay:-12s;"></div>
 </div>
 
-<div id="app-screen" style="display:none;">
+<style>
+  /* Forzar ocultar app-screen cuando no hay login (mayor prioridad que el media query con !important) */
+  #app-screen[data-hidden="true"]{ display: none !important; }
+</style>
+<div id="app-screen" data-hidden="true" style="display:none;">
 
   <!-- Header oculto: mantiene app-nombre y app-pos como referencias para JS -->
   <div style="display:none;">
@@ -2080,7 +2084,7 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
     window._jugadorData = jug;
     // Mostrar app-screen
     document.getElementById('login-screen').style.display = 'none';
-    var appScr = document.getElementById('app-screen'); if(appScr) appScr.style.display = '';
+    var appScr = document.getElementById('app-screen'); if(appScr){ appScr.removeAttribute('data-hidden'); appScr.style.display = ''; }
     var nm = document.getElementById('app-nombre'); if(nm) nm.textContent = jug.nombre || '';
     var ps = document.getElementById('app-pos'); if(ps) ps.textContent = (jug.posicion||'') + (jug.equipo?' · '+jug.equipo:'') + (jug.categoria?' · '+jug.categoria:'');
 
