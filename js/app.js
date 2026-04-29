@@ -292,11 +292,14 @@ async function saveJugador(){
     const r2=new FileReader();
     foto_jugador=await new Promise(res=>{r2.onload=e=>res(e.target.result);r2.readAsDataURL(ff2.files[0]);});
   }
-  const data={nombre,posicion:document.getElementById('npp').value,equipo:document.getElementById('npe').value.trim(),sesion_fecha:document.getElementById('nps').value||null,logo_club,foto_jugador,email_jugador:document.getElementById('npe-mail')?.value.trim()||''};
+  // Auto-generar PIN de 4 dígitos al crear el jugador
+  const pin = String(Math.floor(1000 + Math.random()*9000));
+  const data={nombre,posicion:document.getElementById('npp').value,equipo:document.getElementById('npe').value.trim(),sesion_fecha:document.getElementById('nps').value||null,logo_club,foto_jugador,email_jugador:document.getElementById('npe-mail')?.value.trim()||'',pin};
   const{data:res,error}=await DB.from('jugadores').insert(data).select();
   if(error){showToast('Error al guardar');return;}
   state.jugadores.unshift(res[0]);
-  closeModal('mnj');renderJugadores();renderInicio();showToast('Jugador añadido');
+  closeModal('mnj');renderJugadores();renderInicio();
+  showToast(`Jugador añadido · PIN: ${pin}`);
 }
 
 function openJug(id){
@@ -1879,10 +1882,17 @@ function genSes(){
 function copiarURLJugador(jugId) {
   const base = window.location.origin + window.location.pathname.replace('index.html','').replace(/\/[^/]*$/, '/');
   const url = `${base}jugador.html?id=${jugId}`;
-  navigator.clipboard.writeText(url).then(() => {
-    showToast('URL copiada. Envíasela al jugador por WhatsApp ✓');
+  const j = (state.jugadores||[]).find(x=>x.id===jugId);
+  const pin = j && j.pin ? j.pin : '';
+  const nombre = j && j.nombre ? j.nombre : 'tu jugador';
+  // Mensaje listo para WhatsApp con link + PIN
+  const msg = pin
+    ? `Hola ${nombre}, este es tu acceso al panel:\n\n${url}\n\nPIN: ${pin}`
+    : `Hola ${nombre}, este es tu acceso al panel:\n\n${url}`;
+  navigator.clipboard.writeText(msg).then(() => {
+    showToast(pin ? `URL + PIN copiados ✓ (PIN: ${pin})` : 'URL copiada ✓');
   }).catch(() => {
-    prompt('Copia esta URL y envíasela al jugador:', url);
+    prompt('Copia este mensaje y envíaselo al jugador:', msg);
   });
 }
 
@@ -2400,14 +2410,20 @@ function loadTareasCustom() {
   } catch(e) {}
 }
 
-// ─── URL DEL JUGADOR ───
+// ─── URL DEL JUGADOR (con PIN) ───
 function copiarUrlJugador(id) {
   const base = window.location.origin + window.location.pathname.replace('index.html','').replace(/\/[^/]*$/, '/');
   const url = `${base}jugador.html?id=${id}`;
-  navigator.clipboard.writeText(url).then(() => {
-    showToast('URL copiada. Pégala en WhatsApp al jugador ✓');
+  const j = (state.jugadores||[]).find(x=>x.id===id);
+  const pin = j && j.pin ? j.pin : '';
+  const nombre = j && j.nombre ? j.nombre : 'tu jugador';
+  const msg = pin
+    ? `Hola ${nombre}, este es tu acceso al panel:\n\n${url}\n\nPIN: ${pin}`
+    : `Hola ${nombre}, este es tu acceso al panel:\n\n${url}`;
+  navigator.clipboard.writeText(msg).then(() => {
+    showToast(pin ? `URL + PIN copiados ✓ (PIN: ${pin})` : 'URL copiada ✓');
   }).catch(() => {
-    prompt('Copia esta URL y envíasela al jugador:', url);
+    prompt('Copia este mensaje y envíaselo al jugador:', msg);
   });
 }
 
@@ -5394,6 +5410,22 @@ function abrirEditarJugador() {
   document.getElementById('ej-equipo').value = j.equipo||'';
   document.getElementById('ej-sesion').value = j.sesion_fecha||'';
   document.getElementById('ej-email').value = j.email_jugador||'';
+  // PIN editable: si no existe el input lo añadimos al modal
+  let pinInp = document.getElementById('ej-pin');
+  if(!pinInp){
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-top:.875rem;';
+    wrap.innerHTML = '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">PIN del jugador (4-6 dígitos)</label><div style="display:flex;gap:8px;align-items:center;"><input id="ej-pin" type="text" maxlength="6" inputmode="numeric" style="flex:1;background:var(--bg);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;letter-spacing:.18em;font-weight:600;"><button type="button" onclick="document.getElementById(\'ej-pin\').value=String(Math.floor(1000+Math.random()*9000));" style="background:var(--bg);border:0.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--text2);cursor:pointer;">↻ Generar</button></div><div style="font-size:10px;color:var(--text3);margin-top:4px;">Compártelo con el jugador junto al link.</div>';
+    const modal = document.getElementById('modal-edit-jug');
+    const emailInp = document.getElementById('ej-email');
+    if(emailInp && emailInp.parentElement && emailInp.parentElement.parentElement){
+      emailInp.parentElement.parentElement.insertBefore(wrap, emailInp.parentElement.nextSibling);
+    } else if(modal){
+      modal.querySelector('.modal-body, .body, form, div')?.appendChild(wrap);
+    }
+    pinInp = document.getElementById('ej-pin');
+  }
+  pinInp.value = j.pin || '';
   openModal('modal-edit-jug');
 }
 
@@ -5405,12 +5437,14 @@ async function guardarEdicionJugador() {
   const nombre = document.getElementById('ej-nombre').value.trim();
   if(!nombre) { showToast('El nombre es obligatorio'); return; }
 
+  const pinNuevo = (document.getElementById('ej-pin')?.value || '').trim();
   const updates = {
     nombre,
     posicion: document.getElementById('ej-pos').value,
     equipo: document.getElementById('ej-equipo').value.trim(),
     sesion_fecha: document.getElementById('ej-sesion').value || null,
     email_jugador: document.getElementById('ej-email').value.trim(),
+    pin: pinNuevo || j.pin || String(Math.floor(1000 + Math.random()*9000)),
   };
 
   // Foto nueva
