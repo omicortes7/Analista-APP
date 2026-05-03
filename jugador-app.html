@@ -4974,6 +4974,19 @@ window.verInformeDetalle = function(el) {
   if(inf.microconceptos_obs){var mics=inf.microconceptos_obs.split(',').filter(Boolean);if(mics.length){h+='<div style="margin-bottom:.875rem;"><div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:.625rem;">Microconceptos</div><div style="display:flex;flex-wrap:wrap;gap:5px;">';mics.forEach(function(m){h+='<span style="font-size:11px;padding:4px 10px;border-radius:99px;background:#EEEDFE;color:#3C3489;">'+m.trim()+'</span>';});h+='</div></div>';}}
   if(inf.positivos||inf.mejoras){h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.875rem;">';if(inf.positivos)h+='<div style="background:rgba(63,185,80,0.08);border:0.5px solid rgba(63,185,80,0.25);border-radius:10px;padding:.75rem;"><div style="font-size:10px;font-weight:800;color:#3fb950;margin-bottom:6px;">FORTALEZAS</div><div style="font-size:11px;line-height:1.6;">'+inf.positivos+'</div></div>';if(inf.mejoras)h+='<div style="background:rgba(248,81,73,0.08);border:0.5px solid rgba(248,81,73,0.25);border-radius:10px;padding:.75rem;"><div style="font-size:10px;font-weight:800;color:#f85149;margin-bottom:6px;">A MEJORAR</div><div style="font-size:11px;line-height:1.6;">'+inf.mejoras+'</div></div>';h+='</div>';}
   if(inf.notas){h+='<div style="background:var(--bg3);border-left:3px solid var(--border2);border-radius:0 8px 8px 0;padding:.875rem;"><div style="font-size:10px;font-weight:800;color:var(--text3);margin-bottom:5px;">NOTAS</div><div style="font-size:12px;line-height:1.7;color:var(--text2);">'+inf.notas+'</div></div>';}
+  // Observaciones con imágenes
+  var obsArr=[];try{obsArr=JSON.parse(inf.obs_imagenes||'[]');}catch(e){}
+  if(obsArr&&obsArr.length){
+    h+='<div style="margin-top:.875rem;padding-top:.875rem;border-top:0.5px solid var(--border2);">';
+    h+='<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#58a6ff;margin-bottom:.75rem;">📎 Observaciones del analista</div>';
+    obsArr.forEach(function(o,i){
+      h+='<div style="margin-bottom:.875rem;'+(i<obsArr.length-1?'padding-bottom:.875rem;border-bottom:0.5px solid var(--border2);':'')+'">';
+      if(o.texto) h+='<div style="font-size:12px;line-height:1.7;color:var(--text2);margin-bottom:8px;">'+o.texto+'</div>';
+      if(o.imagen) h+='<img src="'+o.imagen+'" style="width:100%;border-radius:10px;max-height:260px;object-fit:contain;background:var(--bg3);">';
+      h+='</div>';
+    });
+    h+='</div>';
+  }
   h+='</div>';
   modal.innerHTML=h;
   document.body.appendChild(modal);
