@@ -447,7 +447,7 @@ function renderDT(tab){
       return '<div style="background:var(--bg);border:0.5px solid '+fc.dot+'30;border-left:3px solid '+fc.dot+';border-radius:var(--radius-sm);padding:.875rem;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;">'+
         '<div style="flex:1;"><div style="font-size:13px;margin-bottom:5px;line-height:1.4;">'+o.texto+'</div>'+
         '<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:'+fc.bg+';color:'+fc.color+';">'+(o.fase==='OF'?'Fase ofensiva':o.fase==='DE'?'Fase defensiva':o.fase==='TO'?'T. ofensiva':o.fase==='TD'?'T. defensiva':'General')+'</span></div>'+
-        '<button onclick="delObj(\"'+o.id+'\")" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;line-height:1;">×</button>'+
+        '<button data-del-id=\''+o.id+'\' style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;line-height:1;">×</button>'+
         '<button data-superar-id="'+o.id+'" style="background:rgba(63,185,80,0.12);border:0.5px solid rgba(63,185,80,0.4);border-radius:6px;color:#3fb950;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;">✓</button>'+
         '</div>';
     }).join('') :
@@ -647,7 +647,7 @@ function renderDT(tab){
   // ─── TAB INFORME ───
   if(tab==='informe'){
     const informes=getInformesJugador(id);
-    const objs=getObjJugador(id);
+    const objs=getObjJugador(id).filter(o=>!o.superado);
     const micList=state.microconceptos.filter(m=>m.posicion===j.posicion);
     const micOptions=micList.map(m=>`<option value="${m.titulo}">${m.titulo}</option>`).join('');
     const faseHdr=(code,label,color,bg)=>`<div style="background:${bg};color:${color};font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;display:inline-block;margin-bottom:.75rem;">${code} · ${label}</div>`;
@@ -980,6 +980,8 @@ document.addEventListener('click',function(e){
     if(el) el.remove();
     return;
   }
+  var btnDel=e.target.closest('[data-del-id]');
+  if(btnDel){delObj(btnDel.getAttribute('data-del-id'));return;}
   var btn=e.target.closest('[data-superar-id]');
   if(btn){superarObj(btn.getAttribute('data-superar-id'));return;}
   var btn2=e.target.closest('[data-deshacer-id]');
