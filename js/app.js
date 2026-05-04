@@ -1995,7 +1995,8 @@ function genSes(){
   const partido=document.getElementById('sespartido').value.trim()||'Partido';
   const jugId=document.getElementById('sesjug').value;
   const nombre=jugId?(state.jugadores.find(x=>x.id===jugId)||{}).nombre||'Jugador':'Jugador';
-  let html=`<div style="background:var(--bg2);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;"><div><div style="font-size:14px;font-weight:500;">Sesión · ${nombre}</div><div style="font-size:11px;color:var(--text2);margin-top:2px;">${pos} · ${partido} · ${fmtDate(new Date().toISOString().slice(0,10))}</div></div><button class="btn-outline" style="font-size:11px;" onclick="window.print()">Imprimir / PDF</button></div>`;
+  let html=`<div style="background:var(--bg2);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;"><div><div style="font-size:14px;font-weight:500;">Sesión · ${nombre}</div><div style="font-size:11px;color:var(--text2);margin-top:2px;">${pos} · ${partido} · ${fmtDate(new Date().toISOString().slice(0,10))}</div></div><button class="btn-outline" style="font-size:11px;" onclick="window.print()">Imprimir</button>
+  <button onclick="(function(){var a=document.createElement('a');a.href='data:text/html;charset=utf-8,'+encodeURIComponent(document.documentElement.outerHTML);a.download='Informe_${jug.nombre.replace(/ /g,'_')}_${(inf.partido||'partido').replace(/ /g,'_')}.html';a.click();})()" style="margin-left:8px;padding:8px 18px;border-radius:99px;font-size:12px;font-weight:600;background:#1D9E75;color:#fff;border:none;cursor:pointer;">⬇ Descargar</button></div>`;
   html+=`<div class="ses-fase"><div class="ses-fase-title"><div class="ses-fase-icon" style="background:var(--bg2);">◎</div>Apertura</div>`;
   html+=PSES.ap.map(p=>`<div class="pregunta-item"><div class="pregunta-texto">${p.t}</div><div class="pregunta-hint">${p.h}</div></div>`).join('');
   html+=`</div>`;
@@ -3383,31 +3384,19 @@ function _abrirPDF(inf, jug, clubColor) {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 async function descargarPDF() {
+  // Descarga directa como HTML — ábrelo en el navegador y usa Ctrl+P → Guardar como PDF
   var bar = document.querySelector('.download-bar');
   if(bar) bar.style.display = 'none';
-  try {
-    var { jsPDF } = window.jspdf;
-    var canvas = await html2canvas(document.body, {
-      scale: 2, useCORS: true, allowTaint: true,
-      backgroundColor: '#ffffff', windowWidth: 720
-    });
-    var imgData = canvas.toDataURL('image/jpeg', 0.92);
-    var pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    var pW = pdf.internal.pageSize.getWidth();
-    var pH = pdf.internal.pageSize.getHeight();
-    var iW = pW;
-    var iH = canvas.height * (pW / canvas.width);
-    var pos = 0;
-    while(pos < iH) {
-      pdf.addImage(imgData, 'JPEG', 0, -pos, iW, iH);
-      pos += pH;
-      if(pos < iH) pdf.addPage();
-    }
-    pdf.save('Informe_' + (document.title||'jugador').replace(/[^a-zA-Z0-9]/g,'_') + '.pdf');
-  } catch(e) {
-    console.error('PDF error:', e);
-    window.print();
-  }
+  var nombre = document.title.replace(/[^a-zA-Z0-9_\-]/g, '_') || 'Informe';
+  var content = '<!DOCTYPE html>' + document.documentElement.outerHTML;
+  var blob = new Blob([content], {type: 'text/html;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nombre + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
   if(bar) bar.style.display = 'flex';
 }
 </script>
@@ -4373,7 +4362,7 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
   // Fortalezas y mejoras — SOLO lo que escribió el analista
   const fortalezas = inf.positivos ? inf.positivos.split('\n').filter(Boolean) : [];
   const mejoras = inf.mejoras ? inf.mejoras.split('\n').filter(Boolean) : [];
-  const objs = getObjJugador(jug.id);
+  const objs = getObjJugador(jug.id).filter(o=>!o.superado);
 
   const micros = (inf.microconceptos_obs || '').split(',').filter(Boolean).map(m => m.trim());
   const fechaFormateada = new Date((inf.fecha||'') + 'T12:00:00').toLocaleDateString('es-ES', {day:'numeric', month:'long', year:'numeric'});
