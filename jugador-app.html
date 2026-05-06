@@ -5100,6 +5100,19 @@ window.generarInformeVisualJugador = function(inf) {
     var notasHtml = '';
     if(inf.notas) {
       notasHtml = '<div style="background:#f7f7f5;border-left:3px solid #ccc;padding:12px;border-radius:0 8px 8px 0;margin-bottom:16px;"><div style="font-size:9px;font-weight:800;color:#999;text-transform:uppercase;margin-bottom:5px;">NOTAS DEL ANALISTA</div><div style="font-size:11px;line-height:1.7;color:#555;font-style:italic;">'+inf.notas+'</div></div>';
+    var obsHtml = '';
+    var obsArr = []; try { obsArr = JSON.parse(inf.obs_imagenes || '[]'); } catch(e) {}
+    if(obsArr && obsArr.length) {
+      obsHtml = '<div style="border:1px solid #e8f0fe;border-radius:10px;padding:14px;margin-bottom:16px;background:#f8faff;">';
+      obsHtml += '<div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#58a6ff;letter-spacing:.1em;margin-bottom:12px;">📎 OBSERVACIONES DEL ANALISTA</div>';
+      obsArr.forEach(function(o, i) {
+        obsHtml += '<div style="margin-bottom:12px;' + (i < obsArr.length-1 ? 'padding-bottom:12px;border-bottom:1px solid #eee;' : '') + '">';
+        if(o.texto) obsHtml += '<div style="font-size:11px;line-height:1.7;color:#333;margin-bottom:8px;">' + o.texto + '</div>';
+        if(o.imagen) obsHtml += '<img src="' + o.imagen + '" style="width:100%;max-height:280px;object-fit:contain;border-radius:6px;">';
+        obsHtml += '</div>';
+      });
+      obsHtml += '</div>';
+    }
     }
 
     var initials = (jug.nombre||'?').split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
@@ -5144,6 +5157,7 @@ window.generarInformeVisualJugador = function(inf) {
         +objsHtml
         +microsHtml
         +notasHtml
+        +obsHtml
       +'</div>'
       +'<div class="footer">'
         +'<span>Informe elaborado por <strong>Omar Cortes Ferrero</strong> &middot; Analista Individual de Futbol Base</span>'
