@@ -423,7 +423,7 @@ function openJug(id){
 }
 
 function switchDT(tab){
-  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','clips','informe','historial','tareas','plan','seguimiento','analisis'][i]===tab));
+  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','clips','informe','historial','tareas','plan','seguimiento','analisis','cognitivo'][i]===tab));
   renderDT(tab);
 }
 
@@ -901,6 +901,11 @@ function renderDT(tab){
   if(tab==='analisis'){
     body.innerHTML = '<div style="padding:1rem;color:var(--text2);font-size:12px;">Cargando análisis...</div>';
     renderAnalisisTab();
+    return;
+  }
+
+  if(tab==='cognitivo'){
+    renderCognitivoAnalista(id);
     return;
   }
 }
@@ -6609,4 +6614,134 @@ async function eliminarAnalisis(id) {
   if(!confirm('¿Eliminar este análisis?')) return;
   await DB.from('analisis_semanal').delete().eq('id', id);
   renderAnalisisTab();
+}
+// ═══════════════════════════════════════════════════
+// TAB COGNITIVO — Vista del analista
+// ═══════════════════════════════════════════════════
+async function renderCognitivoAnalista(jugId) {
+  const body = document.getElementById('djbody');
+  body.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text3);font-size:12px;">Cargando datos cognitivos...</div>';
+
+  // Cargar los últimas 8 semanas de cognitivo_log
+  const { data: logs, error } = await DB
+    .from('cognitivo_log')
+    .select('*')
+    .eq('jugador_id', jugId)
+    .order('semana', { ascending: false })
+    .limit(8);
+
+  if(error || !logs || !logs.length) {
+    body.innerHTML = `
+      <div style="padding:1.5rem;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:8px;">
+          🧠 <span>Protocolo Cognitivo — Areté Vision</span>
+        </div>
+        <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.5rem;text-align:center;color:var(--text3);font-size:12px;">
+          <div style="font-size:24px;margin-bottom:8px;">🧠</div>
+          El jugador aún no ha registrado datos cognitivos.<br>
+          Los datos aparecen automáticamente cuando el jugador use la sección Cognitivo en su app.
+        </div>
+        <div style="margin-top:1rem;padding:1rem;background:rgba(88,166,255,0.06);border:0.5px solid rgba(88,166,255,0.2);border-radius:var(--radius);font-size:11px;color:var(--text2);line-height:1.6;">
+          <div style="font-weight:700;color:#58a6ff;margin-bottom:6px;">📋 Protocolo semanal Lun-Vie</div>
+          <b>Lunes</b> — Cuerda de Brock (visión binocular) · 8-10 min<br>
+          <b>Martes</b> — Tablas de Schulte (barrido visual) · 10 min<br>
+          <b>Miércoles</b> — Doble tarea con balón · 8-10 min<br>
+          <b>Jueves</b> — Stroop motor con conos · 12 min<br>
+          <b>Viernes</b> — Dual N-Back + práctica imaginativa · 15 min
+        </div>
+      </div>`;
+    return;
+  }
+
+  // Procesar datos
+  let html = `<div style="padding:1rem;">
+    <div style="font-size:13px;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:8px;">
+      🧠 <span>Protocolo Cognitivo — Areté Vision</span>
+    </div>`;
+
+  // Semana más reciente — detalle completo
+  const ultima = logs[0];
+  const prog = ultima.progreso || {};
+  const rec = ultima.records || {};
+
+  // Calcular % de la última semana
+  const allTids = ['lun_t1','lun_t2','lun_t3','mar_t1','mar_t2','mar_t3','mie_t1','mie_t2','mie_t3','jue_t1','jue_t2','jue_t3','vie_t1','vie_t2','vie_t3'];
+  const done = allTids.filter(t => prog[t]).length;
+  const pct = Math.round((done/allTids.length)*100);
+  const pctColor = pct >= 80 ? '#3fb950' : pct >= 50 ? '#d29922' : '#f85149';
+
+  html += `<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div style="font-size:12px;font-weight:600;">Semana ${ultima.semana}</div>
+      <div style="font-size:18px;font-weight:800;color:${pctColor};">${pct}%</div>
+    </div>
+    <div style="height:8px;background:var(--bg3);border-radius:99px;overflow:hidden;margin-bottom:6px;">
+      <div style="width:${pct}%;height:8px;background:${pctColor};border-radius:99px;"></div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);">${done} de ${allTids.length} tareas completadas</div>
+  </div>`;
+
+  // Desglose por día
+  const dias = [
+    { key:'lun', nombre:'Lunes', icon:'👁️', tareas:['lun_t1','lun_t2','lun_t3'] },
+    { key:'mar', nombre:'Martes', icon:'⚡', tareas:['mar_t1','mar_t2','mar_t3'] },
+    { key:'mie', nombre:'Miércoles', icon:'🔄', tareas:['mie_t1','mie_t2','mie_t3'] },
+    { key:'jue', nombre:'Jueves', icon:'🎯', tareas:['jue_t1','jue_t2','jue_t3'] },
+    { key:'vie', nombre:'Viernes', icon:'🧩', tareas:['vie_t1','vie_t2','vie_t3'] },
+  ];
+
+  html += `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:1rem;">`;
+  dias.forEach(d => {
+    const dDone = d.tareas.filter(t => prog[t]).length;
+    const dPct = Math.round((dDone/3)*100);
+    const c = dPct===100?'#3fb950':dPct>0?'#d29922':'var(--text3)';
+    html += `<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:10px 8px;text-align:center;">
+      <div style="font-size:16px;">${d.icon}</div>
+      <div style="font-size:10px;font-weight:600;margin:4px 0;color:var(--text2);">${d.nombre}</div>
+      <div style="font-size:14px;font-weight:800;color:${c};">${dDone}/3</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // Récords
+  if(rec.schulte_mejor || rec.nback_max) {
+    html += `<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px;">🏆 Récords del jugador</div>`;
+    if(rec.schulte_mejor) html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:12px;"><span>⚡ Schulte (mejor tiempo)</span><span style="font-weight:700;color:#D4AF37;">${rec.schulte_mejor}</span></div>`;
+    if(rec.nback_max) html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12px;"><span>🧩 N-Back (nivel máx)</span><span style="font-weight:700;color:#D4AF37;">N=${rec.nback_max}</span></div>`;
+    html += `</div>`;
+  }
+
+  // Reflexión semanal
+  if(prog.reflexion_semana) {
+    html += `<div style="background:rgba(163,113,247,0.06);border:0.5px solid rgba(163,113,247,0.2);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#a371f7;margin-bottom:8px;">✏️ Reflexión del jugador esta semana</div>
+      <div style="font-size:12px;line-height:1.6;color:var(--text2);font-style:italic;">"${prog.reflexion_semana}"</div>
+    </div>`;
+  }
+
+  // Historial de semanas anteriores
+  if(logs.length > 1) {
+    html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px;">📅 Historial semanas anteriores</div>`;
+    html += `<div style="display:flex;flex-direction:column;gap:6px;">`;
+    logs.slice(1).forEach(log => {
+      const p = log.progreso || {};
+      const d2 = allTids.filter(t => p[t]).length;
+      const p2 = Math.round((d2/allTids.length)*100);
+      const c2 = p2>=80?'#3fb950':p2>=50?'#d29922':'#f85149';
+      html += `<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:12px;color:var(--text2);">${log.semana}</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:80px;height:5px;background:var(--bg3);border-radius:99px;overflow:hidden;">
+            <div style="width:${p2}%;height:5px;background:${c2};border-radius:99px;"></div>
+          </div>
+          <span style="font-size:12px;font-weight:700;color:${c2};">${p2}%</span>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  body.innerHTML = html;
 }
