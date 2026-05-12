@@ -2756,7 +2756,7 @@ window.renderCognitivo = function() {
     var dNombre = {lun:'Lun',mar:'Mar',mie:'Mié',jue:'Jue',vie:'Vie'}[d];
     var isDia = d === diaKey;
     var dCompleto = prot.tareas.every(function(t){ return progreso[t.id]; });
-    h += '<button onclick="window._cogDia=''+d+'';window.renderCognitivo();" style="flex-shrink:0;padding:6px 12px;border-radius:99px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;';
+        h += '<button data-cogdia="'+d+'" onclick="window._setCogDia(this)" style="flex-shrink:0;padding:6px 12px;border-radius:99px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;';
     if(isDia) h += 'background:var(--accent);color:#000;';
     else if(dCompleto) h += 'background:rgba(168,232,92,0.15);color:var(--accent);border:0.5px solid var(--accent-soft);';
     else h += 'background:var(--bg3);color:var(--text3);';
@@ -2841,6 +2841,11 @@ function getISOWeek() {
   var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
   return d.getUTCFullYear() + 'W' + Math.ceil((((d - yearStart) / 86400000) + 1)/7);
 }
+
+window._setCogDia = function(btn) {
+  window._cogDia = btn.getAttribute('data-cogdia');
+  window.renderCognitivo();
+};
 
 window._cogToggle = function(tid) {
   var weekKey = 'cog_' + getISOWeek();
@@ -4054,7 +4059,7 @@ window.renderCognitivo = function() {
     var dNombre = {lun:'Lun',mar:'Mar',mie:'Mié',jue:'Jue',vie:'Vie'}[d];
     var isDia = d === diaKey;
     var dCompleto = prot.tareas.every(function(t){ return progreso[t.id]; });
-    h += '<button onclick="window._cogDia=''+d+'';window.renderCognitivo();" style="flex-shrink:0;padding:6px 12px;border-radius:99px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;';
+        h += '<button data-cogdia="'+d+'" onclick="window._setCogDia(this)" style="flex-shrink:0;padding:6px 12px;border-radius:99px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;';
     if(isDia) h += 'background:var(--accent);color:#000;';
     else if(dCompleto) h += 'background:rgba(168,232,92,0.15);color:var(--accent);border:0.5px solid var(--accent-soft);';
     else h += 'background:var(--bg3);color:var(--text3);';
