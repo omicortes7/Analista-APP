@@ -2795,7 +2795,7 @@ window.renderCognitivo = function() {
     h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:.75rem;border:0.5px solid '+(done?'var(--accent)':'var(--border)')+';transition:border-color .2s;">';
     h += '<div style="display:flex;align-items:flex-start;gap:10px;">';
     // Checkbox
-    h += '<button onclick="window._cogToggle(''+t.id+'')" style="width:26px;height:26px;border-radius:50%;border:2px solid '+(done?'var(--accent)':'var(--border)')+';background:'+(done?'var(--accent)':'transparent')+';cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .2s;">';
+        h += '<button data-tid="'+t.id+'" onclick="window._cogDoToggle(this)" style="width:26px;height:26px;border-radius:50%;border:2px solborder:2px solid '+(done?'var(--accent)':'var(--border)')+';background:'+(done?'var(--accent)':'transparent')+';cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .2s;">';
     h += done ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '';
     h += '</button>';
     h += '<div style="flex:1;">';
@@ -2845,6 +2845,11 @@ function getISOWeek() {
 window._setCogDia = function(btn) {
   window._cogDia = btn.getAttribute('data-cogdia');
   window.renderCognitivo();
+};
+
+window._cogDoToggle = function(btn) {
+  var tid = btn.getAttribute('data-tid');
+  if(tid) window._cogToggle(tid);
 };
 
 window._cogToggle = function(tid) {
@@ -4098,7 +4103,7 @@ window.renderCognitivo = function() {
     h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:.75rem;border:0.5px solid '+(done?'var(--accent)':'var(--border)')+';transition:border-color .2s;">';
     h += '<div style="display:flex;align-items:flex-start;gap:10px;">';
     // Checkbox
-    h += '<button onclick="window._cogToggle(''+t.id+'')" style="width:26px;height:26px;border-radius:50%;border:2px solid '+(done?'var(--accent)':'var(--border)')+';background:'+(done?'var(--accent)':'transparent')+';cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .2s;">';
+        h += '<button data-tid="'+t.id+'" onclick="window._cogDoToggle(this)" style="width:26px;height:26px;border-radius:50%;border:2px solborder:2px solid '+(done?'var(--accent)':'var(--border)')+';background:'+(done?'var(--accent)':'transparent')+';cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .2s;">';
     h += done ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '';
     h += '</button>';
     h += '<div style="flex:1;">';
