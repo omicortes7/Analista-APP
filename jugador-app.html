@@ -1959,6 +1959,18 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
     </div>
   </div>
 
+  <!-- SECCIÓN COGNITIVA -->
+  <div class="sec" id="sec-cognitivo" style="display:none;overflow-y:auto;padding:1rem;">
+    <div id="cog-content">
+      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);">
+        <div style="text-align:center;">
+          <div style="font-size:28px;margin-bottom:8px;">🧠</div>
+          <div style="font-size:13px;">Cargando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   </div><!-- /.secs -->
 
   <!-- BOTTOM NAV -->
@@ -1994,6 +2006,10 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
     <button class="nb" onclick="goSec('tareas',this)" data-id="tareas" id="nb-tareas">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
       Tareas
+    </button>
+    <button class="nb" onclick="goSec('cognitivo',this)" data-id="cognitivo" id="nb-cognitivo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 0-3 4"/></svg>
+      Cognitivo
     </button>
     <button class="nb" onclick="goSec('chat',this)" data-id="chat" id="nb-chat">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -2619,7 +2635,269 @@ function goSec(id, btn) {
   if (id === 'informes') { renderInformesJugador && renderInformesJugador(); switchInformesTab('partido', document.getElementById('itab-partido')); }
   if (id === 'clips')  { if (typeof renderClipsSec === 'function') renderClipsSec(window._clipsFiltroActivo || 'mejorar'); }
   if (id === 'plan')   { window.renderPlanCompleto && window.renderPlanCompleto(); switchPlanTab('plan', document.getElementById('ptab-plan')); }
+  if (id === 'cognitivo') { window.renderCognitivo && window.renderCognitivo(); }
 }
+
+// ═══════════════════════════════════════════════════
+// SECCIÓN COGNITIVA — Areté Vision
+// ═══════════════════════════════════════════════════
+window.renderCognitivo = function() {
+  var cont = document.getElementById('cog-content');
+  if(!cont) return;
+
+  var hoy = new Date().getDay(); // 0=dom,1=lun,...,6=sab
+  var dias = ['lun','mar','mie','jue','vie','sab','dom'];
+  var diaActual = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][hoy];
+
+  var semana = {
+    lun: {
+      icon: '👁️',
+      titulo: 'Visión binocular — Cuerda de Brock',
+      duracion: '8-10 min',
+      objetivo: 'Entrenar vergencia, fusión binocular y enfoque rápido entre distancias',
+      material: 'Cuerda de 2m con 3 bolas de colores (~3€)',
+      tareas: [
+        { id:'lun_t1', label:'Enfoque secuencial', desc:'Sujeta la cuerda con bola roja a 10cm, amarilla a 50cm, verde al extremo. Enfoca cada bola 5 segundos. Cambia de bola cada 2 segundos durante 3 minutos.', tiempo: false },
+        { id:'lun_t2', label:'Velocidad de cambio', desc:'Cierra los ojos 5 segundos, abre y enfoca rápido la bola que te digan. Repite durante 2 minutos.', tiempo: false },
+        { id:'lun_t3', label:'Registro subjetivo', desc:'¿Cuánto tiempo tardas en ver las dos cuerdas cruzándose en cada bola? Anota tu sensación hoy.', tiempo: false }
+      ]
+    },
+    mar: {
+      icon: '⚡',
+      titulo: 'Barrido visual — Tablas de Schulte',
+      duracion: '10 min',
+      objetivo: 'Visión periférica y velocidad de barrido',
+      material: 'App "Schulte Table" (gratis)',
+      tareas: [
+        { id:'mar_t1', label:'Tabla 5×5 — Intento 1', desc:'Mira fijo al centro. Localiza los números del 1 al 25 en orden moviendo solo los ojos, sin mover la cabeza. Cronometra.', tiempo: true, key:'schulte_t1' },
+        { id:'mar_t2', label:'Tabla 5×5 — Intento 2', desc:'Repite. Anota el mejor de los dos tiempos. Objetivo a 4 semanas: bajar de 30 segundos.', tiempo: true, key:'schulte_t2' },
+        { id:'mar_t3', label:'Modo avanzado', desc:'Alterna número y letra (1-A, 2-B, 3-C...). Suma carga de memoria de trabajo.', tiempo: false }
+      ]
+    },
+    mie: {
+      icon: '🔄',
+      titulo: 'Doble tarea — La más útil para fútbol',
+      duracion: '8-10 min',
+      objetivo: 'Toma de decisiones bajo carga mental',
+      material: 'Balón + pared + cono o familiar',
+      tareas: [
+        { id:'mie_t1', label:'Bote + cálculo mental', desc:'Bote de balón con pierna no dominante mientras cuentas hacia atrás de 100 en restas de 7 (100, 93, 86...). 2 minutos.', tiempo: false },
+        { id:'mie_t2', label:'Pase + colores complementarios', desc:'Pase contra la pared con dos toques mientras alguien te dice colores y tú respondes el complementario (rojo→verde, azul→naranja). 3 minutos.', tiempo: false },
+        { id:'mie_t3', label:'Conducción + operaciones', desc:'Conducción en zig-zag entre conos mientras resuelves operaciones mentales que te dictan en voz alta. 3 minutos.', tiempo: false }
+      ]
+    },
+    jue: {
+      icon: '🎯',
+      titulo: 'Reacción y procesamiento — Stroop motor',
+      duracion: '12 min',
+      objetivo: 'Input visual a decisión motora',
+      material: '4 conos de colores (~8€)',
+      tareas: [
+        { id:'jue_t1', label:'Toca el color', desc:'4 conos en círculo a 3m. Alguien dice un color, tocas ese cono y vuelves al centro. 30 repeticiones.', tiempo: false },
+        { id:'jue_t2', label:'Stroop motor (cruzado)', desc:'Dice "rojo", tocas el cono AZUL. Cruza la asociación deliberadamente. 20 repeticiones.', tiempo: false },
+        { id:'jue_t3', label:'Memoria de trabajo', desc:'Dice dos colores seguidos. Tocas el segundo primero y luego el primero. 15 repeticiones.', tiempo: false }
+      ]
+    },
+    vie: {
+      icon: '🧩',
+      titulo: 'N-Back + Práctica imaginativa',
+      duracion: '15 min',
+      objetivo: 'Memoria de trabajo y revisión consciente',
+      material: 'App "Dual N-Back" (gratis)',
+      tareas: [
+        { id:'vie_t1', label:'Dual N-Back', desc:'Empieza por N=2 en la app. Máximo 15 minutos. Anota el nivel que alcanzas hoy.', tiempo: true, key:'nback_nivel' },
+        { id:'vie_t2', label:'Práctica imaginativa', desc:'Antes de dormir, sin pantalla, repasa mentalmente 3 jugadas concretas de tu último partido. Qué viste, qué decidiste, qué hiciste.', tiempo: false },
+        { id:'vie_t3', label:'Reflexión semanal', desc:'¿En qué tarea has notado más mejora esta semana? Escríbelo en el campo de abajo.', tiempo: false }
+      ]
+    }
+  };
+
+  var semanaStr = ['dom','lun','mar','mie','jue','vie','sab'];
+  var diaKey = semanaStr[hoy];
+  var protocoloHoy = semana[diaKey];
+
+  // Leer progreso guardado en localStorage
+  var weekKey = 'cog_' + getISOWeek();
+  var progreso = {};
+  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e) {}
+
+  // Calcular % completado semana
+  var totalTareas = 0, completadas = 0;
+  ['lun','mar','mie','jue','vie'].forEach(function(d) {
+    if(semana[d]) semana[d].tareas.forEach(function(t) {
+      totalTareas++;
+      if(progreso[t.id]) completadas++;
+    });
+  });
+  var pct = totalTareas ? Math.round((completadas/totalTareas)*100) : 0;
+
+  var h = '';
+
+  // Header stats
+  h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1rem;">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">';
+  h += '<div style="font-size:13px;font-weight:700;">🧠 Areté Vision</div>';
+  h += '<div style="font-size:11px;color:var(--text3);">Semana actual</div>';
+  h += '</div>';
+  // Barra de progreso
+  h += '<div style="height:8px;background:var(--bg3);border-radius:99px;margin-bottom:6px;overflow:hidden;">';
+  h += '<div style="width:'+pct+'%;height:8px;background:linear-gradient(90deg,var(--accent),#a8e85c);border-radius:99px;transition:width .5s;"></div>';
+  h += '</div>';
+  h += '<div style="display:flex;justify-content:space-between;">';
+  h += '<span style="font-size:11px;color:var(--text3);">'+completadas+' de '+totalTareas+' tareas</span>';
+  h += '<span style="font-size:11px;font-weight:700;color:var(--accent);">'+pct+'%</span>';
+  h += '</div></div>';
+
+  // Días de la semana tabs
+  h += '<div style="display:flex;gap:6px;margin-bottom:1rem;overflow-x:auto;padding-bottom:2px;">';
+  ['lun','mar','mie','jue','vie'].forEach(function(d) {
+    var prot = semana[d];
+    var dNombre = {lun:'Lun',mar:'Mar',mie:'Mié',jue:'Jue',vie:'Vie'}[d];
+    var isDia = d === diaKey;
+    var dCompleto = prot.tareas.every(function(t){ return progreso[t.id]; });
+    h += '<button onclick="window._cogDia=''+d+'';window.renderCognitivo();" style="flex-shrink:0;padding:6px 12px;border-radius:99px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;';
+    if(isDia) h += 'background:var(--accent);color:#000;';
+    else if(dCompleto) h += 'background:rgba(168,232,92,0.15);color:var(--accent);border:0.5px solid var(--accent-soft);';
+    else h += 'background:var(--bg3);color:var(--text3);';
+    h += '">' + (dCompleto ? '✓ ' : '') + dNombre + '</button>';
+  });
+  h += '</div>';
+
+  // Si es fin de semana, mostrar mensaje de descanso
+  var diaVer = window._cogDia || diaKey;
+  var protVer = semana[diaVer];
+
+  if(!protVer) {
+    h += '<div style="text-align:center;padding:3rem 1rem;">';
+    h += '<div style="font-size:40px;margin-bottom:12px;">🌴</div>';
+    h += '<div style="font-size:16px;font-weight:700;margin-bottom:8px;">Descanso cognitivo</div>';
+    h += '<div style="font-size:13px;color:var(--text3);line-height:1.6;">El fin de semana es para el partido y la recuperación.<br>El cerebro también necesita descansar para consolidar lo aprendido.</div>';
+    h += '</div>';
+    document.getElementById('cog-content').innerHTML = h;
+    return;
+  }
+
+  // Protocolo del día seleccionado
+  h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1rem;">';
+  h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">';
+  h += '<span style="font-size:24px;">'+protVer.icon+'</span>';
+  h += '<div><div style="font-size:14px;font-weight:700;">'+protVer.titulo+'</div>';
+  h += '<div style="font-size:11px;color:var(--text3);">⏱ '+protVer.duracion+' · '+protVer.objetivo+'</div></div>';
+  h += '</div>';
+  h += '<div style="font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:5px 10px;display:inline-block;">📦 Material: '+protVer.material+'</div>';
+  h += '</div>';
+
+  // Tareas del día
+  protVer.tareas.forEach(function(t) {
+    var done = progreso[t.id] || false;
+    var tiempoVal = progreso[t.id + '_tiempo'] || '';
+    h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:.75rem;border:0.5px solid '+(done?'var(--accent)':'var(--border)')+';transition:border-color .2s;">';
+    h += '<div style="display:flex;align-items:flex-start;gap:10px;">';
+    // Checkbox
+    h += '<button onclick="window._cogToggle(''+t.id+'')" style="width:26px;height:26px;border-radius:50%;border:2px solid '+(done?'var(--accent)':'var(--border)')+';background:'+(done?'var(--accent)':'transparent')+';cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .2s;">';
+    h += done ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+    h += '</button>';
+    h += '<div style="flex:1;">';
+    h += '<div style="font-size:13px;font-weight:600;margin-bottom:4px;'+(done?'text-decoration:line-through;color:var(--text3);':'')+'">'+t.label+'</div>';
+    h += '<div style="font-size:12px;color:var(--text2);line-height:1.55;">'+t.desc+'</div>';
+    // Campo de tiempo si aplica
+    if(t.tiempo) {
+      h += '<div style="display:flex;align-items:center;gap:8px;margin-top:8px;">';
+      h += '<span style="font-size:11px;color:var(--text3);">⏱ Tiempo/nivel:</span>';
+      h += '<input type="text" id="cog_tiempo_'+t.id+'" value="'+tiempoVal+'" placeholder="ej: 28s" onchange="window._cogTiempo(''+t.id+'',this.value)" style="width:80px;height:30px;background:var(--bg3);border:0.5px solid var(--border);border-radius:6px;padding:0 8px;font-size:12px;color:var(--text);font-family:inherit;outline:none;">';
+      h += '</div>';
+    }
+    h += '</div></div></div>';
+  });
+
+  // Campo reflexión semanal
+  if(diaVer === 'vie') {
+    var reflexion = progreso['reflexion_semana'] || '';
+    h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:.75rem;">';
+    h += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">✏️ Reflexión semanal</div>';
+    h += '<textarea id="cog-reflexion" placeholder="¿En qué tarea has notado más mejora esta semana?" style="width:100%;height:80px;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:8px;font-size:13px;color:var(--text);font-family:inherit;outline:none;resize:none;" onchange="window._cogReflexion(this.value)">'+reflexion+'</textarea>';
+    h += '</div>';
+  }
+
+  // Historial de récords
+  var records = {};
+  try { records = JSON.parse(localStorage.getItem('cog_records') || '{}'); } catch(e){}
+  if(Object.keys(records).length) {
+    h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:.75rem;">';
+    h += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">🏆 Mis récords</div>';
+    if(records.schulte_mejor) h += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:0.5px solid var(--border);"><span>Schulte (mejor)</span><span style="font-weight:700;color:var(--accent);">'+records.schulte_mejor+'</span></div>';
+    if(records.nback_max) h += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;"><span>N-Back (nivel máx)</span><span style="font-weight:700;color:var(--accent);">N='+records.nback_max+'</span></div>';
+    h += '</div>';
+  }
+
+  document.getElementById('cog-content').innerHTML = h;
+};
+
+// Helpers cognitivo
+function getISOWeek() {
+  var d = new Date(); var dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return d.getUTCFullYear() + 'W' + Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+}
+
+window._cogToggle = function(tid) {
+  var weekKey = 'cog_' + getISOWeek();
+  var progreso = {};
+  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e){}
+  progreso[tid] = !progreso[tid];
+  localStorage.setItem(weekKey, JSON.stringify(progreso));
+  window._cogSyncSupabase();
+  window.renderCognitivo();
+};
+
+window._cogTiempo = function(tid, val) {
+  var weekKey = 'cog_' + getISOWeek();
+  var progreso = {};
+  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e){}
+  progreso[tid + '_tiempo'] = val;
+  localStorage.setItem(weekKey, JSON.stringify(progreso));
+  // Actualizar récords
+  var records = {};
+  try { records = JSON.parse(localStorage.getItem('cog_records') || '{}'); } catch(e){}
+  if(tid.indexOf('schulte') >= 0) {
+    var n = parseFloat(val);
+    if(!isNaN(n) && (!records.schulte_mejor || n < parseFloat(records.schulte_mejor))) {
+      records.schulte_mejor = val;
+      localStorage.setItem('cog_records', JSON.stringify(records));
+    }
+  }
+  if(tid.indexOf('nback') >= 0) {
+    var lvl = parseInt(val.replace(/[^0-9]/g,''));
+    if(!isNaN(lvl) && (!records.nback_max || lvl > parseInt(records.nback_max))) {
+      records.nback_max = lvl;
+      localStorage.setItem('cog_records', JSON.stringify(records));
+    }
+  }
+};
+
+window._cogReflexion = function(val) {
+  var weekKey = 'cog_' + getISOWeek();
+  var progreso = {};
+  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e){}
+  progreso['reflexion_semana'] = val;
+  localStorage.setItem(weekKey, JSON.stringify(progreso));
+  window._cogSyncSupabase();
+};
+
+window._cogSyncSupabase = function() {
+  if(!window._jugId || !window.dbRef) return;
+  var weekKey = 'cog_' + getISOWeek();
+  var progreso = {};
+  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e){}
+  var records = {};
+  try { records = JSON.parse(localStorage.getItem('cog_records') || '{}'); } catch(e){}
+  var semana = getISOWeek();
+  window.dbRef.from('cognitivo_log')
+    .upsert({ jugador_id: window._jugId, semana: semana, progreso: progreso, records: records, updated_at: new Date().toISOString() }, { onConflict: 'jugador_id,semana' })
+    .then(function(res){ if(res.error) console.warn('cognitivo sync:', res.error.message); });
+};
+
 
 function showToastGlobal(msg) {
   var t = document.getElementById('toast');
@@ -3657,6 +3935,267 @@ function loadTemporada() {
     }
   });
 }
+
+// ═══════════════════════════════════════════════════
+// SECCIÓN COGNITIVA — Areté Vision
+// ═══════════════════════════════════════════════════
+window.renderCognitivo = function() {
+  var cont = document.getElementById('cog-content');
+  if(!cont) return;
+
+  var hoy = new Date().getDay(); // 0=dom,1=lun,...,6=sab
+  var dias = ['lun','mar','mie','jue','vie','sab','dom'];
+  var diaActual = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][hoy];
+
+  var semana = {
+    lun: {
+      icon: '👁️',
+      titulo: 'Visión binocular — Cuerda de Brock',
+      duracion: '8-10 min',
+      objetivo: 'Entrenar vergencia, fusión binocular y enfoque rápido entre distancias',
+      material: 'Cuerda de 2m con 3 bolas de colores (~3€)',
+      tareas: [
+        { id:'lun_t1', label:'Enfoque secuencial', desc:'Sujeta la cuerda con bola roja a 10cm, amarilla a 50cm, verde al extremo. Enfoca cada bola 5 segundos. Cambia de bola cada 2 segundos durante 3 minutos.', tiempo: false },
+        { id:'lun_t2', label:'Velocidad de cambio', desc:'Cierra los ojos 5 segundos, abre y enfoca rápido la bola que te digan. Repite durante 2 minutos.', tiempo: false },
+        { id:'lun_t3', label:'Registro subjetivo', desc:'¿Cuánto tiempo tardas en ver las dos cuerdas cruzándose en cada bola? Anota tu sensación hoy.', tiempo: false }
+      ]
+    },
+    mar: {
+      icon: '⚡',
+      titulo: 'Barrido visual — Tablas de Schulte',
+      duracion: '10 min',
+      objetivo: 'Visión periférica y velocidad de barrido',
+      material: 'App "Schulte Table" (gratis)',
+      tareas: [
+        { id:'mar_t1', label:'Tabla 5×5 — Intento 1', desc:'Mira fijo al centro. Localiza los números del 1 al 25 en orden moviendo solo los ojos, sin mover la cabeza. Cronometra.', tiempo: true, key:'schulte_t1' },
+        { id:'mar_t2', label:'Tabla 5×5 — Intento 2', desc:'Repite. Anota el mejor de los dos tiempos. Objetivo a 4 semanas: bajar de 30 segundos.', tiempo: true, key:'schulte_t2' },
+        { id:'mar_t3', label:'Modo avanzado', desc:'Alterna número y letra (1-A, 2-B, 3-C...). Suma carga de memoria de trabajo.', tiempo: false }
+      ]
+    },
+    mie: {
+      icon: '🔄',
+      titulo: 'Doble tarea — La más útil para fútbol',
+      duracion: '8-10 min',
+      objetivo: 'Toma de decisiones bajo carga mental',
+      material: 'Balón + pared + cono o familiar',
+      tareas: [
+        { id:'mie_t1', label:'Bote + cálculo mental', desc:'Bote de balón con pierna no dominante mientras cuentas hacia atrás de 100 en restas de 7 (100, 93, 86...). 2 minutos.', tiempo: false },
+        { id:'mie_t2', label:'Pase + colores complementarios', desc:'Pase contra la pared con dos toques mientras alguien te dice colores y tú respondes el complementario (rojo→verde, azul→naranja). 3 minutos.', tiempo: false },
+        { id:'mie_t3', label:'Conducción + operaciones', desc:'Conducción en zig-zag entre conos mientras resuelves operaciones mentales que te dictan en voz alta. 3 minutos.', tiempo: false }
+      ]
+    },
+    jue: {
+      icon: '🎯',
+      titulo: 'Reacción y procesamiento — Stroop motor',
+      duracion: '12 min',
+      objetivo: 'Input visual a decisión motora',
+      material: '4 conos de colores (~8€)',
+      tareas: [
+        { id:'jue_t1', label:'Toca el color', desc:'4 conos en círculo a 3m. Alguien dice un color, tocas ese cono y vuelves al centro. 30 repeticiones.', tiempo: false },
+        { id:'jue_t2', label:'Stroop motor (cruzado)', desc:'Dice "rojo", tocas el cono AZUL. Cruza la asociación deliberadamente. 20 repeticiones.', tiempo: false },
+        { id:'jue_t3', label:'Memoria de trabajo', desc:'Dice dos colores seguidos. Tocas el segundo primero y luego el primero. 15 repeticiones.', tiempo: false }
+      ]
+    },
+    vie: {
+      icon: '🧩',
+      titulo: 'N-Back + Práctica imaginativa',
+      duracion: '15 min',
+      objetivo: 'Memoria de trabajo y revisión consciente',
+      material: 'App "Dual N-Back" (gratis)',
+      tareas: [
+        { id:'vie_t1', label:'Dual N-Back', desc:'Empieza por N=2 en la app. Máximo 15 minutos. Anota el nivel que alcanzas hoy.', tiempo: true, key:'nback_nivel' },
+        { id:'vie_t2', label:'Práctica imaginativa', desc:'Antes de dormir, sin pantalla, repasa mentalmente 3 jugadas concretas de tu último partido. Qué viste, qué decidiste, qué hiciste.', tiempo: false },
+        { id:'vie_t3', label:'Reflexión semanal', desc:'¿En qué tarea has notado más mejora esta semana? Escríbelo en el campo de abajo.', tiempo: false }
+      ]
+    }
+  };
+
+  var semanaStr = ['dom','lun','mar','mie','jue','vie','sab'];
+  var diaKey = semanaStr[hoy];
+  var protocoloHoy = semana[diaKey];
+
+  // Leer progreso guardado en localStorage
+  var weekKey = 'cog_' + getISOWeek();
+  var progreso = {};
+  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e) {}
+
+  // Calcular % completado semana
+  var totalTareas = 0, completadas = 0;
+  ['lun','mar','mie','jue','vie'].forEach(function(d) {
+    if(semana[d]) semana[d].tareas.forEach(function(t) {
+      totalTareas++;
+      if(progreso[t.id]) completadas++;
+    });
+  });
+  var pct = totalTareas ? Math.round((completadas/totalTareas)*100) : 0;
+
+  var h = '';
+
+  // Header stats
+  h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1rem;">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">';
+  h += '<div style="font-size:13px;font-weight:700;">🧠 Areté Vision</div>';
+  h += '<div style="font-size:11px;color:var(--text3);">Semana actual</div>';
+  h += '</div>';
+  // Barra de progreso
+  h += '<div style="height:8px;background:var(--bg3);border-radius:99px;margin-bottom:6px;overflow:hidden;">';
+  h += '<div style="width:'+pct+'%;height:8px;background:linear-gradient(90deg,var(--accent),#a8e85c);border-radius:99px;transition:width .5s;"></div>';
+  h += '</div>';
+  h += '<div style="display:flex;justify-content:space-between;">';
+  h += '<span style="font-size:11px;color:var(--text3);">'+completadas+' de '+totalTareas+' tareas</span>';
+  h += '<span style="font-size:11px;font-weight:700;color:var(--accent);">'+pct+'%</span>';
+  h += '</div></div>';
+
+  // Días de la semana tabs
+  h += '<div style="display:flex;gap:6px;margin-bottom:1rem;overflow-x:auto;padding-bottom:2px;">';
+  ['lun','mar','mie','jue','vie'].forEach(function(d) {
+    var prot = semana[d];
+    var dNombre = {lun:'Lun',mar:'Mar',mie:'Mié',jue:'Jue',vie:'Vie'}[d];
+    var isDia = d === diaKey;
+    var dCompleto = prot.tareas.every(function(t){ return progreso[t.id]; });
+    h += '<button onclick="window._cogDia=''+d+'';window.renderCognitivo();" style="flex-shrink:0;padding:6px 12px;border-radius:99px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;';
+    if(isDia) h += 'background:var(--accent);color:#000;';
+    else if(dCompleto) h += 'background:rgba(168,232,92,0.15);color:var(--accent);border:0.5px solid var(--accent-soft);';
+    else h += 'background:var(--bg3);color:var(--text3);';
+    h += '">' + (dCompleto ? '✓ ' : '') + dNombre + '</button>';
+  });
+  h += '</div>';
+
+  // Si es fin de semana, mostrar mensaje de descanso
+  var diaVer = window._cogDia || diaKey;
+  var protVer = semana[diaVer];
+
+  if(!protVer) {
+    h += '<div style="text-align:center;padding:3rem 1rem;">';
+    h += '<div style="font-size:40px;margin-bottom:12px;">🌴</div>';
+    h += '<div style="font-size:16px;font-weight:700;margin-bottom:8px;">Descanso cognitivo</div>';
+    h += '<div style="font-size:13px;color:var(--text3);line-height:1.6;">El fin de semana es para el partido y la recuperación.<br>El cerebro también necesita descansar para consolidar lo aprendido.</div>';
+    h += '</div>';
+    document.getElementById('cog-content').innerHTML = h;
+    return;
+  }
+
+  // Protocolo del día seleccionado
+  h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1rem;">';
+  h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">';
+  h += '<span style="font-size:24px;">'+protVer.icon+'</span>';
+  h += '<div><div style="font-size:14px;font-weight:700;">'+protVer.titulo+'</div>';
+  h += '<div style="font-size:11px;color:var(--text3);">⏱ '+protVer.duracion+' · '+protVer.objetivo+'</div></div>';
+  h += '</div>';
+  h += '<div style="font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:5px 10px;display:inline-block;">📦 Material: '+protVer.material+'</div>';
+  h += '</div>';
+
+  // Tareas del día
+  protVer.tareas.forEach(function(t) {
+    var done = progreso[t.id] || false;
+    var tiempoVal = progreso[t.id + '_tiempo'] || '';
+    h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:.75rem;border:0.5px solid '+(done?'var(--accent)':'var(--border)')+';transition:border-color .2s;">';
+    h += '<div style="display:flex;align-items:flex-start;gap:10px;">';
+    // Checkbox
+    h += '<button onclick="window._cogToggle(''+t.id+'')" style="width:26px;height:26px;border-radius:50%;border:2px solid '+(done?'var(--accent)':'var(--border)')+';background:'+(done?'var(--accent)':'transparent')+';cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .2s;">';
+    h += done ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+    h += '</button>';
+    h += '<div style="flex:1;">';
+    h += '<div style="font-size:13px;font-weight:600;margin-bottom:4px;'+(done?'text-decoration:line-through;color:var(--text3);':'')+'">'+t.label+'</div>';
+    h += '<div style="font-size:12px;color:var(--text2);line-height:1.55;">'+t.desc+'</div>';
+    // Campo de tiempo si aplica
+    if(t.tiempo) {
+      h += '<div style="display:flex;align-items:center;gap:8px;margin-top:8px;">';
+      h += '<span style="font-size:11px;color:var(--text3);">⏱ Tiempo/nivel:</span>';
+      h += '<input type="text" id="cog_tiempo_'+t.id+'" value="'+tiempoVal+'" placeholder="ej: 28s" onchange="window._cogTiempo(''+t.id+'',this.value)" style="width:80px;height:30px;background:var(--bg3);border:0.5px solid var(--border);border-radius:6px;padding:0 8px;font-size:12px;color:var(--text);font-family:inherit;outline:none;">';
+      h += '</div>';
+    }
+    h += '</div></div></div>';
+  });
+
+  // Campo reflexión semanal
+  if(diaVer === 'vie') {
+    var reflexion = progreso['reflexion_semana'] || '';
+    h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:.75rem;">';
+    h += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">✏️ Reflexión semanal</div>';
+    h += '<textarea id="cog-reflexion" placeholder="¿En qué tarea has notado más mejora esta semana?" style="width:100%;height:80px;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:8px;font-size:13px;color:var(--text);font-family:inherit;outline:none;resize:none;" onchange="window._cogReflexion(this.value)">'+reflexion+'</textarea>';
+    h += '</div>';
+  }
+
+  // Historial de récords
+  var records = {};
+  try { records = JSON.parse(localStorage.getItem('cog_records') || '{}'); } catch(e){}
+  if(Object.keys(records).length) {
+    h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:.75rem;">';
+    h += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">🏆 Mis récords</div>';
+    if(records.schulte_mejor) h += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:0.5px solid var(--border);"><span>Schulte (mejor)</span><span style="font-weight:700;color:var(--accent);">'+records.schulte_mejor+'</span></div>';
+    if(records.nback_max) h += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;"><span>N-Back (nivel máx)</span><span style="font-weight:700;color:var(--accent);">N='+records.nback_max+'</span></div>';
+    h += '</div>';
+  }
+
+  document.getElementById('cog-content').innerHTML = h;
+};
+
+// Helpers cognitivo
+function getISOWeek() {
+  var d = new Date(); var dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return d.getUTCFullYear() + 'W' + Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+}
+
+window._cogToggle = function(tid) {
+  var weekKey = 'cog_' + getISOWeek();
+  var progreso = {};
+  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e){}
+  progreso[tid] = !progreso[tid];
+  localStorage.setItem(weekKey, JSON.stringify(progreso));
+  window._cogSyncSupabase();
+  window.renderCognitivo();
+};
+
+window._cogTiempo = function(tid, val) {
+  var weekKey = 'cog_' + getISOWeek();
+  var progreso = {};
+  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e){}
+  progreso[tid + '_tiempo'] = val;
+  localStorage.setItem(weekKey, JSON.stringify(progreso));
+  // Actualizar récords
+  var records = {};
+  try { records = JSON.parse(localStorage.getItem('cog_records') || '{}'); } catch(e){}
+  if(tid.indexOf('schulte') >= 0) {
+    var n = parseFloat(val);
+    if(!isNaN(n) && (!records.schulte_mejor || n < parseFloat(records.schulte_mejor))) {
+      records.schulte_mejor = val;
+      localStorage.setItem('cog_records', JSON.stringify(records));
+    }
+  }
+  if(tid.indexOf('nback') >= 0) {
+    var lvl = parseInt(val.replace(/[^0-9]/g,''));
+    if(!isNaN(lvl) && (!records.nback_max || lvl > parseInt(records.nback_max))) {
+      records.nback_max = lvl;
+      localStorage.setItem('cog_records', JSON.stringify(records));
+    }
+  }
+};
+
+window._cogReflexion = function(val) {
+  var weekKey = 'cog_' + getISOWeek();
+  var progreso = {};
+  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e){}
+  progreso['reflexion_semana'] = val;
+  localStorage.setItem(weekKey, JSON.stringify(progreso));
+  window._cogSyncSupabase();
+};
+
+window._cogSyncSupabase = function() {
+  if(!window._jugId || !window.dbRef) return;
+  var weekKey = 'cog_' + getISOWeek();
+  var progreso = {};
+  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e){}
+  var records = {};
+  try { records = JSON.parse(localStorage.getItem('cog_records') || '{}'); } catch(e){}
+  var semana = getISOWeek();
+  window.dbRef.from('cognitivo_log')
+    .upsert({ jugador_id: window._jugId, semana: semana, progreso: progreso, records: records, updated_at: new Date().toISOString() }, { onConflict: 'jugador_id,semana' })
+    .then(function(res){ if(res.error) console.warn('cognitivo sync:', res.error.message); });
+};
+
 
 function showToastGlobal(msg) {
   var t = document.getElementById('toast');
