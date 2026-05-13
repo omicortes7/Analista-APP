@@ -460,7 +460,68 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
 #micros-content > div > div:last-child { animation: 0.2s ease 0s 1 normal none running fadeSlideIn; }
 
 </style>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+<script>
+// loginAnalista — disponible globalmente antes de que cargue app.js
+async function loginAnalista() {
+  var email = document.getElementById('login-email').value.trim();
+  var pass  = document.getElementById('login-pass').value;
+  var btn   = document.getElementById('ls-btn');
+  var err   = document.getElementById('login-error');
+
+  if(!email || !pass) { showLoginError('Introduce email y contraseña'); return; }
+
+  btn.textContent = 'Entrando...';
+  btn.style.opacity = '0.7';
+  btn.disabled = true;
+  if(err) err.style.display = 'none';
+
+  try {
+    var DB2 = window.supabase.createClient(
+      'https://ghxwdauwrzupjmrujcns.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoeHdkYXV3cnp1cGptcnVqY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODUxMDgsImV4cCI6MjA4OTM2MTEwOH0.2P4HGtD6hS6W8t4kzhnFxu8KH5S62ZooQHvDCwlfh8U'
+    );
+
+    var authRes = await DB2.auth.signInWithPassword({ email: email, password: pass });
+    if(authRes.error) {
+      showLoginError('Email o contraseña incorrectos');
+      btn.textContent = 'Entrar a la academia';
+      btn.style.opacity = '1';
+      btn.disabled = false;
+      return;
+    }
+
+    // Verificar tabla analistas
+    var perfilRes = await DB2.from('analistas').select('id,nombre,activo').eq('email', email).single();
+    if(!perfilRes.data || !perfilRes.data.activo) {
+      await DB2.auth.signOut();
+      showLoginError('No tienes acceso autorizado. Contacta con Omar.');
+      btn.textContent = 'Entrar a la academia';
+      btn.style.opacity = '1';
+      btn.disabled = false;
+      return;
+    }
+
+    // OK — mostrar app
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'flex';
+    document.body.style.overflow = '';
+    if(typeof init === 'function') await init();
+
+  } catch(e) {
+    showLoginError('Error de conexión');
+    btn.textContent = 'Entrar a la academia';
+    btn.style.opacity = '1';
+    btn.disabled = false;
+  }
+}
+
+function showLoginError(msg) {
+  var err = document.getElementById('login-error');
+  if(err) { err.textContent = msg; err.style.display = 'block'; }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
