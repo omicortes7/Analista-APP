@@ -381,6 +381,11 @@ function setJP(p){state.filtros.jugadores.pos=p;renderJugadores();}
 
 async function saveJugador(){
   const nombre=document.getElementById('npn').value.trim();if(!nombre){alert('Nombre obligatorio');return;}
+  const email=(document.getElementById('npe-mail')?.value||'').trim().toLowerCase();
+  const pass=(document.getElementById('npe-pass')?.value||'').trim();
+  if(!email){alert('Email obligatorio: el jugador lo necesita para entrar a su app.');return;}
+  if(!pass||pass.length<6){alert('Contraseña obligatoria (mínimo 6 caracteres).');return;}
+
   let logo_club='';
   const lf=document.getElementById('j-logo-file');
   if(lf&&lf.files&&lf.files[0]){
@@ -393,20 +398,56 @@ async function saveJugador(){
     const r2=new FileReader();
     foto_jugador=await new Promise(res=>{r2.onload=e=>res(e.target.result);r2.readAsDataURL(ff2.files[0]);});
   }
-  // PIN secuencial de 4 dígitos: 0000, 0001, 0002, ...
-  // Tomamos el max actual GLOBAL (todos los analistas) y sumamos 1
+
+  // 1) Crear cuenta en Supabase Auth para que el jugador pueda entrar a su app
+  //    (Confirm email está OFF en Supabase → la cuenta queda activa al instante)
+  const authRes = await DB.auth.signUp({
+    email: email,
+    password: pass,
+    options: { data: { nombre: nombre } }
+  });
+  if(authRes.error){
+    const msg = authRes.error.message || '';
+    if(/already registered|already exists|User already registered/i.test(msg)){
+      if(!confirm(`El email ${email} ya tiene cuenta en el sistema.\n\n¿Quieres crear el jugador igualmente y vincularlo a esa cuenta existente?\n\n(El jugador entrará con su contraseña anterior, no con la que has puesto ahora.)`)){
+        return;
+      }
+    } else {
+      alert('Error al crear la cuenta del jugador:\n'+msg);
+      return;
+    }
+  }
+
+  // 2) Generar PIN secuencial (se mantiene para compatibilidad con código existente)
   const allPinsRes = await DB.from('jugadores').select('pin');
   const nums = (allPinsRes.data||[])
     .map(r => /^\d{4}$/.test(r.pin) ? parseInt(r.pin, 10) : -1)
     .filter(n => n >= 0);
   const next = nums.length ? Math.max(...nums) + 1 : 0;
   const pin = String(next).padStart(4, '0');
-  const data={nombre,posicion:document.getElementById('npp').value,equipo:document.getElementById('npe').value.trim(),sesion_fecha:document.getElementById('nps').value||null,logo_club,foto_jugador,email_jugador:document.getElementById('npe-mail')?.value.trim()||'',pin};
+
+  // 3) Insertar fila en tabla jugadores
+  const data={
+    nombre,
+    posicion:document.getElementById('npp').value,
+    equipo:document.getElementById('npe').value.trim(),
+    sesion_fecha:document.getElementById('nps').value||null,
+    logo_club,
+    foto_jugador,
+    email_jugador: email,
+    pin
+  };
   const{data:res,error}=await DB.from('jugadores').insert(data).select();
-  if(error){showToast('Error al guardar');return;}
+  if(error){
+    alert('La cuenta del jugador se creó en Auth, pero falló el guardado en la tabla:\n'+(error.message||error));
+    return;
+  }
   state.jugadores.unshift(res[0]);
   closeModal('mnj');renderJugadores();renderInicio();
-  showToast(`Jugador añadido · PIN: ${pin}`);
+
+  // 4) Mostrar al analista las credenciales para que se las pase al jugador
+  const mensaje = `✓ Jugador creado\n\nPásale estos datos:\nEmail: ${email}\nContraseña: ${pass}`;
+  alert(mensaje);
 }
 
 function openJug(id){
@@ -2026,17 +2067,17 @@ function genSes(){
 
 // ─── URL JUGADOR ───
 function copiarURLJugador(jugId) {
-  // URL única para todos los jugadores (entran solo con PIN)
+  // El jugador entra a su app con email + contraseña (los que tú le diste al crearlo)
   const base = window.location.origin + window.location.pathname.replace('index.html','').replace(/\/[^/]*$/, '/');
-  const url = `${base}jugador.html`;
+  const url = `${base}jugador-app.html`;
   const j = (state.jugadores||[]).find(x=>x.id===jugId);
-  const pin = j && j.pin ? j.pin : '';
   const nombre = j && j.nombre ? j.nombre : 'tu jugador';
-  const msg = pin
-    ? `Hola ${nombre}, este es tu acceso al panel de Areté Academy:\n\n${url}\n\nTu PIN: ${pin}`
-    : `Hola ${nombre}, este es tu acceso al panel de Areté Academy:\n\n${url}\n\n(Falta asignar PIN)`;
+  const email = j && j.email_jugador ? j.email_jugador : '';
+  const msg = email
+    ? `Hola ${nombre}, este es tu acceso al panel de Areté Academy:\n\n${url}\n\nEmail: ${email}\nContraseña: la que te pasé al crear tu cuenta\n\n(Si la has olvidado, dímelo y te la reseteo.)`
+    : `Hola ${nombre}, este es tu acceso al panel de Areté Academy:\n\n${url}\n\n(Falta vincular email — edita el jugador y añádelo.)`;
   navigator.clipboard.writeText(msg).then(() => {
-    showToast(pin ? `Acceso copiado ✓ (PIN: ${pin})` : 'URL copiada — falta PIN');
+    showToast(email ? `Acceso copiado ✓ (${email})` : 'URL copiada — falta email');
   }).catch(() => {
     prompt('Copia este mensaje y envíaselo al jugador:', msg);
   });
@@ -2556,18 +2597,18 @@ function loadTareasCustom() {
   } catch(e) {}
 }
 
-// ─── URL DEL JUGADOR (URL única + PIN) ───
+// ─── URL DEL JUGADOR (acceso por email + contraseña) ───
 function copiarUrlJugador(id) {
   const base = window.location.origin + window.location.pathname.replace('index.html','').replace(/\/[^/]*$/, '/');
-  const url = `${base}jugador.html`;
+  const url = `${base}jugador-app.html`;
   const j = (state.jugadores||[]).find(x=>x.id===id);
-  const pin = j && j.pin ? j.pin : '';
   const nombre = j && j.nombre ? j.nombre : 'tu jugador';
-  const msg = pin
-    ? `Hola ${nombre}, este es tu acceso al panel de Areté Academy:\n\n${url}\n\nTu PIN: ${pin}`
-    : `Hola ${nombre}, este es tu acceso al panel de Areté Academy:\n\n${url}\n\n(Falta asignar PIN)`;
+  const email = j && j.email_jugador ? j.email_jugador : '';
+  const msg = email
+    ? `Hola ${nombre}, este es tu acceso al panel de Areté Academy:\n\n${url}\n\nEmail: ${email}\nContraseña: la que te pasé al crear tu cuenta\n\n(Si la has olvidado, dímelo y te la reseteo.)`
+    : `Hola ${nombre}, este es tu acceso al panel de Areté Academy:\n\n${url}\n\n(Falta vincular email — edita el jugador y añádelo.)`;
   navigator.clipboard.writeText(msg).then(() => {
-    showToast(pin ? `Acceso copiado ✓ (PIN: ${pin})` : 'URL copiada — falta PIN');
+    showToast(email ? `Acceso copiado ✓ (${email})` : 'URL copiada — falta email');
   }).catch(() => {
     prompt('Copia este mensaje y envíaselo al jugador:', msg);
   });
