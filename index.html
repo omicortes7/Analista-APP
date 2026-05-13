@@ -466,7 +466,7 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
 async function loginAnalista() {
   var email = document.getElementById('login-email').value.trim();
   var pass  = document.getElementById('login-pass').value;
-  var btn   = document.getElementById('ls-btn');
+  var btn   = document.getElementById('login-btn');
   var err   = document.getElementById('login-error');
 
   if(!email || !pass) { showLoginError('Introduce email y contraseña'); return; }
