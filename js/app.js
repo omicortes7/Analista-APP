@@ -423,7 +423,7 @@ function openJug(id){
 }
 
 function switchDT(tab){
-  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','clips','informe','historial','tareas','plan','seguimiento','analisis','cognitivo'][i]===tab));
+  document.querySelectorAll('#mdj .dtab').forEach((el,i)=>el.classList.toggle('active',['obj','clips','informe','historial','tareas','plan','seguimiento','analisis','cognitivo','material'][i]===tab));
   renderDT(tab);
 }
 
@@ -906,6 +906,11 @@ function renderDT(tab){
 
   if(tab==='cognitivo'){
     renderCognitivoAnalista(id);
+    return;
+  }
+
+  if(tab==='material'){
+    renderMaterialAnalista(id);
     return;
   }
 }
@@ -6745,3 +6750,184 @@ async function renderCognitivoAnalista(jugId) {
   html += `</div>`;
   body.innerHTML = html;
 }
+
+// ═══════════════════════════════════════════════════
+// TAB MATERIAL — Objetos del jugador
+// ═══════════════════════════════════════════════════
+const MATERIAL_LISTA = [
+  {
+    id: 'cuerda_brock',
+    nombre: 'Cuerda de Brock',
+    precio: '~3€',
+    icon: '🪢',
+    donde: 'https://www.amazon.es/s?k=cuerda+brock+vision',
+    descripcion: 'Cuerda de 2-3m con 3 bolas de colores. Para entrenamiento de vergencia binocular y enfoque rápido.',
+    activa: ['lun'],
+    actividades_extra: [
+      'Antisupresión: cierra un ojo, enfoca cada bola 10 seg y abre el otro',
+      'Hart Chart: alterna foco entre cuerda y una carta en la pared a 3m',
+    ]
+  },
+  {
+    id: 'conos_colores',
+    nombre: '4 Conos de colores',
+    precio: '~8€',
+    icon: '🔶',
+    donde: 'https://www.amazon.es/s?k=conos+entrenamiento+futbol+colores',
+    descripcion: '4 conos de colores distintos (rojo, azul, verde, amarillo). Para Stroop motor y reacción visual.',
+    activa: ['jue'],
+    actividades_extra: [
+      'Stroop cruzado: dice un color, tocas el contrario',
+      'Secuencia de memoria: serie de 3 colores, reprodúcela en orden inverso',
+      'Reacción periférica: cono en visión periférica sin mover la cabeza',
+    ]
+  },
+  {
+    id: 'disco_equilibrio',
+    nombre: 'Disco de equilibrio',
+    precio: '~12€',
+    icon: '⭕',
+    donde: 'https://www.amazon.es/s?k=disco+equilibrio+entrenamiento',
+    descripcion: 'Superficie inestable para entrenamiento vestibular. Combina con doble tarea para máximo beneficio.',
+    activa: ['mie'],
+    actividades_extra: [
+      'Equilibrio + Schulte: tabla en papel mientras equilibras sobre el disco',
+      'Disco + operaciones: cálculo mental en superficie inestable',
+      'Equilibrio monopodal + pase: pie dominante y no dominante',
+    ]
+  },
+  {
+    id: 'pelota_reaccion',
+    nombre: 'Pelota de reacción (hexagonal)',
+    precio: '~15€',
+    icon: '⚾',
+    donde: 'https://www.amazon.es/s?k=pelota+reaccion+hexagonal+entrenamiento',
+    descripcion: 'Pelota con rebote imprevisible. Entrena tiempo de reacción y adaptabilidad motora.',
+    activa: ['jue', 'mie'],
+    actividades_extra: [
+      'Bote libre contra la pared: reacciona al rebote aleatorio',
+      'Pelota + decision: según el rebote, ejecuta acción diferente (cabeza/pie/mano)',
+      'Pelota + cálculo: atrapa y di el resultado de la operación que te dictan',
+    ]
+  },
+  {
+    id: 'palo_reaccion',
+    nombre: 'Palo de reacción',
+    precio: '~10€',
+    icon: '📏',
+    donde: 'https://www.amazon.es/s?k=palo+reaccion+tiempo+caida',
+    descripcion: 'Palo que cae y debes atraparlo. Mide y mejora el tiempo de reacción de forma cuantificable.',
+    activa: ['jue'],
+    actividades_extra: [
+      'Tiempo de reacción estándar: mide la distancia de caída, registra semanalmente',
+      'Reacción doble: palo en cada mano, suelta uno aleatoriamente',
+      'Reacción cognitiva: solo atrapa si el analista dice "ya", ignora si dice otra palabra',
+    ]
+  },
+  {
+    id: 'antifaces_estroboscopicos',
+    nombre: 'Antifaces estroboscópicos',
+    precio: '~80-150€',
+    icon: '🥽',
+    donde: 'https://www.amazon.es/s?k=gafas+estroboscopicas+deporte',
+    descripcion: 'Nivel avanzado. Interrumpen la visión para entrenar procesamiento visual bajo privación. Usadas en academias élite.',
+    activa: ['lun', 'mar', 'mie', 'jue', 'vie'],
+    actividades_extra: [
+      'Conducción con antifaces: el cerebro procesa información en ventanas muy cortas',
+      'Pase y recepción con antifaces: anticipación y lectura del juego sin visión continua',
+      'Schulte con antifaces: nivel avanzado de barrido visual',
+    ]
+  },
+];
+
+async function renderMaterialAnalista(jugId) {
+  const body = document.getElementById('djbody');
+  body.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text3);font-size:12px;">Cargando material...</div>';
+
+  // Cargar material del jugador desde Supabase
+  const { data: matData } = await DB
+    .from('jugadores')
+    .select('material_ids')
+    .eq('id', jugId)
+    .single();
+
+  let materialIds = [];
+  try { materialIds = JSON.parse(matData?.material_ids || '[]'); } catch(e) {}
+
+  const j = state.jugadores.find(x => x.id === jugId);
+
+  let html = `<div style="padding:1rem;">
+    <div style="font-size:13px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+      🛒 <span>Material del jugador</span>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:1rem;">
+      Marca el material que tiene <strong>${j?.nombre || 'el jugador'}</strong>. Las actividades cognitivas se ampliarán automáticamente en su app.
+    </div>`;
+
+  MATERIAL_LISTA.forEach(item => {
+    const tiene = materialIds.includes(item.id);
+    html += `<div style="background:var(--bg2);border:0.5px solid ${tiene ? 'rgba(168,232,92,0.3)' : 'var(--border)'};border-radius:var(--radius);padding:1rem;margin-bottom:.75rem;transition:border-color .2s;">
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div style="font-size:28px;flex-shrink:0;">${item.icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:700;">${item.nombre}</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:11px;color:var(--text3);">${item.precio}</span>
+              <a href="${item.donde}" target="_blank" style="font-size:10px;color:#58a6ff;text-decoration:none;background:rgba(88,166,255,0.1);border:0.5px solid rgba(88,166,255,0.2);border-radius:99px;padding:3px 10px;">Ver en Amazon →</a>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:8px;">${item.descripcion}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div style="font-size:10px;color:var(--text3);">Activa días:</div>
+            ${item.activa.map(d => `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,0.06);color:var(--text2);">${{lun:'Lun',mar:'Mar',mie:'Mié',jue:'Jue',vie:'Vie'}[d]}</span>`).join('')}
+          </div>
+          ${tiene && item.actividades_extra?.length ? `
+          <div style="margin-top:8px;padding:8px;background:rgba(168,232,92,0.05);border:0.5px solid rgba(168,232,92,0.15);border-radius:8px;">
+            <div style="font-size:10px;font-weight:700;color:var(--verde);margin-bottom:5px;">✨ Actividades extra desbloqueadas</div>
+            ${item.actividades_extra.map(a => `<div style="font-size:11px;color:var(--text2);padding:2px 0;">• ${a}</div>`).join('')}
+          </div>` : ''}
+        </div>
+        <button onclick="window._toggleMaterial('${jugId}','${item.id}')" style="flex-shrink:0;width:36px;height:36px;border-radius:50%;border:2px solid ${tiene ? 'var(--verde)' : 'var(--border)'};background:${tiene ? 'rgba(29,158,117,0.2)' : 'transparent'};cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;">
+          ${tiene ? '✓' : '+'}
+        </button>
+      </div>
+    </div>`;
+  });
+
+  // Resumen
+  const total = materialIds.length;
+  html += `<div style="background:rgba(212,175,55,0.06);border:0.5px solid rgba(212,175,55,0.2);border-radius:var(--radius);padding:1rem;margin-top:.5rem;">
+    <div style="font-size:12px;color:var(--text2);">
+      <strong style="color:var(--gold);">${total}</strong> de ${MATERIAL_LISTA.length} materiales disponibles.
+      ${total === 0 ? 'Sin material extra, el protocolo base sigue activo (Schulte, N-Back, ejercicios con balón).' : 
+        total < 3 ? 'Buen inicio. Con los conos y la cuerda ya cubre los días clave.' :
+        '¡Equipamiento completo! El jugador tiene acceso a todas las actividades.'}
+    </div>
+  </div>
+
+  </div>`;
+
+  body.innerHTML = html;
+}
+
+window._toggleMaterial = async function(jugId, itemId) {
+  const { data: matData } = await DB.from('jugadores').select('material_ids').eq('id', jugId).single();
+  let ids = [];
+  try { ids = JSON.parse(matData?.material_ids || '[]'); } catch(e) {}
+
+  if(ids.includes(itemId)) {
+    ids = ids.filter(x => x !== itemId);
+  } else {
+    ids.push(itemId);
+  }
+
+  await DB.from('jugadores').update({ material_ids: JSON.stringify(ids) }).eq('id', jugId);
+
+  // Actualizar state local
+  const jug = state.jugadores.find(x => x.id === jugId);
+  if(jug) jug.material_ids = JSON.stringify(ids);
+
+  showToast(ids.includes(itemId) ? '✅ Material añadido' : 'Material eliminado');
+  renderMaterialAnalista(jugId);
+};
