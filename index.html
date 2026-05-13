@@ -463,11 +463,37 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
   
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// Acceso directo — sin login. App solo usada por Omar.
-// cerrarSesion() se conserva para no romper el botón del sidebar si app.js lo llama.
+// cerrarSesion() — cierra la sesión de Supabase de forma robusta:
+// 1) Llama a auth.signOut (revoca el token en servidor).
+// 2) Limpia localStorage + sessionStorage (borra los auth-token guardados).
+// 3) Recarga a la URL base para que aparezca el login limpio.
 function cerrarSesion() {
-  // Sin sesión real, solo recargamos
-  location.reload();
+  var _finish = function(){
+    try {
+      // Borrar todas las claves de sesión de Supabase
+      Object.keys(localStorage).forEach(function(k){
+        if(k.indexOf('sb-')===0 || k.indexOf('supabase')!==-1 || k.indexOf('auth-token')!==-1) localStorage.removeItem(k);
+      });
+      sessionStorage.clear();
+    } catch(e){}
+    location.replace(location.pathname);
+  };
+  try {
+    var client = window.DB || window.db || window.supabaseClient;
+    if(client && client.auth && typeof client.auth.signOut === 'function'){
+      var p = client.auth.signOut();
+      if(p && typeof p.then === 'function'){
+        p.then(_finish).catch(_finish);
+        setTimeout(_finish, 1500); // salvavidas si signOut tarda
+      } else {
+        _finish();
+      }
+    } else {
+      _finish();
+    }
+  } catch(e) {
+    _finish();
+  }
 }
 </script>
 </head>
