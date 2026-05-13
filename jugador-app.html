@@ -879,6 +879,21 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
 .divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
 
 @media print { body { background: #fff; } }
+
+/* === Defensa visual: ocultar chrome flotante cuando no hay sesión === */
+body.logging-out nav.bnav,
+body.logging-out .app-cine-bg,
+body.logging-out .logout-floating,
+body.logging-out .modal { display: none !important; }
+body:has(#login-screen:not([style*="none"])) nav.bnav,
+body:has(#login-screen:not([style*="none"])) .app-cine-bg,
+body:has(#login-screen:not([style*="none"])) .logout-floating { display: none !important; }
+body:has(#app-screen[style*="display: none"]) nav.bnav,
+body:has(#app-screen[style*="display: none"]) .app-cine-bg,
+body:has(#app-screen[style*="display: none"]) .logout-floating,
+body:has(#app-screen[style*="display:none"]) nav.bnav,
+body:has(#app-screen[style*="display:none"]) .app-cine-bg,
+body:has(#app-screen[style*="display:none"]) .logout-floating { display: none !important; }
 </style>
 </head>
 <body>
@@ -2082,8 +2097,17 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
   };
 
   window.doLogout = function() {
-    // Recargamos la página tras cerrar sesión: limpia todo el estado en memoria
-    // (window._jug, listeners, modales abiertos…) y evita la pantalla en negro.
+    // 1) Ocultar visualmente TODO al instante: nav inferior, fondo cine y botón logout
+    //    son hijos del body, no del #app-screen, así que hay que ocultarlos a mano
+    //    para no quedar en pantalla en negro entre el signOut y el reload.
+    try {
+      document.body.classList.add('logging-out');
+      document.querySelectorAll('nav.bnav, .app-cine-bg, .logout-floating, .modal').forEach(function(el){
+        el.style.display = 'none';
+      });
+      var app = document.getElementById('app-screen'); if(app) app.style.display = 'none';
+    } catch(e){}
+    // 2) Recargar la página tras cerrar sesión (limpia estado en memoria)
     var _finishLogout = function() {
       try { sessionStorage.clear(); } catch(e){}
       location.replace(location.pathname);
@@ -2092,6 +2116,8 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
       var p = DB.auth.signOut();
       if (p && typeof p.then === 'function') {
         p.then(_finishLogout).catch(_finishLogout);
+        // Salvavidas: si signOut tarda más de 2s, recarga igualmente
+        setTimeout(_finishLogout, 2000);
       } else {
         _finishLogout();
       }
