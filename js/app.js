@@ -5542,9 +5542,13 @@ function renderPlanSection() {
   body.innerHTML=`
     <div style="${CARD}">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">Nuevo plan de partido</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
         <div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Fecha</label><input type="date" id="plan-fecha" style="${SI}" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Hora del partido *</label><input type="time" id="plan-hora" style="${SI}" value="12:00"></div>
         <div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Rival</label><input type="text" id="plan-rival" placeholder="Nombre del rival" style="${SI}"></div>
+      </div>
+      <div style="font-size:10px;color:var(--gold,#D4AF37);margin-bottom:10px;background:rgba(212,175,55,.08);border-left:2px solid var(--gold,#D4AF37);padding:8px 10px;border-radius:var(--radius-sm);">
+        ⏱ Al guardar con la hora del partido se generan automáticamente los 20 pasos del timeline (-48h → +24h) que el jugador verá en su app.
       </div>
       <div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Puntos del plan (uno por línea)</div>
       <textarea id="plan-items" placeholder="Trabaja la anticipación bajo presión&#10;Busca el espacio entre pivote e interior&#10;En transición, sprint inmediato al espacio..." style="${TA}height:110px;margin-bottom:8px;"></textarea>
@@ -5553,22 +5557,133 @@ function renderPlanSection() {
       <button class="btn" style="width:100%;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;letter-spacing:.03em;" onclick="savePlanPartido('${id}')">📤 Enviar plan al jugador</button>
     </div>
     ${planes.length?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.75rem;">Planes anteriores</div>
-    ${planes.map(p=>`<div style="${CARD}padding:.875rem;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:13px;font-weight:600;">${p.rival||'Partido'}</div><div style="font-size:10px;color:var(--text3);">${p.fecha||''}</div></div>${(p.items||[]).map((item,i)=>`<div style="display:flex;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border);"><div style="color:var(--blue);font-size:11px;font-weight:700;min-width:18px;">${i+1}</div><div style="font-size:12px;color:var(--text2);">${item}</div></div>`).join('')}</div>`).join('')}`:''}`;
+    <div id="planes-anteriores-list">${planes.map(p=>{
+      const tieneTimeline = !!p.kickoff_at;
+      return `<div style="${CARD}padding:.875rem;" data-plan-id="${p.id}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:13px;font-weight:600;">${p.rival||'Partido'}</div>
+          <div style="font-size:10px;color:var(--text3);">${p.fecha||''}${p.kickoff_at?' · '+new Date(p.kickoff_at).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):''}</div>
+        </div>
+        ${tieneTimeline?`<div class="plan-cumplimiento" data-plan-id="${p.id}" style="font-size:11px;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg-2,rgba(255,255,255,.02));border-radius:var(--radius-sm);">⏳ Cargando cumplimiento del timeline...</div>`:''}
+        ${(p.items||[]).map((item,i)=>`<div style="display:flex;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border);"><div style="color:var(--blue);font-size:11px;font-weight:700;min-width:18px;">${i+1}</div><div style="font-size:12px;color:var(--text2);">${item}</div></div>`).join('')}
+      </div>`;
+    }).join('')}</div>`:''}`;
+  // Cargar cumplimientos asíncronos
+  if(planes.length) setTimeout(()=>cargarCumplimientosTimeline(planes), 50);
+}
+
+async function cargarCumplimientosTimeline(planes) {
+  const planesConTimeline = planes.filter(p => p.kickoff_at);
+  if(!planesConTimeline.length) return;
+  const planIds = planesConTimeline.map(p => p.id);
+  const { data, error } = await DB.from('match_timeline_steps')
+    .select('plan_id, completed')
+    .in('plan_id', planIds);
+  if(error || !data) return;
+  // Agrupar por plan_id
+  const porPlan = {};
+  data.forEach(s => {
+    if(!porPlan[s.plan_id]) porPlan[s.plan_id] = { total: 0, done: 0 };
+    porPlan[s.plan_id].total++;
+    if(s.completed) porPlan[s.plan_id].done++;
+  });
+  // Pintar
+  Object.keys(porPlan).forEach(pid => {
+    const el = document.querySelector(`.plan-cumplimiento[data-plan-id="${pid}"]`);
+    if(!el) return;
+    const { total, done } = porPlan[pid];
+    const pct = total ? Math.round((done/total)*100) : 0;
+    const color = pct >= 80 ? '#1D9E75' : pct >= 50 ? '#D4AF37' : '#f85149';
+    el.innerHTML = `<span style="color:${color};font-weight:700;">●</span> Cumplimiento: <strong style="color:${color};">${pct}%</strong> · ${done}/${total} pasos completados`;
+  });
 }
 
 async function savePlanPartido(jugId) {
   const fecha=document.getElementById('plan-fecha')?.value;
+  const hora=document.getElementById('plan-hora')?.value;
   const rival=document.getElementById('plan-rival')?.value.trim()||'';
   const itemsRaw=document.getElementById('plan-items')?.value.trim()||'';
   const notas=document.getElementById('plan-notas')?.value.trim()||'';
   if(!itemsRaw){showToast('Escribe al menos un punto del plan');return;}
+  if(!fecha || !hora){showToast('Fecha y hora del partido son obligatorias');return;}
   const items=itemsRaw.split('\n').filter(Boolean);
-  const{data,error}=await DB.from('planes_partido').insert({jugador_id:jugId,fecha,rival,items,notas}).select();
+  
+  // Construir timestamp ISO del kickoff (zona horaria local del navegador)
+  const kickoff_at = new Date(`${fecha}T${hora}:00`).toISOString();
+  
+  // 1) Guardar el plan
+  const{data,error}=await DB.from('planes_partido')
+    .insert({jugador_id:jugId,fecha,rival,items,notas,kickoff_at})
+    .select();
   if(error){showToast('Error: '+error.message);return;}
+  const planGuardado = data[0];
   if(!state.planesPartido)state.planesPartido=[];
-  state.planesPartido.unshift(data[0]);
-  showToast('✓ Plan enviado al jugador');
+  state.planesPartido.unshift(planGuardado);
+
+  // 2) Generar los 20 pasos del timeline
+  const stepsToInsert = generarPasosTimeline(planGuardado.id, jugId, kickoff_at);
+  const { error: errSteps } = await DB.from('match_timeline_steps').insert(stepsToInsert);
+  if(errSteps) {
+    showToast('Plan guardado, pero falló el timeline: '+errSteps.message);
+  } else {
+    showToast(`✓ Plan enviado · Timeline de ${stepsToInsert.length} pasos generado`);
+  }
   renderPlanSection();
+}
+
+// ─── GENERADOR DE PASOS DEL TIMELINE ───
+// Devuelve un array de pasos listos para insertar en match_timeline_steps
+function generarPasosTimeline(planId, jugadorId, kickoffISO) {
+  const kickoff = new Date(kickoffISO);
+  // PLANTILLA DE 20 PASOS (offsets en minutos respecto al kickoff)
+  const PLANTILLA = [
+    // -48h
+    { offset: -2880, category: 'HIDRATACION', title: 'Hidratación alta · 35ml/kg durante el día', icon: '💧', is_critical: false },
+    { offset: -2880, category: 'NUTRICION',   title: 'Carga de hidratos · pasta, arroz, patata. Sin comidas nuevas', icon: '🍝', is_critical: false },
+    { offset: -2820, category: 'SUENO',       title: 'A la cama antes de las 23:00 · esta noche es la que más cuenta', icon: '😴', is_critical: true },
+    // -24h
+    { offset: -1440, category: 'NUTRICION',   title: 'Cena · hidratos + proteína magra + verdura. Sin frituras', icon: '🍗', is_critical: false },
+    { offset: -1380, category: 'SUENO',       title: 'Pantallas off a las 22:30 · la luz azul retrasa la melatonina', icon: '📱', is_critical: true },
+    { offset: -1320, category: 'MENTAL',      title: 'Visualización 3 min · 2-3 acciones clave de tu posición', icon: '🧘', is_critical: false },
+    // Día P - despertar (estimado a -5h del kickoff si juegas al mediodía)
+    { offset: -300,  category: 'HIDRATACION', title: 'Al despertar · vaso de agua con pellizco de sal', icon: '☀️', is_critical: false },
+    // -4h
+    { offset: -240,  category: 'NUTRICION',   title: 'Comida principal · avena + plátano + miel + frutos secos', icon: '🥣', is_critical: true },
+    // -2h30
+    { offset: -150,  category: 'ACTIVACION',  title: 'Paseo ligero 15-20 min · activa sin fatigar', icon: '🚶', is_critical: false },
+    // -2h
+    { offset: -120,  category: 'NUTRICION',   title: 'Snack ligero · plátano + dátiles o tostada con miel', icon: '🍌', is_critical: true },
+    { offset: -120,  category: 'HIDRATACION', title: '500ml de agua en sorbos · no de golpe', icon: '💧', is_critical: false },
+    // -1h30
+    { offset: -90,   category: 'MENTAL',      title: 'Audio de activación · 10 min playlist propia', icon: '🎧', is_critical: false },
+    // -45min
+    { offset: -45,   category: 'NUTRICION',   title: 'Hidratos rápidos disponibles · gel, isotónica, plátano', icon: '⚡', is_critical: true },
+    { offset: -45,   category: 'MENTAL',      title: 'Repaso plan de partido · 3 puntos clave de tu posición', icon: '🧠', is_critical: true },
+    // +30min
+    { offset:  30,   category: 'RECUPERACION',title: 'Batido recuperación · plátano + leche + miel + avena (1:3)', icon: '🥤', is_critical: true },
+    // +2h
+    { offset:  120,  category: 'NUTRICION',   title: 'Comida completa · proteína + hidratos + verdura + grasa buena', icon: '🍽️', is_critical: false },
+    { offset:  120,  category: 'RECUPERACION',title: 'Movilidad 10 min · foam roller cuádriceps, isquios, gemelos', icon: '🦶', is_critical: false },
+    // +6h (noche)
+    { offset:  360,  category: 'DIARIO',      title: 'Diario post-partido · abre el cuestionario Mental', icon: '📓', is_critical: true, is_diary_step: true },
+    // +24h
+    { offset:  1440, category: 'RECUPERACION',title: 'Recuperación activa · 30 min andar, bici o nadar', icon: '🚶', is_critical: true },
+    { offset:  1440, category: 'NUTRICION',   title: 'Alimentación antiinflamatoria · pescado azul, frutos rojos, cúrcuma', icon: '🥗', is_critical: false },
+  ];
+
+  return PLANTILLA.map(p => ({
+    plan_id: planId,
+    jugador_id: jugadorId,
+    offset_minutes: p.offset,
+    scheduled_at: new Date(kickoff.getTime() + p.offset * 60000).toISOString(),
+    category: p.category,
+    title: p.title,
+    description: p.description || '',
+    icon: p.icon,
+    is_critical: p.is_critical,
+    is_diary_step: !!p.is_diary_step,
+    completed: false
+  }));
 }
 
 // ─── EDITAR JUGADOR ───
