@@ -450,6 +450,55 @@ async function saveJugador(){
   alert(mensaje);
 }
 
+// ─── VINCULAR JUGADOR EXISTENTE (rescate) ───
+// Para casos donde la cuenta ya existe en Supabase Auth pero falló la inserción en la tabla jugadores.
+// Crea SOLO la fila en jugadores (no toca Auth).
+async function vincularJugadorExistente() {
+  const email = (prompt('Email del jugador (el que YA tiene cuenta creada en Supabase Auth):') || '').trim().toLowerCase();
+  if(!email) return;
+
+  // Comprobar que no exista ya una fila en jugadores con ese email
+  const existeRes = await DB.from('jugadores').select('id,nombre').ilike('email_jugador', email);
+  if(existeRes.data && existeRes.data.length){
+    alert(`Ya hay un jugador vinculado a ${email}: ${existeRes.data[0].nombre}.\n\nNo hace falta vincular de nuevo.`);
+    return;
+  }
+
+  const nombre = (prompt('Nombre del jugador:') || '').trim();
+  if(!nombre) return;
+
+  const posicion = (prompt('Posición (Portero / Central / Lateral / Pivote / Interior / Banda / Mediapunta / Delantero):', 'Central') || 'Central').trim();
+  const equipo = (prompt('Equipo (opcional, puedes dejar vacío):') || '').trim();
+
+  // Generar PIN secuencial
+  const allPinsRes = await DB.from('jugadores').select('pin');
+  const nums = (allPinsRes.data||[])
+    .map(r => /^\d{4}$/.test(r.pin) ? parseInt(r.pin, 10) : -1)
+    .filter(n => n >= 0);
+  const next = nums.length ? Math.max(...nums) + 1 : 0;
+  const pin = String(next).padStart(4, '0');
+
+  const data = {
+    nombre,
+    posicion,
+    equipo,
+    email_jugador: email,
+    pin
+  };
+
+  const { data: res, error } = await DB.from('jugadores').insert(data).select();
+  if(error){
+    alert('Error al crear la fila del jugador:\n'+(error.message||error));
+    return;
+  }
+
+  if(!state.jugadores) state.jugadores = [];
+  state.jugadores.unshift(res[0]);
+  renderJugadores();
+  if(typeof renderInicio === 'function') renderInicio();
+  alert(`✓ Jugador "${nombre}" vinculado correctamente al email ${email}.\n\nPídele que entre a su app y debería ver sus datos.`);
+}
+
 function openJug(id){
   state.currentJugador=id;
   const j=state.jugadores.find(x=>x.id===id);if(!j)return;
