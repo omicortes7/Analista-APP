@@ -879,21 +879,6 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
 .divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
 
 @media print { body { background: #fff; } }
-
-/* === Defensa visual: ocultar chrome flotante cuando no hay sesión === */
-body.logging-out nav.bnav,
-body.logging-out .app-cine-bg,
-body.logging-out .logout-floating,
-body.logging-out .modal { display: none !important; }
-body:has(#login-screen:not([style*="none"])) nav.bnav,
-body:has(#login-screen:not([style*="none"])) .app-cine-bg,
-body:has(#login-screen:not([style*="none"])) .logout-floating { display: none !important; }
-body:has(#app-screen[style*="display: none"]) nav.bnav,
-body:has(#app-screen[style*="display: none"]) .app-cine-bg,
-body:has(#app-screen[style*="display: none"]) .logout-floating,
-body:has(#app-screen[style*="display:none"]) nav.bnav,
-body:has(#app-screen[style*="display:none"]) .app-cine-bg,
-body:has(#app-screen[style*="display:none"]) .logout-floating { display: none !important; }
 </style>
 </head>
 <body>
@@ -1938,6 +1923,10 @@ body:has(#app-screen[style*="display:none"]) .logout-floating { display: none !i
           style="flex:1;padding:10px 4px;border-radius:10px;font-size:12px;font-weight:700;background:rgba(0,150,255,0.15);color:var(--blue);border:1px solid rgba(0,150,255,0.3);cursor:pointer;font-family:inherit;">
           📋 Plan
         </button>
+        <button onclick="switchPlanTab('timeline',this)" id="ptab-timeline"
+          style="flex:1;padding:10px 4px;border-radius:10px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:1px solid var(--border2);cursor:pointer;font-family:inherit;">
+          ⏱ Timeline
+        </button>
         <button onclick="switchPlanTab('objetivos',this)" id="ptab-objetivos"
           style="flex:1;padding:10px 4px;border-radius:10px;font-size:12px;font-weight:700;background:none;color:var(--text3);border:1px solid var(--border2);cursor:pointer;font-family:inherit;">
           🎯 Objetivos
@@ -1948,6 +1937,10 @@ body:has(#app-screen[style*="display:none"]) .logout-floating { display: none !i
         <div id="plan-content-full">
           <div style="text-align:center;padding:3rem;color:var(--text3);"><div style="font-size:32px;margin-bottom:10px;">📋</div><div style="font-size:13px;">Sin plan todavía.<br>Tu analista lo preparará antes del partido.</div></div>
         </div>
+      </div>
+      <!-- TAB TIMELINE -->
+      <div id="ptab-content-timeline" style="display:none;">
+        <div id="timeline-content"><div class="loading">Cargando timeline...</div></div>
       </div>
       <!-- TAB OBJETIVOS -->
       <div id="ptab-content-objetivos" style="display:none;">
@@ -2016,7 +2009,7 @@ body:has(#app-screen[style*="display:none"]) .logout-floating { display: none !i
       Plan
     </button>
     <button class="nb" onclick="goSec('psico',this)" data-id="psico">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/><path d="M19 3l.6 1.4 1.4.6-1.4.6L19 7l-.6-1.4L17 5l1.4-.6z"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/><path d="m12 5 2 3-3 1 3 3-2 3"/></svg>
       Mental
     </button>
     <button class="nb" onclick="goSec('nut',this)" data-id="nut">
@@ -2097,33 +2090,12 @@ body:has(#app-screen[style*="display:none"]) .logout-floating { display: none !i
   };
 
   window.doLogout = function() {
-    // 1) Ocultar visualmente TODO al instante: nav inferior, fondo cine y botón logout
-    //    son hijos del body, no del #app-screen, así que hay que ocultarlos a mano
-    //    para no quedar en pantalla en negro entre el signOut y el reload.
-    try {
-      document.body.classList.add('logging-out');
-      document.querySelectorAll('nav.bnav, .app-cine-bg, .logout-floating, .modal').forEach(function(el){
-        el.style.display = 'none';
-      });
-      var app = document.getElementById('app-screen'); if(app) app.style.display = 'none';
-    } catch(e){}
-    // 2) Recargar la página tras cerrar sesión (limpia estado en memoria)
-    var _finishLogout = function() {
-      try { sessionStorage.clear(); } catch(e){}
-      location.replace(location.pathname);
-    };
-    try {
-      var p = DB.auth.signOut();
-      if (p && typeof p.then === 'function') {
-        p.then(_finishLogout).catch(_finishLogout);
-        // Salvavidas: si signOut tarda más de 2s, recarga igualmente
-        setTimeout(_finishLogout, 2000);
-      } else {
-        _finishLogout();
-      }
-    } catch(e) {
-      _finishLogout();
-    }
+    DB.auth.signOut().then(function() {
+      // Recargar la página para garantizar un estado limpio
+      location.reload();
+    }).catch(function() {
+      location.reload();
+    });
   };
 
   function loadApp(user) {
@@ -4632,8 +4604,9 @@ window.verAnalisisDetalle = function(id) {
 // ─── TABS PLAN + OBJETIVOS ───
 window.switchPlanTab = function(tab, btn) {
   document.getElementById('ptab-content-plan').style.display      = tab==='plan'      ? 'block' : 'none';
+  document.getElementById('ptab-content-timeline').style.display  = tab==='timeline'  ? 'block' : 'none';
   document.getElementById('ptab-content-objetivos').style.display = tab==='objetivos' ? 'block' : 'none';
-  ['plan','objetivos'].forEach(function(t) {
+  ['plan','timeline','objetivos'].forEach(function(t) {
     var b = document.getElementById('ptab-'+t);
     if(!b) return;
     var on = t===tab;
@@ -4642,6 +4615,173 @@ window.switchPlanTab = function(tab, btn) {
     b.style.border     = on ? '1px solid rgba(0,150,255,0.3)' : '1px solid var(--border2)';
   });
   if(tab==='objetivos') renderObjetivosJugador();
+  if(tab==='timeline')  renderTimelineJugador();
+};
+
+// ─── TIMELINE DEL PARTIDO ───
+window.renderTimelineJugador = async function() {
+  var jugId = window._jugId;
+  var db    = window.DB_REF;
+  var cont  = document.getElementById('timeline-content');
+  if(!cont) return;
+  if(!jugId || !db) { cont.innerHTML = '<div class="loading">Sin sesión.</div>'; return; }
+  cont.innerHTML = '<div class="loading">Cargando timeline...</div>';
+
+  // Buscar el plan más reciente con kickoff_at en el futuro o reciente
+  var nowMs = Date.now();
+  var planRes = await db.from('planes_partido')
+    .select('*')
+    .eq('jugador_id', jugId)
+    .not('kickoff_at', 'is', null)
+    .order('kickoff_at', { ascending: false })
+    .limit(5);
+  if(planRes.error || !planRes.data || !planRes.data.length) {
+    cont.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text3);"><div style="font-size:32px;margin-bottom:10px;">⏱</div><div style="font-size:13px;">Sin partidos programados.<br>El timeline aparecerá cuando tu analista programe un partido con hora.</div></div>';
+    return;
+  }
+
+  // Elegir el partido más cercano a "ahora" (futuro próximo, o el pasado reciente si no hay futuro)
+  var planes = planRes.data;
+  var futuros = planes.filter(p => new Date(p.kickoff_at).getTime() >= nowMs - 86400000); // futuros + últimas 24h
+  var planActivo = futuros.length ? futuros[futuros.length-1] : planes[0]; // el más próximo futuro, o el más reciente pasado
+
+  // Cargar los pasos
+  var stepsRes = await db.from('match_timeline_steps')
+    .select('*')
+    .eq('plan_id', planActivo.id)
+    .order('scheduled_at', { ascending: true });
+  if(stepsRes.error || !stepsRes.data || !stepsRes.data.length) {
+    cont.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text3);"><div style="font-size:32px;margin-bottom:10px;">⏱</div><div style="font-size:13px;">Este partido no tiene timeline generado.<br>Pídele a tu analista que actualice el plan con la hora del partido.</div></div>';
+    return;
+  }
+
+  pintarTimeline(planActivo, stepsRes.data, cont);
+};
+
+function pintarTimeline(plan, steps, cont) {
+  var nowMs = Date.now();
+  var kickoffDate = new Date(plan.kickoff_at);
+
+  // Calcular cumplimiento global
+  var total = steps.length;
+  var done = steps.filter(s => s.completed).length;
+  var pct = total ? Math.round(done/total*100) : 0;
+  var pctColor = pct>=80 ? '#1D9E75' : pct>=50 ? '#D4AF37' : '#f85149';
+
+  // Filtros disponibles
+  var categorias = {
+    HIDRATACION:  { label:'Hidratación', color:'#58a6ff' },
+    NUTRICION:    { label:'Nutrición',   color:'#3fb950' },
+    SUENO:        { label:'Sueño',       color:'#a371f7' },
+    MENTAL:       { label:'Mental',      color:'#d29922' },
+    ACTIVACION:   { label:'Activación',  color:'#f78166' },
+    RECUPERACION: { label:'Recuperación',color:'#ff7b72' },
+    DIARIO:       { label:'Diario',      color:'#7c6ff0' }
+  };
+
+  // Cabecera + barra de progreso
+  var html = '';
+  html += '<div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">';
+  html += '<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Próximo partido</div>';
+  html += '<div style="font-size:16px;font-weight:700;color:var(--text);">'+(plan.rival||'Partido')+'</div>';
+  html += '<div style="font-size:11px;color:var(--text2);margin-top:2px;">'+kickoffDate.toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long'})+' · '+kickoffDate.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})+'</div></div>';
+  html += '<div style="text-align:right;"><div style="font-size:22px;font-weight:800;color:'+pctColor+';">'+pct+'%</div><div style="font-size:10px;color:var(--text3);">'+done+'/'+total+' pasos</div></div>';
+  html += '</div>';
+  // Barra
+  html += '<div style="height:4px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:'+pctColor+';transition:width .3s;"></div></div>';
+  html += '</div>';
+
+  // Filtros de categoría
+  html += '<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:1rem;padding-bottom:4px;" id="tl-filters">';
+  html += '<button onclick="filtrarTimeline(\'ALL\')" data-cat="ALL" class="tl-fbtn active" style="padding:6px 12px;border-radius:99px;font-size:11px;font-weight:700;background:rgba(255,255,255,.08);color:var(--text);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;white-space:nowrap;">Todos</button>';
+  Object.keys(categorias).forEach(function(k){
+    var c = categorias[k];
+    html += '<button onclick="filtrarTimeline(\''+k+'\')" data-cat="'+k+'" class="tl-fbtn" style="padding:6px 12px;border-radius:99px;font-size:11px;font-weight:700;background:none;color:var(--text3);border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;white-space:nowrap;">'+c.label+'</button>';
+  });
+  html += '</div>';
+
+  // Lista de pasos
+  html += '<div id="tl-list">';
+  steps.forEach(function(s, idx){
+    var sMs = new Date(s.scheduled_at).getTime();
+    var futuro = sMs > nowMs;
+    var pasado = sMs < nowMs - 3600000; // más de 1h atrás
+    var actual = !futuro && !pasado;     // dentro de la ventana actual
+    var cat = categorias[s.category] || { label:s.category, color:'#888' };
+    var opa = pasado && !s.completed ? 0.55 : 1;
+    var borderColor = actual ? '#1D9E75' : 'var(--border)';
+    var bgColor = s.completed ? 'rgba(29,158,117,.06)' : (actual ? 'rgba(29,158,117,.03)' : 'var(--card)');
+
+    var horaStr = new Date(s.scheduled_at).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+
+    html += '<div class="tl-step" data-cat="'+s.category+'" data-id="'+s.id+'" style="background:'+bgColor+';border:0.5px solid '+borderColor+';border-left:3px solid '+cat.color+';border-radius:var(--radius);padding:.875rem 1rem;margin-bottom:.5rem;opacity:'+opa+';transition:all .2s;">';
+    html += '<div style="display:flex;align-items:center;gap:12px;">';
+    // Icono
+    html += '<div style="font-size:22px;flex-shrink:0;">'+(s.icon||'•')+'</div>';
+    // Cuerpo
+    html += '<div style="flex:1;min-width:0;">';
+    html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;flex-wrap:wrap;">';
+    html += '<span style="font-size:10px;font-weight:700;color:'+cat.color+';text-transform:uppercase;letter-spacing:.05em;">'+cat.label+'</span>';
+    html += '<span style="font-size:10px;color:var(--text3);">·</span>';
+    html += '<span style="font-size:10px;color:var(--text3);">'+horaStr+'</span>';
+    if(s.is_critical) html += '<span style="font-size:9px;background:rgba(255,138,46,.18);color:#f78166;padding:1px 6px;border-radius:99px;font-weight:700;">CRÍTICO</span>';
+    if(actual) html += '<span style="font-size:9px;background:rgba(29,158,117,.18);color:#1D9E75;padding:1px 6px;border-radius:99px;font-weight:700;">AHORA</span>';
+    html += '</div>';
+    html += '<div style="font-size:13px;color:var(--text);line-height:1.4;'+(s.completed?'text-decoration:line-through;color:var(--text3);':'')+'">'+s.title+'</div>';
+    html += '</div>';
+    // Botón completar / abrir cuestionario
+    if(s.is_diary_step) {
+      html += '<button onclick="abrirDiarioPostPartido(\''+s.id+'\')" style="flex-shrink:0;padding:8px 12px;border-radius:99px;font-size:11px;font-weight:700;background:'+(s.completed?'rgba(29,158,117,.15)':'#7c6ff0')+';color:'+(s.completed?'#1D9E75':'#fff')+';border:none;cursor:pointer;font-family:inherit;white-space:nowrap;">'+(s.completed?'✓ Completado':'Rellenar')+'</button>';
+    } else {
+      html += '<button onclick="toggleTimelineStep(\''+s.id+'\','+(!s.completed)+')" style="flex-shrink:0;width:32px;height:32px;border-radius:50%;font-size:14px;font-weight:700;background:'+(s.completed?'#1D9E75':'rgba(255,255,255,.06)')+';color:'+(s.completed?'#fff':'var(--text3)')+';border:0.5px solid '+(s.completed?'#1D9E75':'var(--border2)')+';cursor:pointer;font-family:inherit;">'+(s.completed?'✓':'')+'</button>';
+    }
+    html += '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  cont.innerHTML = html;
+  // Guardar steps en memoria para los filtros
+  window._timelineSteps = steps;
+  window._timelinePlan  = plan;
+}
+
+// Filtro por categoría
+window.filtrarTimeline = function(cat) {
+  document.querySelectorAll('.tl-fbtn').forEach(function(b){
+    var on = b.getAttribute('data-cat') === cat;
+    b.style.background = on ? 'rgba(255,255,255,.08)' : 'none';
+    b.style.color      = on ? 'var(--text)' : 'var(--text3)';
+  });
+  document.querySelectorAll('.tl-step').forEach(function(s){
+    s.style.display = (cat==='ALL' || s.getAttribute('data-cat')===cat) ? '' : 'none';
+  });
+};
+
+// Toggle de paso completado
+window.toggleTimelineStep = async function(stepId, newState) {
+  var db = window.DB_REF;
+  if(!db) return;
+  await db.from('match_timeline_steps')
+    .update({ completed: newState, completed_at: newState ? new Date().toISOString() : null })
+    .eq('id', stepId);
+  renderTimelineJugador();
+};
+
+// Abrir el cuestionario Mental (post-partido) cuando el jugador pulsa el paso "Diario"
+window.abrirDiarioPostPartido = function(stepId) {
+  // Marcar el paso como completado (lo damos por hecho cuando abre el cuestionario)
+  window.toggleTimelineStep(stepId, true);
+  // Llevar al jugador a Mental → tab post-partido
+  if(typeof goSec === 'function') {
+    goSec('psico', document.querySelector('[data-id="psico"]'));
+    // Cambiar al tab post-partido si existe
+    setTimeout(function(){
+      var btn = document.querySelector('[onclick*="psico-partido"]') || document.getElementById('psico-tab-partido');
+      if(btn && btn.click) btn.click();
+    }, 200);
+  }
 };
 
 window.renderObjetivosJugador = function() {
