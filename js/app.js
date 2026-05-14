@@ -384,7 +384,24 @@ async function saveJugador(){
   const email=(document.getElementById('npe-mail')?.value||'').trim().toLowerCase();
   const pass=(document.getElementById('npe-pass')?.value||'').trim();
   if(!email){alert('Email obligatorio: el jugador lo necesita para entrar a su app.');return;}
+  // FIX: validar email solo ASCII (Supabase rechaza ñ, tildes, etc.)
+  if(!/^[\x00-\x7F]+$/.test(email)){
+    alert('El email no puede contener ñ, tildes ni otros caracteres especiales. Supabase solo acepta caracteres ASCII. Corrígelo y vuelve a intentarlo.');
+    return;
+  }
+  if(!/^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/i.test(email)){
+    alert('El email no tiene un formato válido (ej: nombre@dominio.com). Revísalo.');
+    return;
+  }
   if(!pass||pass.length<6){alert('Contraseña obligatoria (mínimo 6 caracteres).');return;}
+
+  // FIX: guardar tokens del analista ANTES del signUp (signUp reemplaza la sesión activa)
+  const _sessBefore = await DB.auth.getSession();
+  const _analistaTokens = _sessBefore.data && _sessBefore.data.session ? {
+    access_token: _sessBefore.data.session.access_token,
+    refresh_token: _sessBefore.data.session.refresh_token
+  } : null;
+  const _analistaUid = _sessBefore.data && _sessBefore.data.session && _sessBefore.data.session.user ? _sessBefore.data.session.user.id : null;
 
   let logo_club='';
   const lf=document.getElementById('j-logo-file');
@@ -418,6 +435,11 @@ async function saveJugador(){
     }
   }
 
+  // FIX: restaurar sesión del analista tras signUp del jugador
+  if(_analistaTokens){
+    try { await DB.auth.setSession(_analistaTokens); } catch(e){ console.warn('Error restaurando sesión analista:', e); }
+  }
+
   // 2) Generar PIN secuencial (se mantiene para compatibilidad con código existente)
   const allPinsRes = await DB.from('jugadores').select('pin');
   const nums = (allPinsRes.data||[])
@@ -435,7 +457,8 @@ async function saveJugador(){
     logo_club,
     foto_jugador,
     email_jugador: email,
-    pin
+    pin,
+    ...(_analistaUid ? { analista_id: _analistaUid } : {})
   };
   const{data:res,error}=await DB.from('jugadores').insert(data).select();
   if(error){
@@ -478,12 +501,16 @@ async function vincularJugadorExistente() {
   const next = nums.length ? Math.max(...nums) + 1 : 0;
   const pin = String(next).padStart(4, '0');
 
+  // FIX: incluir analista_id explícito (vincular DEBE asignar al analista logueado)
+  const _sessVinc = await DB.auth.getSession();
+  const _vincAnalistaUid = _sessVinc.data && _sessVinc.data.session && _sessVinc.data.session.user ? _sessVinc.data.session.user.id : null;
   const data = {
     nombre,
     posicion,
     equipo,
     email_jugador: email,
-    pin
+    pin,
+    ...(_vincAnalistaUid ? { analista_id: _vincAnalistaUid } : {})
   };
 
   const { data: res, error } = await DB.from('jugadores').insert(data).select();
