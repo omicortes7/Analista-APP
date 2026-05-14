@@ -879,6 +879,21 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
 .divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
 
 @media print { body { background: #fff; } }
+
+/* === FIX defensivo: ocultar chrome flotante cuando no hay sesión === */
+body.logging-out nav.bnav,
+body.logging-out .app-cine-bg,
+body.logging-out .logout-floating,
+body.logging-out .modal { display: none !important; }
+body:has(#login-screen:not([style*="none"])) nav.bnav,
+body:has(#login-screen:not([style*="none"])) .app-cine-bg,
+body:has(#login-screen:not([style*="none"])) .logout-floating { display: none !important; }
+body:has(#app-screen[style*="display: none"]) nav.bnav,
+body:has(#app-screen[style*="display: none"]) .app-cine-bg,
+body:has(#app-screen[style*="display: none"]) .logout-floating,
+body:has(#app-screen[style*="display:none"]) nav.bnav,
+body:has(#app-screen[style*="display:none"]) .app-cine-bg,
+body:has(#app-screen[style*="display:none"]) .logout-floating { display: none !important; }
 </style>
 </head>
 <body>
@@ -2090,12 +2105,30 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
   };
 
   window.doLogout = function() {
-    DB.auth.signOut().then(function() {
-      // Recargar la página para garantizar un estado limpio
-      location.reload();
-    }).catch(function() {
-      location.reload();
-    });
+    // FIX: ocultar visualmente TODO al instante (nav, fondo, logout, modales son hijos del body)
+    try {
+      document.body.classList.add('logging-out');
+      document.querySelectorAll('nav.bnav, .app-cine-bg, .logout-floating, .modal').forEach(function(el){
+        el.style.display = 'none';
+      });
+      var app = document.getElementById('app-screen'); if(app) app.style.display = 'none';
+    } catch(e){}
+    var _finish = function(){
+      try {
+        Object.keys(localStorage).forEach(function(k){
+          if(k.indexOf('sb-')===0 || k.indexOf('supabase')!==-1 || k.indexOf('auth-token')!==-1) localStorage.removeItem(k);
+        });
+        sessionStorage.clear();
+      } catch(e){}
+      location.replace(location.pathname);
+    };
+    try {
+      var p = DB.auth.signOut();
+      if (p && typeof p.then === 'function') {
+        p.then(_finish).catch(_finish);
+        setTimeout(_finish, 2000); // salvavidas si signOut tarda
+      } else { _finish(); }
+    } catch(e) { _finish(); }
   };
 
   function loadApp(user) {
