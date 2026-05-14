@@ -2099,18 +2099,26 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
   };
 
   function loadApp(user) {
+    console.log('[ARETÉ] loadApp llamado con user:', user);
+    console.log('[ARETÉ] user.email =', user.email);
+
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = '';
     document.getElementById('app-nombre').textContent = user.user_metadata && user.user_metadata.nombre ? user.user_metadata.nombre : user.email;
 
+    console.log('[ARETÉ] Buscando jugador con email_jugador =', user.email);
     DB.from('jugadores').select('*').eq('email_jugador', user.email).single().then(function(res) {
+      console.log('[ARETÉ] Resultado búsqueda exacta:', res);
       var jug = res.data;
       if (!jug) {
+        console.warn('[ARETÉ] No encontrado con búsqueda exacta. Probando case-insensitive...');
         // Diagnóstico: además intentar búsqueda case-insensitive por si el email en jugadores está con otra capitalización
         DB.from('jugadores').select('*').ilike('email_jugador', user.email).then(function(res2){
+          console.log('[ARETÉ] Resultado búsqueda case-insensitive:', res2);
           var posibleMatch = (res2.data || [])[0];
           var html;
           if(posibleMatch) {
+            console.log('[ARETÉ] ENCONTRADO con case-insensitive. Vinculando...', posibleMatch);
             // Encontrado con búsqueda case-insensitive → es un problema de mayúsculas
             window._jugId = posibleMatch.id;
             window._jugadorData = posibleMatch;
@@ -2120,6 +2128,7 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
             loadDatos(posibleMatch);
             return;
           }
+          console.warn('[ARETÉ] Tampoco encontrado con case-insensitive. Mostrando pantalla "Pendiente de vincular"');
           // No encontrado ni con case-insensitive → mostrar diagnóstico con email
           document.getElementById('app-pos').textContent = 'Pendiente de vincular con tu analista';
           html  = '<div class="card" style="text-align:center;padding:2rem;">';
@@ -2130,16 +2139,20 @@ input:focus, select:focus, textarea:focus { border-color: rgba(212,175,55,0.4); 
           html += '<div style="font-weight:700;margin-bottom:4px;">Datos de tu cuenta:</div>';
           html += 'Email: <code style="color:var(--text);">'+user.email+'</code>';
           html += '</div></div>';
-          document.getElementById('app-content').innerHTML = html;
+          var ac = document.getElementById('app-content');
+          if(ac) { ac.innerHTML = html; } else { console.error('[ARETÉ] No existe #app-content en el DOM'); }
         });
         return;
       }
+      console.log('[ARETÉ] JUGADOR encontrado:', jug);
       window._jugId = jug.id;
       window._jugadorData = jug;
       window._jug = jug;
       document.getElementById('app-nombre').textContent = jug.nombre;
       document.getElementById('app-pos').textContent = (jug.posicion || '') + (jug.equipo ? ' · ' + jug.equipo : '') + (jug.categoria ? ' · ' + jug.categoria : '');
       loadDatos(jug);
+    }).catch(function(err){
+      console.error('[ARETÉ] ERROR en la query a jugadores:', err);
     });
   }
 
