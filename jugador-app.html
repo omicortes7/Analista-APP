@@ -412,10 +412,6 @@ h1, h2, h3, .title-serif {
 }
 
 
-
-
-
-
 .section-hero-kicker {
   display: inline-block;
   font-family: 'Barlow', sans-serif;
@@ -1988,7 +1984,7 @@ body:has(#app-screen[style*="display:none"]) .logout-floating { display: none !i
   </div>
 
   <!-- SECCIÓN COGNITIVA -->
-  <div class="sec" id="sec-cognitivo" style="display:none;overflow-y:auto;padding:1rem;">
+  <div class="sec" id="sec-cognitivo" style="display:none;padding:1rem;">
     <div id="cog-content">
       <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);">
         <div style="text-align:center;">
@@ -2719,271 +2715,6 @@ function goSec(id, btn) {
   if (id === 'cognitivo') { window.renderCognitivo && window.renderCognitivo(); }
 }
 
-// ═══════════════════════════════════════════════════
-// SECCIÓN COGNITIVA — Areté Vision
-// ═══════════════════════════════════════════════════
-window.renderCognitivo = function() {
-  var cont = document.getElementById('cog-content');
-  if(!cont) return;
-
-  var hoy = new Date().getDay(); // 0=dom,1=lun,...,6=sab
-  var dias = ['lun','mar','mie','jue','vie','sab','dom'];
-  var diaActual = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][hoy];
-
-  var semana = {
-    lun: {
-      icon: '👁️',
-      titulo: 'Visión binocular — Cuerda de Brock',
-      duracion: '8-10 min',
-      objetivo: 'Entrenar vergencia, fusión binocular y enfoque rápido entre distancias',
-      material: 'Cuerda de 2m con 3 bolas de colores (~3€)',
-      tareas: [
-        { id:'lun_t1', label:'Enfoque secuencial', desc:'Sujeta la cuerda con bola roja a 10cm, amarilla a 50cm, verde al extremo. Enfoca cada bola 5 segundos. Cambia de bola cada 2 segundos durante 3 minutos.', tiempo: false },
-        { id:'lun_t2', label:'Velocidad de cambio', desc:'Cierra los ojos 5 segundos, abre y enfoca rápido la bola que te digan. Repite durante 2 minutos.', tiempo: false },
-        { id:'lun_t3', label:'Registro subjetivo', desc:'¿Cuánto tiempo tardas en ver las dos cuerdas cruzándose en cada bola? Anota tu sensación hoy.', tiempo: false }
-      ]
-    },
-    mar: {
-      icon: '⚡',
-      titulo: 'Barrido visual — Tablas de Schulte',
-      duracion: '10 min',
-      objetivo: 'Visión periférica y velocidad de barrido',
-      material: 'App "Schulte Table" (gratis)',
-      tareas: [
-        { id:'mar_t1', label:'Tabla 5×5 — Intento 1', desc:'Mira fijo al centro. Localiza los números del 1 al 25 en orden moviendo solo los ojos, sin mover la cabeza. Cronometra.', tiempo: true, key:'schulte_t1' },
-        { id:'mar_t2', label:'Tabla 5×5 — Intento 2', desc:'Repite. Anota el mejor de los dos tiempos. Objetivo a 4 semanas: bajar de 30 segundos.', tiempo: true, key:'schulte_t2' },
-        { id:'mar_t3', label:'Modo avanzado', desc:'Alterna número y letra (1-A, 2-B, 3-C...). Suma carga de memoria de trabajo.', tiempo: false }
-      ]
-    },
-    mie: {
-      icon: '🔄',
-      titulo: 'Doble tarea — La más útil para fútbol',
-      duracion: '8-10 min',
-      objetivo: 'Toma de decisiones bajo carga mental',
-      material: 'Balón + pared + cono o familiar',
-      tareas: [
-        { id:'mie_t1', label:'Bote + cálculo mental', desc:'Bote de balón con pierna no dominante mientras cuentas hacia atrás de 100 en restas de 7 (100, 93, 86...). 2 minutos.', tiempo: false },
-        { id:'mie_t2', label:'Pase + colores complementarios', desc:'Pase contra la pared con dos toques mientras alguien te dice colores y tú respondes el complementario (rojo→verde, azul→naranja). 3 minutos.', tiempo: false },
-        { id:'mie_t3', label:'Conducción + operaciones', desc:'Conducción en zig-zag entre conos mientras resuelves operaciones mentales que te dictan en voz alta. 3 minutos.', tiempo: false }
-      ]
-    },
-    jue: {
-      icon: '🎯',
-      titulo: 'Reacción y procesamiento — Stroop motor',
-      duracion: '12 min',
-      objetivo: 'Input visual a decisión motora',
-      material: '4 conos de colores (~8€)',
-      tareas: [
-        { id:'jue_t1', label:'Toca el color', desc:'4 conos en círculo a 3m. Alguien dice un color, tocas ese cono y vuelves al centro. 30 repeticiones.', tiempo: false },
-        { id:'jue_t2', label:'Stroop motor (cruzado)', desc:'Dice "rojo", tocas el cono AZUL. Cruza la asociación deliberadamente. 20 repeticiones.', tiempo: false },
-        { id:'jue_t3', label:'Memoria de trabajo', desc:'Dice dos colores seguidos. Tocas el segundo primero y luego el primero. 15 repeticiones.', tiempo: false }
-      ]
-    },
-    vie: {
-      icon: '🧩',
-      titulo: 'N-Back + Práctica imaginativa',
-      duracion: '15 min',
-      objetivo: 'Memoria de trabajo y revisión consciente',
-      material: 'App "Dual N-Back" (gratis)',
-      tareas: [
-        { id:'vie_t1', label:'Dual N-Back', desc:'Empieza por N=2 en la app. Máximo 15 minutos. Anota el nivel que alcanzas hoy.', tiempo: true, key:'nback_nivel' },
-        { id:'vie_t2', label:'Práctica imaginativa', desc:'Antes de dormir, sin pantalla, repasa mentalmente 3 jugadas concretas de tu último partido. Qué viste, qué decidiste, qué hiciste.', tiempo: false },
-        { id:'vie_t3', label:'Reflexión semanal', desc:'¿En qué tarea has notado más mejora esta semana? Escríbelo en el campo de abajo.', tiempo: false }
-      ]
-    }
-  };
-
-  var semanaStr = ['dom','lun','mar','mie','jue','vie','sab'];
-  var diaKey = semanaStr[hoy];
-  var protocoloHoy = semana[diaKey];
-
-  // Leer progreso guardado en localStorage
-  var weekKey = 'cog_' + getISOWeek();
-  var progreso = {};
-  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e) {}
-
-  // Calcular % completado semana
-  var totalTareas = 0, completadas = 0;
-  ['lun','mar','mie','jue','vie'].forEach(function(d) {
-    if(semana[d]) semana[d].tareas.forEach(function(t) {
-      totalTareas++;
-      if(progreso[t.id]) completadas++;
-    });
-  });
-  var pct = totalTareas ? Math.round((completadas/totalTareas)*100) : 0;
-
-  var h = '';
-
-  // Header stats
-  h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1rem;">';
-  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">';
-  h += '<div style="font-size:13px;font-weight:700;">🧠 Areté Vision</div>';
-  h += '<div style="font-size:11px;color:var(--text3);">Semana actual</div>';
-  h += '</div>';
-  // Barra de progreso
-  h += '<div style="height:8px;background:var(--bg3);border-radius:99px;margin-bottom:6px;overflow:hidden;">';
-  h += '<div style="width:'+pct+'%;height:8px;background:linear-gradient(90deg,var(--accent),#a8e85c);border-radius:99px;transition:width .5s;"></div>';
-  h += '</div>';
-  h += '<div style="display:flex;justify-content:space-between;">';
-  h += '<span style="font-size:11px;color:var(--text3);">'+completadas+' de '+totalTareas+' tareas</span>';
-  h += '<span style="font-size:11px;font-weight:700;color:var(--accent);">'+pct+'%</span>';
-  h += '</div></div>';
-
-  // Días de la semana tabs
-  h += '<div style="display:flex;gap:6px;margin-bottom:1rem;overflow-x:auto;padding-bottom:2px;">';
-  ['lun','mar','mie','jue','vie'].forEach(function(d) {
-    var prot = semana[d];
-    var dNombre = {lun:'Lun',mar:'Mar',mie:'Mié',jue:'Jue',vie:'Vie'}[d];
-    var isDia = d === diaKey;
-    var dCompleto = prot.tareas.every(function(t){ return progreso[t.id]; });
-        h += '<button data-cogdia="'+d+'" onclick="window._setCogDia(this)" style="flex-shrink:0;padding:6px 12px;border-radius:99px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;';
-    if(isDia) h += 'background:var(--accent);color:#000;';
-    else if(dCompleto) h += 'background:rgba(168,232,92,0.15);color:var(--accent);border:0.5px solid var(--accent-soft);';
-    else h += 'background:var(--bg3);color:var(--text3);';
-    h += '">' + (dCompleto ? '✓ ' : '') + dNombre + '</button>';
-  });
-  h += '</div>';
-
-  // Si es fin de semana, mostrar mensaje de descanso
-  var diaVer = window._cogDia || diaKey;
-  var protVer = semana[diaVer];
-
-  if(!protVer) {
-    h += '<div style="text-align:center;padding:3rem 1rem;">';
-    h += '<div style="font-size:40px;margin-bottom:12px;">🌴</div>';
-    h += '<div style="font-size:16px;font-weight:700;margin-bottom:8px;">Descanso cognitivo</div>';
-    h += '<div style="font-size:13px;color:var(--text3);line-height:1.6;">El fin de semana es para el partido y la recuperación.<br>El cerebro también necesita descansar para consolidar lo aprendido.</div>';
-    h += '</div>';
-    document.getElementById('cog-content').innerHTML = h;
-    return;
-  }
-
-  // Protocolo del día seleccionado
-  h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1rem;">';
-  h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">';
-  h += '<span style="font-size:24px;">'+protVer.icon+'</span>';
-  h += '<div><div style="font-size:14px;font-weight:700;">'+protVer.titulo+'</div>';
-  h += '<div style="font-size:11px;color:var(--text3);">⏱ '+protVer.duracion+' · '+protVer.objetivo+'</div></div>';
-  h += '</div>';
-  h += '<div style="font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:5px 10px;display:inline-block;">📦 Material: '+protVer.material+'</div>';
-  h += '</div>';
-
-  // Tareas del día
-  protVer.tareas.forEach(function(t) {
-    var done = progreso[t.id] || false;
-    var tiempoVal = progreso[t.id + '_tiempo'] || '';
-    h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:.75rem;border:0.5px solid '+(done?'var(--accent)':'var(--border)')+';transition:border-color .2s;">';
-    h += '<div style="display:flex;align-items:flex-start;gap:10px;">';
-    // Checkbox
-        h += '<button data-tid="'+t.id+'" onclick="window._cogDoToggle(this)" style="width:26px;height:26px;border-radius:50%;border:2px solborder:2px solid '+(done?'var(--accent)':'var(--border)')+';background:'+(done?'var(--accent)':'transparent')+';cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .2s;">';
-    h += done ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '';
-    h += '</button>';
-    h += '<div style="flex:1;">';
-    h += '<div style="font-size:13px;font-weight:600;margin-bottom:4px;'+(done?'text-decoration:line-through;color:var(--text3);':'')+'">'+t.label+'</div>';
-    h += '<div style="font-size:12px;color:var(--text2);line-height:1.55;">'+t.desc+'</div>';
-    // Campo de tiempo si aplica
-    if(t.tiempo) {
-      h += '<div style="display:flex;align-items:center;gap:8px;margin-top:8px;">';
-      h += '<span style="font-size:11px;color:var(--text3);">⏱ Tiempo/nivel:</span>';
-      h += '<input type="text" data-tid="'+t.id+'" value="'+tiempoVal+'" placeholder="ej: 28s" oninput="window._cogTiempoInput(this)" style="width:80px;height:30px;background:var(--bg3);border:0.5px solid var(--border);border-radius:6px;padding:0 8px;font-size:12px;color:var(--text);font-family:inherit;outline:none;">';
-      h += '</div>';
-    }
-    h += '</div></div></div>';
-  });
-
-  // Campo reflexión semanal
-  if(diaVer === 'vie') {
-    var reflexion = progreso['reflexion_semana'] || '';
-    h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:.75rem;">';
-    h += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">✏️ Reflexión semanal</div>';
-    h += '<textarea id="cog-reflexion" placeholder="¿En qué tarea has notado más mejora esta semana?" style="width:100%;height:80px;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:8px;font-size:13px;color:var(--text);font-family:inherit;outline:none;resize:none;" onchange="window._cogReflexion(this.value)">'+reflexion+'</textarea>';
-    h += '</div>';
-  }
-
-  // Historial de récords
-  var records = {};
-  try { records = JSON.parse(localStorage.getItem('cog_records') || '{}'); } catch(e){}
-  if(Object.keys(records).length) {
-    h += '<div style="background:var(--card);border-radius:var(--radius-sm);padding:1rem;margin-bottom:.75rem;">';
-    h += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">🏆 Mis récords</div>';
-    if(records.schulte_mejor) h += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:0.5px solid var(--border);"><span>Schulte (mejor)</span><span style="font-weight:700;color:var(--accent);">'+records.schulte_mejor+'</span></div>';
-    if(records.nback_max) h += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;"><span>N-Back (nivel máx)</span><span style="font-weight:700;color:var(--accent);">N='+records.nback_max+'</span></div>';
-    h += '</div>';
-  }
-
-  document.getElementById('cog-content').innerHTML = h;
-};
-
-// Helpers cognitivo
-function getISOWeek() {
-  var d = new Date(); var dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-  return d.getUTCFullYear() + 'W' + Math.ceil((((d - yearStart) / 86400000) + 1)/7);
-}
-
-window._cogToggle = function(tid) {
-  var weekKey = 'cog_' + getISOWeek();
-  var progreso = {};
-  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e){}
-  progreso[tid] = !progreso[tid];
-  localStorage.setItem(weekKey, JSON.stringify(progreso));
-  window._cogSyncSupabase();
-  window.renderCognitivo();
-};
-
-window._cogTiempoInput = function(el) {
-  var tid = el.getAttribute('data-tid');
-  if(tid) window._cogTiempo(tid, el.value);
-};
-window._cogTiempo = function(tid, val) {
-  var weekKey = 'cog_' + getISOWeek();
-  var progreso = {};
-  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e){}
-  progreso[tid + '_tiempo'] = val;
-  localStorage.setItem(weekKey, JSON.stringify(progreso));
-  // Actualizar récords
-  var records = {};
-  try { records = JSON.parse(localStorage.getItem('cog_records') || '{}'); } catch(e){}
-  if(tid.indexOf('schulte') >= 0) {
-    var n = parseFloat(val);
-    if(!isNaN(n) && (!records.schulte_mejor || n < parseFloat(records.schulte_mejor))) {
-      records.schulte_mejor = val;
-      localStorage.setItem('cog_records', JSON.stringify(records));
-    }
-  }
-  if(tid.indexOf('nback') >= 0) {
-    var lvl = parseInt(val.replace(/[^0-9]/g,''));
-    if(!isNaN(lvl) && (!records.nback_max || lvl > parseInt(records.nback_max))) {
-      records.nback_max = lvl;
-      localStorage.setItem('cog_records', JSON.stringify(records));
-    }
-  }
-};
-
-window._cogReflexion = function(val) {
-  var weekKey = 'cog_' + getISOWeek();
-  var progreso = {};
-  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e){}
-  progreso['reflexion_semana'] = val;
-  localStorage.setItem(weekKey, JSON.stringify(progreso));
-  window._cogSyncSupabase();
-};
-
-window._cogSyncSupabase = function() {
-  if(!window._jugId || !window.dbRef) return;
-  var weekKey = 'cog_' + getISOWeek();
-  var progreso = {};
-  try { progreso = JSON.parse(localStorage.getItem(weekKey) || '{}'); } catch(e){}
-  var records = {};
-  try { records = JSON.parse(localStorage.getItem('cog_records') || '{}'); } catch(e){}
-  var semana = getISOWeek();
-  window.dbRef.from('cognitivo_log')
-    .upsert({ jugador_id: window._jugId, semana: semana, progreso: progreso, records: records, updated_at: new Date().toISOString() }, { onConflict: 'jugador_id,semana' })
-    .then(function(res){ if(res.error) console.warn('cognitivo sync:', res.error.message); });
-};
-
-
 function showToastGlobal(msg) {
   var t = document.getElementById('toast');
   if (!t) return;
@@ -3490,9 +3221,6 @@ window._renderCalInicio = function() {
     });
 };
 </script>
-
-
-
 
 
 <script>
@@ -5191,53 +4919,47 @@ window.renderEvolucionJugador = async function() {
 
 </script>
 
+
 <!-- ═══ COGNITIVO v2 ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════
    COGNITIVO v2 — Sesiones tipadas + gráficas
-   Mantiene v1 accesible vía window.renderCognitivoV1
    ═══════════════════════════════════════════════════ */
 (function(){
-  // Guardar v1 si existe
-  if(typeof window.renderCognitivo === 'function' && !window.renderCognitivoV1){
-    window.renderCognitivoV1 = window.renderCognitivo;
-  }
-
-  // Mapa de ejercicios — día (1=lun..5=vie), nombre, métricas
   var COG_EX_MAP = {
-    BROCK_STRING: { dia:1, nombre:'Cuerda de Brock', icono:'👁️', material:'Cuerda 2m con 3 bolas', descripcion:'Vergencia y fusión binocular', metrics:[
-      {key:'metric_1', label:'Segundos de fusión', unit:'s', lowerIsBetter:true},
+    BROCK_STRING:    { dia:1, dia_lbl:'LUN', nombre:'Cuerda de Brock',         icono:'👁️', material:'Cuerda 2m con 3 bolas (~3€)', descripcion:'Vergencia y fusión binocular', metrics:[
+      {key:'metric_1', label:'Segundos de fusión',  unit:'s', lowerIsBetter:true},
       {key:'metric_2', label:'Aciertos enfoque rápido', unit:'', lowerIsBetter:false}
     ]},
-    SCHULTE_5X5: { dia:2, nombre:'Schulte 5×5', icono:'🔢', material:'Tabla Schulte 5x5', descripcion:'Atención periférica', metrics:[
-      {key:'metric_1', label:'Mejor tiempo', unit:'s', lowerIsBetter:true}
+    SCHULTE_5X5:     { dia:2, dia_lbl:'MAR', nombre:'Tablas de Schulte 5×5',   icono:'🔢', material:'App "Schulte Table" (gratis)', descripcion:'Atención periférica', metrics:[
+      {key:'metric_1', label:'Mejor tiempo',         unit:'s', lowerIsBetter:true}
     ]},
-    SCHULTE_ALT: { dia:2, nombre:'Schulte alternante', icono:'🔢', material:'Tabla Schulte con 2 colores', descripcion:'Alternancia atencional', metrics:[
-      {key:'metric_1', label:'Mejor tiempo', unit:'s', lowerIsBetter:true}
+    SCHULTE_ALT:     { dia:2, dia_lbl:'MAR', nombre:'Schulte alternada',       icono:'🔢', material:'App "Schulte Table" modo alternante', descripcion:'Alternancia atencional', metrics:[
+      {key:'metric_1', label:'Mejor tiempo',         unit:'s', lowerIsBetter:true}
     ]},
-    DUAL_TASK_BALL: { dia:3, nombre:'Doble tarea — toques', icono:'⚽', material:'Pelota + cuenta atrás', descripcion:'Toques sin caer + contar hacia atrás', metrics:[
-      {key:'metric_1', label:'Racha máxima', unit:'toques', lowerIsBetter:false}
+    DUAL_TASK_BALL:  { dia:3, dia_lbl:'MIÉ', nombre:'Bote + cálculo mental',   icono:'⚽', material:'Balón + pared',  descripcion:'Bote sin perder cadencia mientras restas en voz alta', metrics:[
+      {key:'metric_1', label:'Racha máxima',         unit:'s', lowerIsBetter:false}
     ]},
-    DUAL_TASK_DRIBBLE: { dia:3, nombre:'Doble tarea — regate', icono:'⚽', material:'Conos + cálculo mental', descripcion:'Conducción con cálculo mental simultáneo', metrics:[
-      {key:'metric_1', label:'Aciertos de 10', unit:'/10', lowerIsBetter:false}
+    DUAL_TASK_DRIBBLE:{ dia:3, dia_lbl:'MIÉ', nombre:'Conducción + operaciones', icono:'⚽', material:'4 conos + balón', descripcion:'Conducción con cálculo mental en paralelo', metrics:[
+      {key:'metric_1', label:'Aciertos de 10',       unit:'/10', lowerIsBetter:false}
     ]},
-    REACTION_30: { dia:4, nombre:'Reacción x30', icono:'⚡', material:'App de reacción visual', descripcion:'30 estímulos consecutivos', metrics:[
-      {key:'metric_1', label:'Tiempo total', unit:'s', lowerIsBetter:true}
+    REACTION_30:     { dia:4, dia_lbl:'JUE', nombre:'Reacción 30 toques color', icono:'⚡', material:'4 conos de colores (~8€)', descripcion:'30 estímulos de color, respuesta de pie', metrics:[
+      {key:'metric_1', label:'Tiempo total',         unit:'s', lowerIsBetter:true}
     ]},
-    STROOP_MOTOR: { dia:4, nombre:'Stroop motor', icono:'🎨', material:'20 palabras-color con conflicto', descripcion:'Inhibición cognitiva con respuesta motora', metrics:[
-      {key:'metric_1', label:'Aciertos de 20', unit:'/20', lowerIsBetter:false}
+    STROOP_MOTOR:    { dia:4, dia_lbl:'JUE', nombre:'Stroop motor cruzado',    icono:'🎨', material:'4 conos de colores', descripcion:'Inhibición con respuesta motora cruzada', metrics:[
+      {key:'metric_1', label:'Aciertos de 20',       unit:'/20', lowerIsBetter:false}
     ]},
-    DOUBLE_COLOR: { dia:4, nombre:'Doble color', icono:'🎨', material:'15 estímulos bicolor', descripcion:'Atención dividida', metrics:[
-      {key:'metric_1', label:'Aciertos de 15', unit:'/15', lowerIsBetter:false}
+    DOUBLE_COLOR:    { dia:4, dia_lbl:'JUE', nombre:'Memoria de dos colores',  icono:'🎨', material:'4 conos de colores', descripcion:'Atención dividida visual-motora', metrics:[
+      {key:'metric_1', label:'Aciertos de 15',       unit:'/15', lowerIsBetter:false}
     ]},
-    DUAL_NBACK: { dia:5, nombre:'Dual N-Back', icono:'🧠', material:'App Dual N-Back', descripcion:'Memoria de trabajo', metrics:[
-      {key:'metric_1', label:'Nivel N', unit:'N', lowerIsBetter:false},
-      {key:'metric_2', label:'Precisión', unit:'%', lowerIsBetter:false}
+    DUAL_NBACK:      { dia:5, dia_lbl:'VIE', nombre:'Dual N-Back app',         icono:'🧠', material:'App "Dual N-Back" (gratis)', descripcion:'Memoria de trabajo', metrics:[
+      {key:'metric_1', label:'Nivel N alcanzado',    unit:'N', lowerIsBetter:false},
+      {key:'metric_2', label:'Precisión',            unit:'%', lowerIsBetter:false}
     ]},
-    MATCH_RECALL: { dia:5, nombre:'Recall de partido', icono:'🎞️', material:'Vídeo de partido + cuaderno', descripcion:'Recordar 3 jugadas tras 5 min de visualización', metrics:[
-      {key:'metric_1', label:'Jugadas recordadas', unit:'/3', lowerIsBetter:false},
-      {key:'metric_2', label:'Nivel de detalle', unit:'/3', lowerIsBetter:false}
+    MATCH_RECALL:    { dia:5, dia_lbl:'VIE', nombre:'Práctica imaginativa partido', icono:'🎞️', material:'Solo el cerebro', descripcion:'Recordar 3 jugadas tras visualizar 5 min', metrics:[
+      {key:'metric_1', label:'Jugadas recordadas',   unit:'/3', lowerIsBetter:false},
+      {key:'metric_2', label:'Nivel de detalle',     unit:'/3', lowerIsBetter:false}
     ]}
   };
   window.COG_EX_MAP = COG_EX_MAP;
@@ -5245,49 +4967,105 @@ window.renderEvolucionJugador = async function() {
   var DOW_KEYS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
   var DIA_LABEL_ES = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 
-  function getEjerciciosHoy(){
-    var d = new Date().getDay();
-    if(d===0 || d===6) return [];
+  function getEjerciciosByDia(d){
     return Object.keys(COG_EX_MAP)
       .filter(function(k){ return COG_EX_MAP[k].dia === d; })
       .map(function(k){ var e = Object.assign({}, COG_EX_MAP[k]); e.type = k; return e; });
   }
-  window.getEjerciciosHoy = getEjerciciosHoy;
+  function getEjerciciosHoy(){
+    var d = new Date().getDay();
+    if(d===0 || d===6) return [];
+    return getEjerciciosByDia(d);
+  }
+  function getEjerciciosOtros(){
+    var hoy = new Date().getDay();
+    var res = [];
+    for(var d=1; d<=5; d++){ if(d !== hoy) res = res.concat(getEjerciciosByDia(d)); }
+    return res;
+  }
 
-  // ───────── ESTILO BASE ─────────
+  function getISOWeek(date){
+    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    var dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    return d.getUTCFullYear() + '-W' + String(Math.ceil((((d - yearStart) / 86400000) + 1)/7)).padStart(2,'0');
+  }
+
+  function calcRecord(sessions, type){
+    var ex = COG_EX_MAP[type];
+    if(!ex) return null;
+    var lower = ex.metrics[0].lowerIsBetter;
+    var vals = sessions.filter(function(s){return s.exercise_type===type;}).map(function(s){return parseFloat(s.metric_1);}).filter(function(v){return !isNaN(v);});
+    if(!vals.length) return null;
+    return lower ? Math.min.apply(null, vals) : Math.max.apply(null, vals);
+  }
+
+  function calcRacha(sessions){
+    if(!sessions.length) return 0;
+    var weeks = new Set();
+    sessions.forEach(function(s){ if(s.session_date) weeks.add(getISOWeek(new Date(s.session_date+'T12:00:00'))); });
+    if(!weeks.size) return 0;
+    // Contar semanas consecutivas desde la actual hacia atrás
+    var nowWeek = getISOWeek(new Date());
+    var racha = 0, cursor = new Date();
+    while(true){
+      var w = getISOWeek(cursor);
+      if(weeks.has(w)){ racha++; cursor.setDate(cursor.getDate()-7); }
+      else break;
+    }
+    return racha;
+  }
+
+  // ───────── CSS ─────────
   function ensureCogStyles(){
     if(document.getElementById('cog-v2-styles')) return;
     var s = document.createElement('style');
     s.id = 'cog-v2-styles';
     s.textContent = '\
-      /* Wrapper principal limita ancho en escritorio (PWA pensada para móvil) */    #cog-content{max-width:680px;margin:0 auto;}    .cogv2-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}\
-      .cogv2-tab{padding:8px 14px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(255,255,255,.04);color:var(--text2,#9ca3af);border:0.5px solid rgba(255,255,255,.08);transition:all .15s;}\
-      .cogv2-tab.active{background:rgba(168,232,92,.16);color:var(--accent,#a8e85c);border-color:rgba(168,232,92,.35);}\
-      .cogv2-card{background:rgba(255,255,255,.03);border:0.5px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin-bottom:12px;width:100%;box-sizing:border-box;}\
-      .cogv2-title{font-family:Instrument Serif,serif;font-style:italic;font-size:22px;color:#fff;margin:0 0 4px;line-height:1.1;}\
-      .cogv2-sub{font-size:11px;color:var(--text2,#9ca3af);margin-bottom:10px;}\
-      .cogv2-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}\
-      .cogv2-input{background:rgba(255,255,255,.06);border:0.5px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 12px;font-size:14px;color:#fff;font-family:inherit;width:100px;outline:none;}\
+      #cog-content{max-width:680px;margin:0 auto;}\
+      .cogv2-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}\
+      .cogv2-tab{padding:8px 16px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(255,255,255,.04);color:var(--text2,#9ca3af);border:0.5px solid rgba(255,255,255,.08);transition:all .15s;font-family:inherit;}\
+      .cogv2-tab.active{background:rgba(168,232,92,.18);color:var(--accent,#a8e85c);border-color:rgba(168,232,92,.4);}\
+      .cogv2-card{background:rgba(255,255,255,.03);border:0.5px solid rgba(255,255,255,.08);border-radius:14px;padding:18px;margin-bottom:14px;width:100%;box-sizing:border-box;}\
+      .cogv2-card.compact{padding:12px 14px;margin-bottom:8px;}\
+      .cogv2-day{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--accent,#a8e85c);margin-bottom:6px;}\
+      .cogv2-title{font-family:Instrument Serif,serif;font-style:italic;font-size:24px;color:#fff;margin:0 0 6px;line-height:1.05;}\
+      .cogv2-title.s{font-size:18px;}\
+      .cogv2-sub{font-size:11px;color:var(--text2,#9ca3af);line-height:1.4;}\
+      .cogv2-record-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;background:rgba(212,175,55,.14);color:#D4AF37;font-size:11px;font-weight:600;margin-top:6px;}\
+      .cogv2-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}\
+      .cogv2-input{background:rgba(255,255,255,.06);border:0.5px solid rgba(255,255,255,.14);border-radius:10px;padding:10px 12px;font-size:14px;color:#fff;font-family:inherit;width:120px;outline:none;-webkit-appearance:none;}\
       .cogv2-input:focus{border-color:var(--accent,#a8e85c);}\
-      .cogv2-input-lbl{font-size:11px;color:var(--text2,#9ca3af);margin-bottom:4px;display:block;}\
-      .cogv2-btn{background:var(--accent,#a8e85c);color:#0a1208;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}\
+      .cogv2-input-full{width:100%;}\
+      .cogv2-input-lbl{font-size:11px;color:var(--text2,#9ca3af);margin-bottom:5px;display:block;}\
+      .cogv2-btn{background:var(--accent,#a8e85c);color:#0a1208;border:none;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;margin-top:6px;}\
       .cogv2-btn:hover{filter:brightness(1.1);}\
-      .cogv2-btn-ghost{background:transparent;color:var(--text2,#9ca3af);border:0.5px solid rgba(255,255,255,.15);border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:inherit;}\
-      .cogv2-sens-btn{flex:0 0 auto;width:60px;padding:10px;border-radius:10px;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.1);font-size:20px;cursor:pointer;transition:.15s;}\
-      .cogv2-sens-btn.sel{background:rgba(168,232,92,.18);border-color:var(--accent,#a8e85c);transform:scale(1.04);}\
-      .cogv2-empty{text-align:center;padding:2rem;color:var(--text3,#6b7280);font-size:13px;}\
-      .cogv2-chip{display:inline-block;padding:3px 9px;border-radius:99px;font-size:10px;font-weight:600;background:rgba(168,232,92,.16);color:var(--accent,#a8e85c);margin-right:5px;}\
-      .cogv2-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;margin:6px 0;}\
-      .cogv2-bar-fill{height:100%;background:var(--accent,#a8e85c);transition:width .25s;}\
+      .cogv2-btn:disabled{opacity:.6;cursor:wait;}\
+      .cogv2-btn-ghost{background:transparent;color:var(--text2,#9ca3af);border:0.5px solid rgba(255,255,255,.15);border-radius:99px;padding:8px 16px;font-size:12px;cursor:pointer;font-family:inherit;width:100%;}\
+      .cogv2-btn-ghost:hover{background:rgba(255,255,255,.04);color:#fff;}\
+      .cogv2-sens-row{display:flex;gap:8px;flex-wrap:wrap;}\
+      .cogv2-sens-btn{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.1);cursor:pointer;font-family:inherit;color:var(--text2,#9ca3af);font-size:10px;transition:.15s;}\
+      .cogv2-sens-btn .emoji{font-size:22px;line-height:1;}\
+      .cogv2-sens-btn.sel{background:rgba(168,232,92,.18);border-color:var(--accent,#a8e85c);color:var(--accent,#a8e85c);}\
+      .cogv2-empty{text-align:center;padding:2.5rem 1rem;color:var(--text3,#6b7280);font-size:13px;}\
+      .cogv2-chip{display:inline-block;padding:3px 9px;border-radius:99px;font-size:10px;font-weight:600;background:rgba(168,232,92,.14);color:var(--accent,#a8e85c);margin-right:5px;}\
+      .cogv2-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}\
+      .cogv2-stat{background:rgba(255,255,255,.04);border-radius:10px;padding:10px;text-align:center;}\
+      .cogv2-stat .v{font-size:18px;font-weight:800;color:#fff;line-height:1;}\
+      .cogv2-stat .l{font-size:9px;color:var(--text3,#6b7280);text-transform:uppercase;letter-spacing:.06em;margin-top:5px;}\
+      .cogv2-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:1rem;}\
+      .cogv2-modal{background:#0d1623;border:0.5px solid rgba(255,255,255,.12);border-radius:18px 18px 0 0;padding:20px;max-width:520px;width:100%;max-height:80vh;overflow-y:auto;}\
+      @media(min-width:600px){ .cogv2-modal-bg{align-items:center;} .cogv2-modal{border-radius:18px;} }\
     ';
     document.head.appendChild(s);
   }
 
-  // ───────── ESTADO GLOBAL ─────────
-  var _state = { tab: 'hoy', filtroTipo: '', _chartInstances: {} };
+  // ───────── ESTADO ─────────
+  var _state = { tab:'hoy', filtroTipo:'', showOtros:false, _chartInstances:{} };
   window._cogV2State = _state;
 
-  // ───────── RENDER MAIN ─────────
+  // ───────── MAIN ─────────
   window.renderCognitivo = function(){
     ensureCogStyles();
     var cont = document.getElementById('cog-content');
@@ -5306,7 +5084,6 @@ window.renderEvolucionJugador = async function() {
     tabs.forEach(function(t){
       h += '<button class="cogv2-tab '+(_state.tab===t.id?'active':'')+'" onclick="window._cogV2SetTab(\''+t.id+'\')">'+t.label+'</button>';
     });
-    h += '<button class="cogv2-tab" style="margin-left:auto;font-size:10px;color:var(--text3,#6b7280);" onclick="window._cogV2ShowV1()">Ver versión anterior</button>';
     h += '</div>';
     h += '<div id="cogv2-body"></div>';
     cont.innerHTML = h;
@@ -5314,9 +5091,6 @@ window.renderEvolucionJugador = async function() {
   };
 
   window._cogV2SetTab = function(t){ _state.tab = t; window.renderCognitivo(); };
-  window._cogV2ShowV1 = function(){
-    if(typeof window.renderCognitivoV1 === 'function'){ window.renderCognitivoV1(); }
-  };
 
   function _renderTab(){
     var b = document.getElementById('cogv2-body');
@@ -5328,45 +5102,81 @@ window.renderEvolucionJugador = async function() {
 
   // ───────── TAB HOY ─────────
   function _renderHoy(b){
-    var hoyIdx = new Date().getDay();
-    var ejercicios = getEjerciciosHoy();
-    if(!ejercicios.length){
-      b.innerHTML = '<div class="cogv2-card" style="text-align:center;padding:2rem;">'
-        + '<div style="font-size:38px;margin-bottom:10px;">🏖️</div>'
-        + '<div class="cogv2-title">Descanso cognitivo</div>'
-        + '<div class="cogv2-sub" style="margin-top:6px;">Hoy '+DIA_LABEL_ES[hoyIdx]+' · A jugar. La constancia es 5 días, no 7.</div>'
-        + '</div>';
-      return;
-    }
-    var fechaHoy = new Date().toISOString().slice(0,10);
-    var dow = DOW_KEYS[hoyIdx];
-    var html = '<div class="cogv2-sub" style="margin-bottom:14px;text-align:center;">📅 '+DIA_LABEL_ES[hoyIdx]+' · '+fechaHoy+'</div>';
-    ejercicios.forEach(function(ej, idx){
-      var fid = 'cogv2-form-'+idx;
-      html += '<div class="cogv2-card">';
-      html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">';
-      html += '<span style="font-size:26px;">'+ej.icono+'</span>';
-      html += '<div style="flex:1;"><h3 class="cogv2-title">'+ej.nombre+'</h3><div class="cogv2-sub">'+ej.descripcion+' · '+ej.material+'</div></div>';
-      html += '</div>';
-      html += '<form id="'+fid+'" onsubmit="return window._cogV2Save(event,\''+ej.type+'\',\''+dow+'\','+idx+');">';
-      html += '<div class="cogv2-row" style="margin:12px 0;">';
-      ej.metrics.forEach(function(m){
-        html += '<div><label class="cogv2-input-lbl">'+m.label+(m.unit?' ('+m.unit+')':'')+'</label>';
-        html += '<input type="number" step="0.01" class="cogv2-input" name="'+m.key+'" required></div>';
-      });
-      html += '</div>';
-      html += '<div style="margin:10px 0;"><label class="cogv2-input-lbl">¿Cómo te has sentido?</label>';
-      html += '<div class="cogv2-row" style="gap:6px;">';
-      html += '<button type="button" class="cogv2-sens-btn" data-s="GOOD" onclick="window._cogV2SelSens(this)">😄</button>';
-      html += '<button type="button" class="cogv2-sens-btn sel" data-s="NORMAL" onclick="window._cogV2SelSens(this)">😐</button>';
-      html += '<button type="button" class="cogv2-sens-btn" data-s="BAD" onclick="window._cogV2SelSens(this)">😞</button>';
-      html += '</div></div>';
-      html += '<div style="margin:10px 0;"><label class="cogv2-input-lbl">Notas (opcional)</label>';
-      html += '<input type="text" class="cogv2-input" name="notes" style="width:100%;" placeholder="Cómo te ha ido, etc."></div>';
-      html += '<button type="submit" class="cogv2-btn">Guardar sesión</button>';
-      html += '</form></div>';
+    var jugId = window._jugId || (window._jug && window._jug.id);
+    b.innerHTML = '<div class="cogv2-empty">Cargando…</div>';
+    // Cargar sesiones del jugador para mostrar récords
+    window.DB_REF.from('cognitive_sessions').select('*').eq('jugador_id', jugId).then(function(r){
+      var sessions = (r && r.data) || [];
+      var hoyIdx = new Date().getDay();
+      var fecha = new Date().toISOString().slice(0,10);
+      var ejHoy = getEjerciciosHoy();
+      var ejOtros = getEjerciciosOtros();
+      var fechaTxt = '📅 '+DIA_LABEL_ES[hoyIdx]+' · '+fecha;
+      var html = '<div class="cogv2-sub" style="text-align:center;margin-bottom:14px;">'+fechaTxt+'</div>';
+
+      if(!ejHoy.length){
+        // Fin de semana
+        html += '<div class="cogv2-card" style="text-align:center;padding:2.4rem 1rem;">'
+          + '<div style="font-size:42px;margin-bottom:10px;">🛌</div>'
+          + '<div class="cogv2-title">Descanso cognitivo</div>'
+          + '<div class="cogv2-sub" style="margin-top:6px;">Hoy '+DIA_LABEL_ES[hoyIdx]+'. A jugar y descansar la cabeza. La constancia son 5 días, no 7.</div>'
+          + '</div>';
+      } else {
+        ejHoy.forEach(function(ej, idx){
+          html += _cardEjercicio(ej, 'hoy_'+idx, sessions, false);
+        });
+      }
+
+      // Botón "Ver otros ejercicios"
+      html += '<button class="cogv2-btn-ghost" style="margin-top:6px;" onclick="window._cogV2ToggleOtros()">'+(_state.showOtros?'▴ Ocultar otros ejercicios':'▾ Ver otros ejercicios disponibles')+'</button>';
+      if(_state.showOtros){
+        html += '<div style="margin-top:14px;">';
+        ejOtros.forEach(function(ej, idx){
+          html += _cardEjercicio(ej, 'otro_'+idx, sessions, true);
+        });
+        html += '</div>';
+      }
+      b.innerHTML = html;
     });
-    b.innerHTML = html;
+  }
+  window._cogV2ToggleOtros = function(){ _state.showOtros = !_state.showOtros; _renderTab(); };
+
+  function _cardEjercicio(ej, formIdx, sessions, compact){
+    var record = calcRecord(sessions, ej.type);
+    var m0 = ej.metrics[0];
+    var unitStr = m0.unit ? (m0.unit.startsWith('/')?m0.unit:' '+m0.unit) : '';
+    var recordHtml = record !== null ? '<span class="cogv2-record-badge">🏆 Récord actual: '+record+unitStr+'</span>' : '';
+    var fid = 'cogv2-form-'+formIdx;
+    var dow = ['SUN','MON','TUE','WED','THU','FRI','SAT'][ej.dia];
+    var titleCls = compact ? 'cogv2-title s' : 'cogv2-title';
+    var cardCls = compact ? 'cogv2-card compact' : 'cogv2-card';
+    var h = '<div class="'+cardCls+'">';
+    if(compact){
+      h += '<div class="cogv2-day">'+ej.dia_lbl+' · '+ej.nombre+' '+ej.icono+'</div>';
+    } else {
+      h += '<div class="cogv2-day">'+ej.dia_lbl+'</div>';
+      h += '<h3 class="'+titleCls+'">'+ej.icono+' '+ej.nombre+'</h3>';
+    }
+    h += '<div class="cogv2-sub">'+ej.descripcion+(compact?'':' · <strong>'+ej.material+'</strong>')+'</div>';
+    if(recordHtml) h += '<div style="margin-top:6px;">'+recordHtml+'</div>';
+    h += '<form id="'+fid+'" onsubmit="return window._cogV2Save(event,\''+ej.type+'\',\''+dow+'\',\''+formIdx+'\');" style="margin-top:14px;">';
+    h += '<div class="cogv2-row">';
+    ej.metrics.forEach(function(m){
+      h += '<div><label class="cogv2-input-lbl">'+m.label+(m.unit?' ('+m.unit+')':'')+'</label>';
+      h += '<input type="number" inputmode="decimal" step="0.01" class="cogv2-input" name="'+m.key+'" required></div>';
+    });
+    h += '</div>';
+    h += '<div style="margin:14px 0 8px;"><label class="cogv2-input-lbl">¿Cómo te has sentido?</label>';
+    h += '<div class="cogv2-sens-row">';
+    h += '<button type="button" class="cogv2-sens-btn" data-s="GOOD" onclick="window._cogV2SelSens(this)"><span class="emoji">😄</span>Bien</button>';
+    h += '<button type="button" class="cogv2-sens-btn sel" data-s="NORMAL" onclick="window._cogV2SelSens(this)"><span class="emoji">😐</span>Normal</button>';
+    h += '<button type="button" class="cogv2-sens-btn" data-s="BAD" onclick="window._cogV2SelSens(this)"><span class="emoji">😞</span>Mal</button>';
+    h += '</div></div>';
+    h += '<div style="margin-bottom:8px;"><label class="cogv2-input-lbl">Nota (opcional)</label>';
+    h += '<input type="text" class="cogv2-input cogv2-input-full" name="notes" placeholder="Cómo te ha ido, qué notaste, etc."></div>';
+    h += '<button type="submit" class="cogv2-btn">Guardar sesión</button>';
+    h += '</form></div>';
+    return h;
   }
 
   window._cogV2SelSens = function(btn){
@@ -5375,22 +5185,25 @@ window.renderEvolucionJugador = async function() {
     btn.classList.add('sel');
   };
 
-  window._cogV2Save = function(ev, type, dow, idx){
+  window._cogV2Save = function(ev, type, dow, formIdx){
     ev.preventDefault();
-    var f = document.getElementById('cogv2-form-'+idx);
+    var f = document.getElementById('cogv2-form-'+formIdx);
+    if(!f) return false;
     var dataForm = new FormData(f);
     var sens = f.querySelector('.cogv2-sens-btn.sel');
     var sensVal = sens ? sens.getAttribute('data-s') : 'NORMAL';
     var jugId = window._jugId || (window._jug && window._jug.id);
     if(!jugId){ alert('No se identifica el jugador'); return false; }
+    var m2v = dataForm.get('metric_2');
+    var m3v = dataForm.get('metric_3');
     var row = {
       jugador_id: jugId,
       session_date: new Date().toISOString().slice(0,10),
       day_of_week: dow,
       exercise_type: type,
       metric_1: parseFloat(dataForm.get('metric_1') || 'NaN'),
-      metric_2: dataForm.get('metric_2') !== null && dataForm.get('metric_2') !== '' ? parseFloat(dataForm.get('metric_2')) : null,
-      metric_3: dataForm.get('metric_3') !== null && dataForm.get('metric_3') !== '' ? parseFloat(dataForm.get('metric_3')) : null,
+      metric_2: (m2v !== null && m2v !== '') ? parseFloat(m2v) : null,
+      metric_3: (m3v !== null && m3v !== '') ? parseFloat(m3v) : null,
       sensation: sensVal,
       notes: (dataForm.get('notes') || '').toString().trim() || null
     };
@@ -5399,14 +5212,14 @@ window.renderEvolucionJugador = async function() {
     if(btn){ btn.disabled = true; btn.textContent = 'Guardando…'; }
     window.DB_REF.from('cognitive_sessions').insert(row).select().then(function(res){
       if(res.error){ alert('Error: '+res.error.message); if(btn){ btn.disabled=false; btn.textContent='Guardar sesión'; } return; }
-      // Actualizar best en cognitive_goals si supera
       _updateGoalBest(jugId, type, row.metric_1);
       f.reset();
       f.querySelectorAll('.cogv2-sens-btn').forEach(function(b){ b.classList.remove('sel'); });
       var def = f.querySelector('.cogv2-sens-btn[data-s=NORMAL]'); if(def) def.classList.add('sel');
       if(btn){ btn.disabled=false; btn.textContent='✓ Guardado'; }
-      setTimeout(function(){ if(btn) btn.textContent='Guardar sesión'; }, 2000);
+      setTimeout(function(){ if(btn) btn.textContent='Guardar sesión'; _renderTab(); }, 1400);
       if(window.showToast) window.showToast('Sesión guardada ✓');
+      else if(window.showToastGlobal) window.showToastGlobal('Sesión guardada ✓');
     }).catch(function(e){ alert('Error: '+(e.message||e)); if(btn){ btn.disabled=false; btn.textContent='Guardar sesión'; } });
     return false;
   };
@@ -5430,54 +5243,105 @@ window.renderEvolucionJugador = async function() {
   function _renderHistorial(b){
     var jugId = window._jugId || (window._jug && window._jug.id);
     b.innerHTML = '<div class="cogv2-empty">Cargando historial…</div>';
-    var q = window.DB_REF.from('cognitive_sessions').select('*').eq('jugador_id', jugId).order('session_date', { ascending:false }).order('created_at', { ascending:false }).limit(200);
-    q.then(function(r){
+    window.DB_REF.from('cognitive_sessions').select('*').eq('jugador_id', jugId).order('session_date', { ascending:false }).order('created_at', { ascending:false }).limit(300).then(function(r){
       if(r.error){ b.innerHTML = '<div class="cogv2-empty">Error: '+r.error.message+'</div>'; return; }
       var sessions = r.data || [];
+      window._cogV2HistSessions = sessions;
       if(!sessions.length){ b.innerHTML = '<div class="cogv2-empty">Aún no hay sesiones registradas. Empieza en la pestaña <strong>Hoy</strong>.</div>'; return; }
-
-      var tipos = [''].concat(Array.from(new Set(sessions.map(function(s){ return s.exercise_type; }))));
-      var html = '<div class="cogv2-row" style="margin-bottom:12px;gap:5px;flex-wrap:wrap;">';
+      var tipos = [''].concat(Array.from(new Set(sessions.map(function(s){return s.exercise_type;}))));
+      var html = '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px;">';
       tipos.forEach(function(t){
         var lbl = t === '' ? 'Todos' : ((COG_EX_MAP[t] && COG_EX_MAP[t].nombre) || t);
         html += '<button class="cogv2-tab '+(_state.filtroTipo===t?'active':'')+'" onclick="window._cogV2SetFiltro(\''+t+'\')">'+lbl+'</button>';
       });
       html += '</div>';
-
-      var lista = _state.filtroTipo ? sessions.filter(function(s){ return s.exercise_type === _state.filtroTipo; }) : sessions;
-      if(!lista.length){ html += '<div class="cogv2-empty">Sin sesiones para este filtro.</div>'; b.innerHTML=html; return; }
-
-      var SENS = { GOOD:'😄', NORMAL:'😐', BAD:'😞' };
-      html += '<div>';
+      var lista = _state.filtroTipo ? sessions.filter(function(s){return s.exercise_type===_state.filtroTipo;}) : sessions;
+      if(!lista.length){ html += '<div class="cogv2-empty">Sin sesiones para este filtro.</div>'; b.innerHTML = html; return; }
+      var SENS = {GOOD:'😄', NORMAL:'😐', BAD:'😞'};
+      var hoy = new Date();
       lista.forEach(function(s){
-        var ex = COG_EX_MAP[s.exercise_type] || {nombre:s.exercise_type, metrics:[]};
+        var ex = COG_EX_MAP[s.exercise_type] || {nombre:s.exercise_type, metrics:[], icono:'•'};
+        var d = new Date(s.session_date+'T12:00:00');
+        var diffD = Math.floor((hoy - d) / 86400000);
+        var fechaRel = diffD === 0 ? 'hoy' : (diffD === 1 ? 'ayer' : ('hace '+diffD+' días'));
+        var fechaTxt = d.toLocaleDateString('es-ES',{day:'numeric',month:'short'});
         var metricsStr = (ex.metrics||[]).map(function(m){
-          var v = s[m.key];
-          if(v===null || v===undefined || v==='') return '';
-          return '<span class="cogv2-chip">'+m.label+': '+v+(m.unit?(m.unit.startsWith('/')?m.unit:' '+m.unit):'')+'</span>';
+          var v = s[m.key]; if(v===null || v===undefined || v==='') return '';
+          var u = m.unit ? (m.unit.startsWith('/')?m.unit:' '+m.unit) : '';
+          return '<span class="cogv2-chip">'+m.label+': '+v+u+'</span>';
         }).filter(Boolean).join('');
-        var fecha = s.session_date ? new Date(s.session_date+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}) : '';
-        html += '<div class="cogv2-card" style="padding:12px 14px;">';
+        html += '<div class="cogv2-card compact" style="cursor:pointer;" onclick="window._cogV2ShowDetail(\''+s.id+'\')">';
         html += '<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:4px;">';
-        html += '<div style="font-size:13px;font-weight:600;color:#fff;">'+(ex.icono||'•')+' '+ex.nombre+'</div>';
-        html += '<div style="font-size:11px;color:var(--text2,#9ca3af);">'+fecha+' '+SENS[s.sensation||'NORMAL']+'</div>';
+        html += '<div style="font-size:13px;font-weight:600;color:#fff;">'+ex.icono+' '+ex.nombre+'</div>';
+        html += '<div style="font-size:11px;color:var(--text2,#9ca3af);">'+fechaTxt+' · '+fechaRel+' '+SENS[s.sensation||'NORMAL']+'</div>';
         html += '</div>';
         if(metricsStr) html += '<div style="margin:6px 0;">'+metricsStr+'</div>';
         if(s.notes) html += '<div style="font-size:11px;color:var(--text2,#9ca3af);font-style:italic;">"'+s.notes.replace(/</g,'&lt;')+'"</div>';
         html += '</div>';
       });
-      html += '</div>';
       b.innerHTML = html;
     });
   }
   window._cogV2SetFiltro = function(t){ _state.filtroTipo = t; _renderHistorial(document.getElementById('cogv2-body')); };
+
+  window._cogV2ShowDetail = function(sid){
+    var s = (window._cogV2HistSessions||[]).find(function(x){return x.id === sid;});
+    if(!s) return;
+    var ex = COG_EX_MAP[s.exercise_type] || {nombre:s.exercise_type, metrics:[], icono:'•'};
+    var SENS = {GOOD:'😄 Bien', NORMAL:'😐 Normal', BAD:'😞 Mal'};
+    var fecha = new Date(s.session_date+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    var html = '<div class="cogv2-modal-bg" onclick="if(event.target===this)window._cogV2CloseDetail()">';
+    html += '<div class="cogv2-modal">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">';
+    html += '<div style="font-size:18px;font-weight:700;color:#fff;">'+ex.icono+' '+ex.nombre+'</div>';
+    html += '<button onclick="window._cogV2CloseDetail()" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;">✕</button>';
+    html += '</div>';
+    html += '<div style="font-size:12px;color:var(--text2);margin-bottom:14px;">'+fecha+'</div>';
+    (ex.metrics||[]).forEach(function(m){
+      var v = s[m.key]; if(v===null || v===undefined || v==='') return;
+      var u = m.unit ? (m.unit.startsWith('/')?m.unit:' '+m.unit) : '';
+      html += '<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">';
+      html += '<div style="font-size:11px;color:var(--text2);">'+m.label+'</div>';
+      html += '<div style="font-size:16px;font-weight:700;color:#fff;">'+v+u+'</div>';
+      html += '</div>';
+    });
+    html += '<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">';
+    html += '<div style="font-size:11px;color:var(--text2);">Sensación</div>';
+    html += '<div style="font-size:14px;font-weight:600;color:#fff;">'+SENS[s.sensation||'NORMAL']+'</div>';
+    html += '</div>';
+    if(s.notes){
+      html += '<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px;margin-top:10px;">';
+      html += '<div style="font-size:11px;color:var(--text2);margin-bottom:5px;">Nota</div>';
+      html += '<div style="font-size:13px;color:#fff;font-style:italic;">"'+s.notes.replace(/</g,'&lt;')+'"</div>';
+      html += '</div>';
+    }
+    html += '<button onclick="window._cogV2DelSession(\''+s.id+'\')" style="margin-top:18px;width:100%;background:rgba(248,81,73,.12);color:#f85149;border:0.5px solid rgba(248,81,73,.3);border-radius:10px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Eliminar sesión</button>';
+    html += '</div></div>';
+    var wrap = document.createElement('div');
+    wrap.id = 'cogv2-modal-wrap';
+    wrap.innerHTML = html;
+    document.body.appendChild(wrap);
+  };
+  window._cogV2CloseDetail = function(){
+    var w = document.getElementById('cogv2-modal-wrap');
+    if(w) w.remove();
+  };
+  window._cogV2DelSession = function(sid){
+    if(!confirm('¿Eliminar esta sesión? No se puede deshacer.')) return;
+    window.DB_REF.from('cognitive_sessions').delete().eq('id', sid).then(function(r){
+      if(r.error){ alert('Error: '+r.error.message); return; }
+      window._cogV2CloseDetail();
+      if(window.showToast) window.showToast('Sesión eliminada');
+      _renderTab();
+    });
+  };
 
   // ───────── TAB PROGRESIÓN ─────────
   function _renderProgresion(b){
     var jugId = window._jugId || (window._jug && window._jug.id);
     b.innerHTML = '<div class="cogv2-empty">Cargando progresión…</div>';
     if(typeof window.Chart === 'undefined'){
-      b.innerHTML = '<div class="cogv2-empty">⏳ Chart.js no se cargó. Recarga la página con Ctrl+F5.</div>';
+      b.innerHTML = '<div class="cogv2-empty">⏳ Las gráficas se están cargando. Recarga la página con Ctrl+F5.</div>';
       return;
     }
     Promise.all([
@@ -5487,40 +5351,55 @@ window.renderEvolucionJugador = async function() {
       var sessions = (rs[0] && rs[0].data) || [];
       var goals = (rs[1] && rs[1].data) || [];
       if(!sessions.length){ b.innerHTML = '<div class="cogv2-empty">Aún no hay datos para mostrar gráficas. Registra sesiones en <strong>Hoy</strong>.</div>'; return; }
-      // Agrupar por tipo
+
+      // Stats globales primero
+      var racha = calcRacha(sessions);
+      var totalSes = sessions.length;
+      var topHtml = '<div class="cogv2-stat-grid">';
+      topHtml += '<div class="cogv2-stat"><div class="v">'+totalSes+'</div><div class="l">Sesiones totales</div></div>';
+      topHtml += '<div class="cogv2-stat"><div class="v">'+racha+'</div><div class="l">Semanas seguidas</div></div>';
+      topHtml += '<div class="cogv2-stat"><div class="v">'+Object.keys(COG_EX_MAP).filter(function(k){return sessions.some(function(s){return s.exercise_type===k;});}).length+'</div><div class="l">Ejercicios trabajados</div></div>';
+      topHtml += '</div>';
+
       var byType = {};
       sessions.forEach(function(s){ (byType[s.exercise_type] = byType[s.exercise_type] || []).push(s); });
       var goalByType = {};
       goals.forEach(function(g){ goalByType[g.exercise_type] = g; });
 
-      var html = '';
+      var html = topHtml;
+      // Para todos los ejercicios con sesiones, mostrar card (con gráfica si >=2, con CTA si 1)
       Object.keys(byType).forEach(function(type){
-        var ex = COG_EX_MAP[type] || {nombre:type, metrics:[{key:'metric_1',label:'Valor',unit:'',lowerIsBetter:false}]};
-        var sess = byType[type];
+        var ex = COG_EX_MAP[type] || {nombre:type, icono:'•', metrics:[{key:'metric_1',label:'Valor',unit:'',lowerIsBetter:false}]};
+        var sess = byType[type].slice().sort(function(a,b){return (a.session_date||'').localeCompare(b.session_date||'');});
         var m0 = ex.metrics[0];
-        var values = sess.map(function(s){ return parseFloat(s[m0.key]); });
-        var dates = sess.map(function(s){ return s.session_date; });
-        var record = m0.lowerIsBetter ? Math.min.apply(null, values.filter(function(v){return !isNaN(v);})) : Math.max.apply(null, values.filter(function(v){return !isNaN(v);}));
+        var unitStr = m0.unit ? (m0.unit.startsWith('/')?m0.unit:' '+m0.unit) : '';
+        var record = calcRecord(sessions, type);
+        var goal = goalByType[type];
+        if(sess.length < 2){
+          html += '<div class="cogv2-card">';
+          html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="font-size:22px;">'+ex.icono+'</span><div style="flex:1;"><div style="font-size:14px;font-weight:600;color:#fff;">'+ex.nombre+'</div><div style="font-size:11px;color:var(--text2);">'+sess.length+' sesión</div></div></div>';
+          html += '<div style="font-size:12px;color:var(--text2);text-align:center;padding:12px 6px;">Haz al menos 2 sesiones de <strong>'+ex.nombre+'</strong> para ver tu progresión.</div>';
+          html += '</div>';
+          return;
+        }
         var canvasId = 'cog-chart-'+type;
         html += '<div class="cogv2-card">';
         html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
-        html += '<span style="font-size:22px;">'+(ex.icono||'•')+'</span>';
+        html += '<span style="font-size:22px;">'+ex.icono+'</span>';
         html += '<div style="flex:1;"><div style="font-size:14px;font-weight:600;color:#fff;">'+ex.nombre+'</div>';
-        html += '<div style="font-size:11px;color:var(--text2,#9ca3af);">'+sess.length+' sesión'+(sess.length===1?'':'es')+' · récord: <strong style="color:var(--accent,#a8e85c);">'+record+(m0.unit?(m0.unit.startsWith('/')?m0.unit:' '+m0.unit):'')+'</strong></div></div>';
-        if(goalByType[type]){
-          var g = goalByType[type];
-          html += '<div style="text-align:right;font-size:10px;color:var(--text2,#9ca3af);">🎯 Objetivo<br><strong style="color:#fff;">'+g.metric_target+(m0.unit?(m0.unit.startsWith('/')?m0.unit:' '+m0.unit):'')+'</strong></div>';
-        }
+        html += '<div style="font-size:11px;color:var(--text2,#9ca3af);">Récord: <strong style="color:#D4AF37;">'+record+unitStr+'</strong> · '+sess.length+' sesiones</div></div>';
+        if(goal) html += '<div style="font-size:10px;color:var(--text2);text-align:right;">🎯 Objetivo<br><strong style="color:#fff;">'+goal.metric_target+unitStr+'</strong></div>';
         html += '</div>';
         html += '<div style="position:relative;height:180px;"><canvas id="'+canvasId+'"></canvas></div>';
         html += '</div>';
       });
       b.innerHTML = html;
 
-      // Crear gráficas
+      // Pintar gráficas
       Object.keys(byType).forEach(function(type){
-        var ex = COG_EX_MAP[type] || {metrics:[{key:'metric_1',unit:''}]};
-        var sess = byType[type];
+        var sess = byType[type].slice().sort(function(a,b){return (a.session_date||'').localeCompare(b.session_date||'');});
+        if(sess.length < 2) return;
+        var ex = COG_EX_MAP[type] || {metrics:[{key:'metric_1',unit:'',lowerIsBetter:false}]};
         var m0 = ex.metrics[0];
         var canvasId = 'cog-chart-'+type;
         var ctx = document.getElementById(canvasId);
@@ -5529,30 +5408,21 @@ window.renderEvolucionJugador = async function() {
         var labels = sess.map(function(s){ return new Date(s.session_date+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'}); });
         var data = sess.map(function(s){ return parseFloat(s[m0.key]); });
         var record = m0.lowerIsBetter ? Math.min.apply(null, data.filter(function(v){return !isNaN(v);})) : Math.max.apply(null, data.filter(function(v){return !isNaN(v);}));
-        var pointColors = data.map(function(v){ return v === record ? '#a8e85c' : '#58a6ff'; });
-        var pointRadius = data.map(function(v){ return v === record ? 6 : 3; });
+        var pointColors = data.map(function(v){ return v === record ? '#D4AF37' : '#a8e85c'; });
+        var pointR = data.map(function(v){ return v === record ? 6 : 3; });
         var datasets = [{
-          label: m0.label || 'Valor',
-          data: data,
-          borderColor: 'rgba(168,232,92,0.7)',
-          backgroundColor: 'rgba(168,232,92,0.08)',
-          tension: 0.25,
-          fill: true,
-          pointRadius: pointRadius,
-          pointBackgroundColor: pointColors,
-          pointBorderColor: '#0a0e1a',
-          pointBorderWidth: 1.5
+          label: m0.label || 'Valor', data: data,
+          borderColor: 'rgba(168,232,92,0.75)', backgroundColor: 'rgba(168,232,92,0.08)',
+          tension: 0.25, fill: true, pointRadius: pointR,
+          pointBackgroundColor: pointColors, pointBorderColor: '#0a0e1a', pointBorderWidth: 1.5
         }];
-        var g = goalByType[type];
-        if(g){
+        var goal = goalByType[type];
+        if(goal){
           datasets.push({
             label: 'Objetivo',
-            data: data.map(function(){ return g.metric_target; }),
-            borderColor: 'rgba(244,197,66,0.75)',
-            borderWidth: 1.5,
-            borderDash: [5,4],
-            pointRadius: 0,
-            fill: false
+            data: data.map(function(){return goal.metric_target;}),
+            borderColor: 'rgba(212,175,55,0.85)', borderWidth: 1.5, borderDash: [5,4],
+            pointRadius: 0, fill: false
           });
         }
         try {
@@ -5574,8 +5444,8 @@ window.renderEvolucionJugador = async function() {
                 }
               },
               scales: {
-                x: { ticks: { color: 'rgba(255,255,255,0.5)', font:{size:10} }, grid:{color:'rgba(255,255,255,0.04)'} },
-                y: { ticks: { color: 'rgba(255,255,255,0.5)', font:{size:10} }, grid:{color:'rgba(255,255,255,0.04)'}, reverse: m0.lowerIsBetter }
+                x: { ticks: { color: 'rgba(255,255,255,0.55)', font:{size:10} }, grid:{color:'rgba(255,255,255,0.04)'} },
+                y: { ticks: { color: 'rgba(255,255,255,0.55)', font:{size:10} }, grid:{color:'rgba(255,255,255,0.04)'}, reverse: m0.lowerIsBetter }
               }
             }
           });
