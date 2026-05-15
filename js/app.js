@@ -558,7 +558,62 @@ function renderDT(tab){
   // ─── TAB OBJETIVOS ───
   if(tab==='obj'){
     const objs=getObjJugador(id).filter(o=>!o.superado);
+    const objsSuperados = getObjJugador(id).filter(o=>o.superado);
     const FASE_CFG={OF:{dot:'#1D9E75',bg:'#E1F5EE',color:'#085041',cls:'badge-of'},DE:{dot:'#378ADD',bg:'#E6F1FB',color:'#0C447C',cls:'badge-de'},TO:{dot:'#E07B00',bg:'#FAEEDA',color:'#633806',cls:'badge-to'},TD:{dot:'#D85A30',bg:'#FAECE7',color:'#993C1D',cls:'badge-td'},GEN:{dot:'#7C6FF0',bg:'#EEEDFE',color:'#3C3489',cls:''}};
+
+    // ─── BLOQUE DE EVOLUCIÓN DE OBJETIVOS ───
+    let evoHtml = '';
+    const totalObjs = objs.length + objsSuperados.length;
+    if(totalObjs > 0) {
+      const tasaSup = totalObjs > 0 ? Math.round((objsSuperados.length / totalObjs) * 100) : 0;
+      const tasaColor = tasaSup >= 60 ? '#1D9E75' : tasaSup >= 30 ? '#D4AF37' : '#9ca3af';
+
+      // Por fase: superados/total
+      const porFase = {};
+      ['OF','DE','TO','TD','GEN'].forEach(f => { porFase[f] = {sup:0, tot:0}; });
+      objs.forEach(o => { if(porFase[o.fase]) porFase[o.fase].tot++; });
+      objsSuperados.forEach(o => { if(porFase[o.fase]) { porFase[o.fase].tot++; porFase[o.fase].sup++; }});
+
+      evoHtml += '<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:1rem;">';
+      evoHtml += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:12px;">🎯 Evolución de objetivos</div>';
+
+      // KPIs en 3 columnas
+      evoHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
+      evoHtml += '<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:9px;color:var(--text3);">Total</div><div style="font-size:20px;font-weight:700;color:#fff;">'+totalObjs+'</div></div>';
+      evoHtml += '<div style="background:rgba(29,158,117,.08);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:9px;color:var(--text3);">Superados</div><div style="font-size:20px;font-weight:700;color:#1D9E75;">'+objsSuperados.length+'</div></div>';
+      evoHtml += '<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:9px;color:var(--text3);">Tasa</div><div style="font-size:20px;font-weight:700;color:'+tasaColor+';">'+tasaSup+'%</div></div>';
+      evoHtml += '</div>';
+
+      // Barra de progreso
+      evoHtml += '<div style="height:6px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;margin-bottom:14px;">';
+      evoHtml += '<div style="height:100%;width:'+tasaSup+'%;background:linear-gradient(90deg,#1D9E75,#3fb950);border-radius:99px;transition:width .4s;"></div>';
+      evoHtml += '</div>';
+
+      // Distribución por fase
+      const fasesOrden = [{k:'OF',l:'Ofensiva',c:'#1D9E75'},{k:'DE',l:'Defensiva',c:'#378ADD'},{k:'TO',l:'T. Of',c:'#E07B00'},{k:'TD',l:'T. De',c:'#D85A30'},{k:'GEN',l:'General',c:'#7C6FF0'}];
+      const fasesConDatos = fasesOrden.filter(f => porFase[f.k].tot > 0);
+      if(fasesConDatos.length) {
+        evoHtml += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px;">Por fase</div>';
+        fasesConDatos.forEach(f => {
+          const d = porFase[f.k];
+          const pct = d.tot ? Math.round((d.sup/d.tot)*100) : 0;
+          evoHtml += '<div style="margin-bottom:8px;">';
+          evoHtml += '<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);font-weight:600;">'+f.l+'</span><span style="color:'+f.c+';font-weight:700;">'+d.sup+'/'+d.tot+' · '+pct+'%</span></div>';
+          evoHtml += '<div style="height:4px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:'+f.c+';border-radius:99px;"></div></div>';
+          evoHtml += '</div>';
+        });
+      }
+
+      // Gráfica de objetivos superados a lo largo del tiempo (si hay >=2 superados con fecha)
+      const supConFecha = objsSuperados.filter(o => o.fecha_superado).sort((a,b)=>(a.fecha_superado||'').localeCompare(b.fecha_superado||''));
+      if(supConFecha.length >= 2) {
+        evoHtml += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:12px 0 8px;">Ritmo de superación</div>';
+        evoHtml += '<div style="position:relative;height:120px;"><canvas id="chart-evo-objs-'+id+'"></canvas></div>';
+        window._evoDataObjetivos = { supConFecha, jugId: id };
+      }
+      evoHtml += '</div>';
+    }
+
     const objsHtml = objs.length ? objs.map(o=>{
       const fc=FASE_CFG[o.fase]||FASE_CFG.GEN;
       return '<div style="background:var(--bg);border:0.5px solid '+fc.dot+'30;border-left:3px solid '+fc.dot+';border-radius:var(--radius-sm);padding:.875rem;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;">'+
@@ -572,7 +627,7 @@ function renderDT(tab){
 
     const objsCountHtml = objs.length ? '<div style="'+SEC_TITLE+'margin-top:.5rem;">'+objs.length+' objetivo'+(objs.length!==1?'s':'')+' activos</div>' : '';
 
-    body.innerHTML = '<div style="'+CARD+'">'+
+    body.innerHTML = evoHtml + '<div style="'+CARD+'">'+
       '<div style="'+SEC_TITLE+'">Selecciona microconcepto a mejorar</div>'+
       '<div style="font-size:11px;color:var(--text2);margin-bottom:.75rem;">Toca el microconcepto para añadirlo como objetivo</div>'+
       '<div id="micro-obj-selector" style="max-height:200px;overflow-y:auto;margin-bottom:.875rem;padding-right:4px;">Cargando...</div>'+
@@ -590,6 +645,10 @@ function renderDT(tab){
       '<button class="btn" style="width:100%;" onclick="addObj()">+ Añadir objetivo</button>'+
     '</div>'+objsCountHtml+objsHtml;
     setTimeout(()=>renderObjMicroSelector(id), 50);
+    // Renderizar gráfica de objetivos si aplica
+    if(window._evoDataObjetivos && typeof window.Chart !== 'undefined') {
+      setTimeout(() => _pintarGraficaEvolucionObjetivos(), 60);
+    }
   }
 
   // ─── TAB PARTIDOS ───
@@ -905,6 +964,69 @@ function renderDT(tab){
     let html = '';
 
     if(informes.length) {
+      // ─── BLOQUE EVOLUCIÓN (Chart.js) ───
+      // Informes ordenados cronológicamente (antiguo→reciente) para la gráfica
+      const infOrdenados = informes.slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+      const notas = infOrdenados.map(i => parseFloat(i.nota_decimal) || null);
+      const validas = notas.filter(n => n !== null);
+      const mejorNota = validas.length ? Math.max(...validas) : 0;
+      const peorNota = validas.length ? Math.min(...validas) : 0;
+      const mediaNota = validas.length ? (validas.reduce((a,b)=>a+b,0)/validas.length) : 0;
+      // Tendencia: comparar últimos 3 vs 3 anteriores
+      let tendencia = null, tendenciaPct = 0;
+      if(validas.length >= 4) {
+        const half = Math.min(3, Math.floor(validas.length/2));
+        const recientes = validas.slice(-half);
+        const previos = validas.slice(-half*2, -half);
+        const avgR = recientes.reduce((a,b)=>a+b,0)/recientes.length;
+        const avgP = previos.reduce((a,b)=>a+b,0)/previos.length;
+        const diff = avgR - avgP;
+        tendencia = diff > 0.15 ? 'up' : diff < -0.15 ? 'down' : 'flat';
+        tendenciaPct = Math.abs(diff).toFixed(1);
+      }
+
+      html += '<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:1rem;">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">';
+      html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);">📈 Evolución de la nota</div>';
+      if(tendencia){
+        const tCol = tendencia==='up'?'#1D9E75':(tendencia==='down'?'#f85149':'#9ca3af');
+        const tIco = tendencia==='up'?'↗':(tendencia==='down'?'↘':'→');
+        html += '<div style="font-size:11px;color:'+tCol+';font-weight:600;">'+tIco+' '+tendenciaPct+' pts</div>';
+      }
+      html += '</div>';
+
+      // KPIs en 3 columnas
+      html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
+      html += '<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--text3);">Media</div><div style="font-size:18px;font-weight:700;color:#fff;">'+mediaNota.toFixed(1)+'</div></div>';
+      html += '<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--text3);">Mejor</div><div style="font-size:18px;font-weight:700;color:#1D9E75;">'+mejorNota.toFixed(1)+'</div></div>';
+      html += '<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--text3);">Peor</div><div style="font-size:18px;font-weight:700;color:#f85149;">'+peorNota.toFixed(1)+'</div></div>';
+      html += '</div>';
+
+      // Canvas para la gráfica principal
+      if(validas.length >= 2) {
+        html += '<div style="position:relative;height:180px;margin-bottom:14px;"><canvas id="chart-evo-nota-'+id+'"></canvas></div>';
+      } else {
+        html += '<div style="text-align:center;color:var(--text3);font-size:11px;font-style:italic;padding:1rem;">Necesitas al menos 2 informes para ver la evolución (tienes '+validas.length+')</div>';
+      }
+
+      // Mini-gráficas por fase
+      if(validas.length >= 2) {
+        const fases = [{k:'MCB',l:'Con balón',c:'#1D9E75'},{k:'MSB',l:'Sin balón',c:'#378ADD'},{k:'TDA',l:'Trans. D→A',c:'#E07B00'},{k:'TAD',l:'Trans. A→D',c:'#D85A30'}];
+        html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:10px 0 8px;">Por fase</div>';
+        html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">';
+        fases.forEach(f => {
+          html += '<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:8px;">';
+          html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span style="font-size:10px;color:var(--text2);font-weight:600;">'+f.k+'</span><span style="font-size:9px;color:var(--text3);">'+f.l+'</span></div>';
+          html += '<div style="position:relative;height:60px;"><canvas id="chart-evo-'+f.k+'-'+id+'"></canvas></div>';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>'; // end bloque evolución
+
+      // Guardar datos para renderizar gráficas después de insertar el HTML
+      window._evoDataInformes = { infOrdenados, notas, jugId: id };
+
       html += '<div style="'+SEC_TITLE+'margin-bottom:1rem;">'+informes.length+' Informe'+(informes.length!==1?'s':'')+' guardado'+(informes.length!==1?'s':'')+'</div>';
       informes.forEach(inf => {
         const nota = parseFloat(inf.nota_decimal) || 0;
@@ -966,6 +1088,10 @@ function renderDT(tab){
     }
 
     body.innerHTML = html;
+    // Renderizar gráficas Chart.js (si las hay)
+    if(window._evoDataInformes && typeof window.Chart !== 'undefined') {
+      setTimeout(() => _pintarGraficasEvolucionInformes(), 30);
+    }
     return;
   }
 
@@ -7258,3 +7384,183 @@ window._toggleMaterial = async function(jugId, itemId) {
   showToast(ids.includes(itemId) ? '✅ Material añadido' : 'Material eliminado');
   renderMaterialAnalista(jugId);
 };
+
+// ═══════════════════════════════════════════════════════
+// EVOLUCIÓN INFORMES (Chart.js)
+// ═══════════════════════════════════════════════════════
+window._evoCharts = window._evoCharts || {};
+
+function _pintarGraficasEvolucionInformes() {
+  const data = window._evoDataInformes;
+  if(!data) return;
+  const { infOrdenados, notas, jugId } = data;
+
+  // Helper: destruir chart previo si existe
+  const destruir = (key) => { try { if(window._evoCharts[key]) window._evoCharts[key].destroy(); } catch(e){} };
+
+  const labels = infOrdenados.map(i => {
+    const f = new Date(i.fecha + 'T12:00:00');
+    return f.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+  });
+
+  // ─── GRÁFICA PRINCIPAL: evolución de nota ───
+  const canvasNota = document.getElementById('chart-evo-nota-' + jugId);
+  if(canvasNota) {
+    const keyNota = 'nota-' + jugId;
+    destruir(keyNota);
+    const validIdx = notas.map((n,i)=>n!==null?i:-1).filter(i=>i>=0);
+    const recordVal = validIdx.length ? Math.max.apply(null, validIdx.map(i=>notas[i])) : 0;
+    const colors = notas.map(n => n === recordVal ? '#D4AF37' : '#58a6ff');
+    const radii  = notas.map(n => n === recordVal ? 5 : 3);
+    try {
+      window._evoCharts[keyNota] = new window.Chart(canvasNota, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Nota',
+            data: notas,
+            borderColor: 'rgba(88,166,255,0.85)',
+            backgroundColor: 'rgba(88,166,255,0.1)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: radii,
+            pointBackgroundColor: colors,
+            pointBorderColor: '#0f1729',
+            pointBorderWidth: 1.5,
+            spanGaps: true
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: function(items) {
+                  const inf = infOrdenados[items[0].dataIndex];
+                  return inf.partido + (inf.rival ? ' vs ' + inf.rival : '');
+                },
+                label: function(item) { return 'Nota: ' + item.parsed.y + '/10'; },
+                afterBody: function(items) {
+                  const inf = infOrdenados[items[0].dataIndex];
+                  return inf.resultado ? '\n' + inf.resultado : '';
+                }
+              }
+            }
+          },
+          scales: {
+            x: { ticks:{color:'rgba(255,255,255,0.55)',font:{size:9}}, grid:{color:'rgba(255,255,255,0.04)'} },
+            y: { min: 0, max: 10, ticks:{color:'rgba(255,255,255,0.55)',font:{size:9}, stepSize:2}, grid:{color:'rgba(255,255,255,0.04)'} }
+          }
+        }
+      });
+    } catch(e) { console.warn('chart evo nota err', e); }
+  }
+
+  // ─── MINI-GRÁFICAS POR FASE ───
+  const fases = [{k:'MCB',c:'#1D9E75'},{k:'MSB',c:'#378ADD'},{k:'TDA',c:'#E07B00'},{k:'TAD',c:'#D85A30'}];
+  fases.forEach(f => {
+    const canvas = document.getElementById('chart-evo-'+f.k+'-'+jugId);
+    if(!canvas) return;
+    const key = f.k + '-' + jugId;
+    destruir(key);
+
+    // Calcular media por informe para esta fase
+    const valores = infOrdenados.map(inf => {
+      let stars = {};
+      try { stars = inf.estrellas_json ? JSON.parse(inf.estrellas_json) : {}; } catch(e){}
+      const arr = (stars[f.k] || []).filter(x => x > 0);
+      return arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length) : null;
+    });
+
+    try {
+      window._evoCharts[key] = new window.Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: valores,
+            borderColor: f.c,
+            backgroundColor: f.c + '20',
+            tension: 0.35,
+            fill: true,
+            pointRadius: 2,
+            pointBackgroundColor: f.c,
+            spanGaps: true
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend:{display:false}, tooltip:{enabled:true,callbacks:{label:function(item){return item.parsed.y!==null?item.parsed.y.toFixed(1)+'/5':'—';}}} },
+          scales: {
+            x: { display: false },
+            y: { min: 0, max: 5, display: false }
+          }
+        }
+      });
+    } catch(e) { console.warn('chart evo '+f.k+' err', e); }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// EVOLUCIÓN OBJETIVOS (Chart.js)
+// ═══════════════════════════════════════════════════════
+function _pintarGraficaEvolucionObjetivos() {
+  const data = window._evoDataObjetivos;
+  if(!data) return;
+  const { supConFecha, jugId } = data;
+  const canvas = document.getElementById('chart-evo-objs-' + jugId);
+  if(!canvas) return;
+  const key = 'objs-' + jugId;
+  try { if(window._evoCharts[key]) window._evoCharts[key].destroy(); } catch(e){}
+
+  // Acumulado por fecha
+  const labels = supConFecha.map(o => {
+    const f = new Date(o.fecha_superado + 'T12:00:00');
+    return f.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+  });
+  const valores = supConFecha.map((_, i) => i + 1); // acumulado: 1, 2, 3, ...
+
+  try {
+    window._evoCharts[key] = new window.Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Objetivos superados',
+          data: valores,
+          borderColor: '#1D9E75',
+          backgroundColor: 'rgba(29,158,117,0.15)',
+          tension: 0.2,
+          fill: true,
+          pointRadius: 3,
+          pointBackgroundColor: '#1D9E75',
+          stepped: false
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: function(items) { return labels[items[0].dataIndex]; },
+              label: function(item) {
+                const obj = supConFecha[item.dataIndex];
+                return obj.texto.substring(0, 50) + (obj.texto.length>50?'...':'');
+              },
+              afterBody: function(items) {
+                return '\nTotal acumulado: ' + items[0].parsed.y;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks:{color:'rgba(255,255,255,0.55)',font:{size:9}}, grid:{color:'rgba(255,255,255,0.04)'} },
+          y: { beginAtZero:true, ticks:{color:'rgba(255,255,255,0.55)',font:{size:9}, stepSize:1, precision:0}, grid:{color:'rgba(255,255,255,0.04)'} }
+        }
+      }
+    });
+  } catch(e) { console.warn('chart evo objs err', e); }
+}
