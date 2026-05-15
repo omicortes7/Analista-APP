@@ -4490,7 +4490,403 @@ window.generarInformeVisualJugador = function(inf) {
         +'<span>'+fechaFormateada+'</span>'
       +'</div>'
       +'</div>'
-      +'</body></html>';
+      +'
+<!-- ═══ COGNITIVO v2 ═══ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════
+   COGNITIVO v2 — Sesiones tipadas + gráficas
+   Mantiene v1 accesible vía window.renderCognitivoV1
+   ═══════════════════════════════════════════════════ */
+(function(){
+  // Guardar v1 si existe
+  if(typeof window.renderCognitivo === 'function' && !window.renderCognitivoV1){
+    window.renderCognitivoV1 = window.renderCognitivo;
+  }
+
+  // Mapa de ejercicios — día (1=lun..5=vie), nombre, métricas
+  var COG_EX_MAP = {
+    BROCK_STRING: { dia:1, nombre:'Cuerda de Brock', icono:'👁️', material:'Cuerda 2m con 3 bolas', descripcion:'Vergencia y fusión binocular', metrics:[
+      {key:'metric_1', label:'Segundos de fusión', unit:'s', lowerIsBetter:true},
+      {key:'metric_2', label:'Aciertos enfoque rápido', unit:'', lowerIsBetter:false}
+    ]},
+    SCHULTE_5X5: { dia:2, nombre:'Schulte 5×5', icono:'🔢', material:'Tabla Schulte 5x5', descripcion:'Atención periférica', metrics:[
+      {key:'metric_1', label:'Mejor tiempo', unit:'s', lowerIsBetter:true}
+    ]},
+    SCHULTE_ALT: { dia:2, nombre:'Schulte alternante', icono:'🔢', material:'Tabla Schulte con 2 colores', descripcion:'Alternancia atencional', metrics:[
+      {key:'metric_1', label:'Mejor tiempo', unit:'s', lowerIsBetter:true}
+    ]},
+    DUAL_TASK_BALL: { dia:3, nombre:'Doble tarea — toques', icono:'⚽', material:'Pelota + cuenta atrás', descripcion:'Toques sin caer + contar hacia atrás', metrics:[
+      {key:'metric_1', label:'Racha máxima', unit:'toques', lowerIsBetter:false}
+    ]},
+    DUAL_TASK_DRIBBLE: { dia:3, nombre:'Doble tarea — regate', icono:'⚽', material:'Conos + cálculo mental', descripcion:'Conducción con cálculo mental simultáneo', metrics:[
+      {key:'metric_1', label:'Aciertos de 10', unit:'/10', lowerIsBetter:false}
+    ]},
+    REACTION_30: { dia:4, nombre:'Reacción x30', icono:'⚡', material:'App de reacción visual', descripcion:'30 estímulos consecutivos', metrics:[
+      {key:'metric_1', label:'Tiempo total', unit:'s', lowerIsBetter:true}
+    ]},
+    STROOP_MOTOR: { dia:4, nombre:'Stroop motor', icono:'🎨', material:'20 palabras-color con conflicto', descripcion:'Inhibición cognitiva con respuesta motora', metrics:[
+      {key:'metric_1', label:'Aciertos de 20', unit:'/20', lowerIsBetter:false}
+    ]},
+    DOUBLE_COLOR: { dia:4, nombre:'Doble color', icono:'🎨', material:'15 estímulos bicolor', descripcion:'Atención dividida', metrics:[
+      {key:'metric_1', label:'Aciertos de 15', unit:'/15', lowerIsBetter:false}
+    ]},
+    DUAL_NBACK: { dia:5, nombre:'Dual N-Back', icono:'🧠', material:'App Dual N-Back', descripcion:'Memoria de trabajo', metrics:[
+      {key:'metric_1', label:'Nivel N', unit:'N', lowerIsBetter:false},
+      {key:'metric_2', label:'Precisión', unit:'%', lowerIsBetter:false}
+    ]},
+    MATCH_RECALL: { dia:5, nombre:'Recall de partido', icono:'🎞️', material:'Vídeo de partido + cuaderno', descripcion:'Recordar 3 jugadas tras 5 min de visualización', metrics:[
+      {key:'metric_1', label:'Jugadas recordadas', unit:'/3', lowerIsBetter:false},
+      {key:'metric_2', label:'Nivel de detalle', unit:'/3', lowerIsBetter:false}
+    ]}
+  };
+  window.COG_EX_MAP = COG_EX_MAP;
+
+  var DOW_KEYS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  var DIA_LABEL_ES = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+
+  function getEjerciciosHoy(){
+    var d = new Date().getDay();
+    if(d===0 || d===6) return [];
+    return Object.keys(COG_EX_MAP)
+      .filter(function(k){ return COG_EX_MAP[k].dia === d; })
+      .map(function(k){ var e = Object.assign({}, COG_EX_MAP[k]); e.type = k; return e; });
+  }
+  window.getEjerciciosHoy = getEjerciciosHoy;
+
+  // ───────── ESTILO BASE ─────────
+  function ensureCogStyles(){
+    if(document.getElementById('cog-v2-styles')) return;
+    var s = document.createElement('style');
+    s.id = 'cog-v2-styles';
+    s.textContent = '\
+      .cogv2-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}\
+      .cogv2-tab{padding:8px 14px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(255,255,255,.04);color:var(--text2,#9ca3af);border:0.5px solid rgba(255,255,255,.08);transition:all .15s;}\
+      .cogv2-tab.active{background:rgba(168,232,92,.16);color:var(--accent,#a8e85c);border-color:rgba(168,232,92,.35);}\
+      .cogv2-card{background:rgba(255,255,255,.03);border:0.5px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin-bottom:12px;}\
+      .cogv2-title{font-family:Instrument Serif,serif;font-style:italic;font-size:22px;color:#fff;margin:0 0 4px;line-height:1.1;}\
+      .cogv2-sub{font-size:11px;color:var(--text2,#9ca3af);margin-bottom:10px;}\
+      .cogv2-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}\
+      .cogv2-input{background:rgba(255,255,255,.06);border:0.5px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 12px;font-size:14px;color:#fff;font-family:inherit;width:100px;outline:none;}\
+      .cogv2-input:focus{border-color:var(--accent,#a8e85c);}\
+      .cogv2-input-lbl{font-size:11px;color:var(--text2,#9ca3af);margin-bottom:4px;display:block;}\
+      .cogv2-btn{background:var(--accent,#a8e85c);color:#0a1208;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}\
+      .cogv2-btn:hover{filter:brightness(1.1);}\
+      .cogv2-btn-ghost{background:transparent;color:var(--text2,#9ca3af);border:0.5px solid rgba(255,255,255,.15);border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:inherit;}\
+      .cogv2-sens-btn{flex:1;min-width:64px;padding:10px;border-radius:10px;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.1);font-size:20px;cursor:pointer;transition:.15s;}\
+      .cogv2-sens-btn.sel{background:rgba(168,232,92,.18);border-color:var(--accent,#a8e85c);transform:scale(1.04);}\
+      .cogv2-empty{text-align:center;padding:2rem;color:var(--text3,#6b7280);font-size:13px;}\
+      .cogv2-chip{display:inline-block;padding:3px 9px;border-radius:99px;font-size:10px;font-weight:600;background:rgba(168,232,92,.16);color:var(--accent,#a8e85c);margin-right:5px;}\
+      .cogv2-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;margin:6px 0;}\
+      .cogv2-bar-fill{height:100%;background:var(--accent,#a8e85c);transition:width .25s;}\
+    ';
+    document.head.appendChild(s);
+  }
+
+  // ───────── ESTADO GLOBAL ─────────
+  var _state = { tab: 'hoy', filtroTipo: '', _chartInstances: {} };
+  window._cogV2State = _state;
+
+  // ───────── RENDER MAIN ─────────
+  window.renderCognitivo = function(){
+    ensureCogStyles();
+    var cont = document.getElementById('cog-content');
+    if(!cont) return;
+    var jugId = window._jugId || (window._jug && window._jug.id);
+    if(!jugId){
+      cont.innerHTML = '<div class="cogv2-empty">No se ha cargado el jugador. Inicia sesión y vuelve a entrar.</div>';
+      return;
+    }
+    var tabs = [
+      {id:'hoy', label:'Hoy'},
+      {id:'historial', label:'Historial'},
+      {id:'progresion', label:'Mi Progresión'}
+    ];
+    var h = '<div class="cogv2-tabs">';
+    tabs.forEach(function(t){
+      h += '<button class="cogv2-tab '+(_state.tab===t.id?'active':'')+'" onclick="window._cogV2SetTab(\''+t.id+'\')">'+t.label+'</button>';
+    });
+    h += '<button class="cogv2-tab" style="margin-left:auto;font-size:10px;color:var(--text3,#6b7280);" onclick="window._cogV2ShowV1()">Ver versión anterior</button>';
+    h += '</div>';
+    h += '<div id="cogv2-body"></div>';
+    cont.innerHTML = h;
+    _renderTab();
+  };
+
+  window._cogV2SetTab = function(t){ _state.tab = t; window.renderCognitivo(); };
+  window._cogV2ShowV1 = function(){
+    if(typeof window.renderCognitivoV1 === 'function'){ window.renderCognitivoV1(); }
+  };
+
+  function _renderTab(){
+    var b = document.getElementById('cogv2-body');
+    if(!b) return;
+    if(_state.tab === 'hoy') return _renderHoy(b);
+    if(_state.tab === 'historial') return _renderHistorial(b);
+    if(_state.tab === 'progresion') return _renderProgresion(b);
+  }
+
+  // ───────── TAB HOY ─────────
+  function _renderHoy(b){
+    var hoyIdx = new Date().getDay();
+    var ejercicios = getEjerciciosHoy();
+    if(!ejercicios.length){
+      b.innerHTML = '<div class="cogv2-card" style="text-align:center;padding:2rem;">'
+        + '<div style="font-size:38px;margin-bottom:10px;">🏖️</div>'
+        + '<div class="cogv2-title">Descanso cognitivo</div>'
+        + '<div class="cogv2-sub" style="margin-top:6px;">Hoy '+DIA_LABEL_ES[hoyIdx]+' · A jugar. La constancia es 5 días, no 7.</div>'
+        + '</div>';
+      return;
+    }
+    var fechaHoy = new Date().toISOString().slice(0,10);
+    var dow = DOW_KEYS[hoyIdx];
+    var html = '<div class="cogv2-sub" style="margin-bottom:14px;text-align:center;">📅 '+DIA_LABEL_ES[hoyIdx]+' · '+fechaHoy+'</div>';
+    ejercicios.forEach(function(ej, idx){
+      var fid = 'cogv2-form-'+idx;
+      html += '<div class="cogv2-card">';
+      html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">';
+      html += '<span style="font-size:26px;">'+ej.icono+'</span>';
+      html += '<div style="flex:1;"><h3 class="cogv2-title">'+ej.nombre+'</h3><div class="cogv2-sub">'+ej.descripcion+' · '+ej.material+'</div></div>';
+      html += '</div>';
+      html += '<form id="'+fid+'" onsubmit="return window._cogV2Save(event,\''+ej.type+'\',\''+dow+'\','+idx+');">';
+      html += '<div class="cogv2-row" style="margin:12px 0;">';
+      ej.metrics.forEach(function(m){
+        html += '<div><label class="cogv2-input-lbl">'+m.label+(m.unit?' ('+m.unit+')':'')+'</label>';
+        html += '<input type="number" step="0.01" class="cogv2-input" name="'+m.key+'" required></div>';
+      });
+      html += '</div>';
+      html += '<div style="margin:10px 0;"><label class="cogv2-input-lbl">¿Cómo te has sentido?</label>';
+      html += '<div class="cogv2-row" style="gap:6px;">';
+      html += '<button type="button" class="cogv2-sens-btn" data-s="GOOD" onclick="window._cogV2SelSens(this)">😄</button>';
+      html += '<button type="button" class="cogv2-sens-btn sel" data-s="NORMAL" onclick="window._cogV2SelSens(this)">😐</button>';
+      html += '<button type="button" class="cogv2-sens-btn" data-s="BAD" onclick="window._cogV2SelSens(this)">😞</button>';
+      html += '</div></div>';
+      html += '<div style="margin:10px 0;"><label class="cogv2-input-lbl">Notas (opcional)</label>';
+      html += '<input type="text" class="cogv2-input" name="notes" style="width:100%;" placeholder="Cómo te ha ido, etc."></div>';
+      html += '<button type="submit" class="cogv2-btn">Guardar sesión</button>';
+      html += '</form></div>';
+    });
+    b.innerHTML = html;
+  }
+
+  window._cogV2SelSens = function(btn){
+    var parent = btn.parentNode;
+    parent.querySelectorAll('.cogv2-sens-btn').forEach(function(b){ b.classList.remove('sel'); });
+    btn.classList.add('sel');
+  };
+
+  window._cogV2Save = function(ev, type, dow, idx){
+    ev.preventDefault();
+    var f = document.getElementById('cogv2-form-'+idx);
+    var dataForm = new FormData(f);
+    var sens = f.querySelector('.cogv2-sens-btn.sel');
+    var sensVal = sens ? sens.getAttribute('data-s') : 'NORMAL';
+    var jugId = window._jugId || (window._jug && window._jug.id);
+    if(!jugId){ alert('No se identifica el jugador'); return false; }
+    var row = {
+      jugador_id: jugId,
+      session_date: new Date().toISOString().slice(0,10),
+      day_of_week: dow,
+      exercise_type: type,
+      metric_1: parseFloat(dataForm.get('metric_1') || 'NaN'),
+      metric_2: dataForm.get('metric_2') !== null && dataForm.get('metric_2') !== '' ? parseFloat(dataForm.get('metric_2')) : null,
+      metric_3: dataForm.get('metric_3') !== null && dataForm.get('metric_3') !== '' ? parseFloat(dataForm.get('metric_3')) : null,
+      sensation: sensVal,
+      notes: (dataForm.get('notes') || '').toString().trim() || null
+    };
+    if(isNaN(row.metric_1)){ alert('Introduce al menos una métrica válida'); return false; }
+    var btn = f.querySelector('button[type=submit]');
+    if(btn){ btn.disabled = true; btn.textContent = 'Guardando…'; }
+    window.DB_REF.from('cognitive_sessions').insert(row).select().then(function(res){
+      if(res.error){ alert('Error: '+res.error.message); if(btn){ btn.disabled=false; btn.textContent='Guardar sesión'; } return; }
+      // Actualizar best en cognitive_goals si supera
+      _updateGoalBest(jugId, type, row.metric_1);
+      f.reset();
+      f.querySelectorAll('.cogv2-sens-btn').forEach(function(b){ b.classList.remove('sel'); });
+      var def = f.querySelector('.cogv2-sens-btn[data-s=NORMAL]'); if(def) def.classList.add('sel');
+      if(btn){ btn.disabled=false; btn.textContent='✓ Guardado'; }
+      setTimeout(function(){ if(btn) btn.textContent='Guardar sesión'; }, 2000);
+      if(window.showToast) window.showToast('Sesión guardada ✓');
+    }).catch(function(e){ alert('Error: '+(e.message||e)); if(btn){ btn.disabled=false; btn.textContent='Guardar sesión'; } });
+    return false;
+  };
+
+  function _updateGoalBest(jugId, type, val){
+    window.DB_REF.from('cognitive_goals').select('*').eq('jugador_id', jugId).eq('exercise_type', type).eq('achieved', false).then(function(r){
+      if(r.error || !r.data || !r.data.length) return;
+      var goal = r.data[0];
+      var ex = COG_EX_MAP[type];
+      var lower = ex && ex.metrics && ex.metrics[0] && ex.metrics[0].lowerIsBetter;
+      var newBest = goal.current_best;
+      if(newBest === null || newBest === undefined){ newBest = val; }
+      else if(lower){ if(val < newBest) newBest = val; }
+      else { if(val > newBest) newBest = val; }
+      var achieved = lower ? (newBest <= goal.metric_target) : (newBest >= goal.metric_target);
+      window.DB_REF.from('cognitive_goals').update({ current_best: newBest, achieved: achieved }).eq('id', goal.id).then(function(){});
+    });
+  }
+
+  // ───────── TAB HISTORIAL ─────────
+  function _renderHistorial(b){
+    var jugId = window._jugId || (window._jug && window._jug.id);
+    b.innerHTML = '<div class="cogv2-empty">Cargando historial…</div>';
+    var q = window.DB_REF.from('cognitive_sessions').select('*').eq('jugador_id', jugId).order('session_date', { ascending:false }).order('created_at', { ascending:false }).limit(200);
+    q.then(function(r){
+      if(r.error){ b.innerHTML = '<div class="cogv2-empty">Error: '+r.error.message+'</div>'; return; }
+      var sessions = r.data || [];
+      if(!sessions.length){ b.innerHTML = '<div class="cogv2-empty">Aún no hay sesiones registradas. Empieza en la pestaña <strong>Hoy</strong>.</div>'; return; }
+
+      var tipos = [''].concat(Array.from(new Set(sessions.map(function(s){ return s.exercise_type; }))));
+      var html = '<div class="cogv2-row" style="margin-bottom:12px;gap:5px;flex-wrap:wrap;">';
+      tipos.forEach(function(t){
+        var lbl = t === '' ? 'Todos' : ((COG_EX_MAP[t] && COG_EX_MAP[t].nombre) || t);
+        html += '<button class="cogv2-tab '+(_state.filtroTipo===t?'active':'')+'" onclick="window._cogV2SetFiltro(\''+t+'\')">'+lbl+'</button>';
+      });
+      html += '</div>';
+
+      var lista = _state.filtroTipo ? sessions.filter(function(s){ return s.exercise_type === _state.filtroTipo; }) : sessions;
+      if(!lista.length){ html += '<div class="cogv2-empty">Sin sesiones para este filtro.</div>'; b.innerHTML=html; return; }
+
+      var SENS = { GOOD:'😄', NORMAL:'😐', BAD:'😞' };
+      html += '<div>';
+      lista.forEach(function(s){
+        var ex = COG_EX_MAP[s.exercise_type] || {nombre:s.exercise_type, metrics:[]};
+        var metricsStr = (ex.metrics||[]).map(function(m){
+          var v = s[m.key];
+          if(v===null || v===undefined || v==='') return '';
+          return '<span class="cogv2-chip">'+m.label+': '+v+(m.unit?(m.unit.startsWith('/')?m.unit:' '+m.unit):'')+'</span>';
+        }).filter(Boolean).join('');
+        var fecha = s.session_date ? new Date(s.session_date+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}) : '';
+        html += '<div class="cogv2-card" style="padding:12px 14px;">';
+        html += '<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:4px;">';
+        html += '<div style="font-size:13px;font-weight:600;color:#fff;">'+(ex.icono||'•')+' '+ex.nombre+'</div>';
+        html += '<div style="font-size:11px;color:var(--text2,#9ca3af);">'+fecha+' '+SENS[s.sensation||'NORMAL']+'</div>';
+        html += '</div>';
+        if(metricsStr) html += '<div style="margin:6px 0;">'+metricsStr+'</div>';
+        if(s.notes) html += '<div style="font-size:11px;color:var(--text2,#9ca3af);font-style:italic;">"'+s.notes.replace(/</g,'&lt;')+'"</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+      b.innerHTML = html;
+    });
+  }
+  window._cogV2SetFiltro = function(t){ _state.filtroTipo = t; _renderHistorial(document.getElementById('cogv2-body')); };
+
+  // ───────── TAB PROGRESIÓN ─────────
+  function _renderProgresion(b){
+    var jugId = window._jugId || (window._jug && window._jug.id);
+    b.innerHTML = '<div class="cogv2-empty">Cargando progresión…</div>';
+    if(typeof window.Chart === 'undefined'){
+      b.innerHTML = '<div class="cogv2-empty">⏳ Chart.js no se cargó. Recarga la página con Ctrl+F5.</div>';
+      return;
+    }
+    Promise.all([
+      window.DB_REF.from('cognitive_sessions').select('*').eq('jugador_id', jugId).order('session_date'),
+      window.DB_REF.from('cognitive_goals').select('*').eq('jugador_id', jugId).eq('achieved', false)
+    ]).then(function(rs){
+      var sessions = (rs[0] && rs[0].data) || [];
+      var goals = (rs[1] && rs[1].data) || [];
+      if(!sessions.length){ b.innerHTML = '<div class="cogv2-empty">Aún no hay datos para mostrar gráficas. Registra sesiones en <strong>Hoy</strong>.</div>'; return; }
+      // Agrupar por tipo
+      var byType = {};
+      sessions.forEach(function(s){ (byType[s.exercise_type] = byType[s.exercise_type] || []).push(s); });
+      var goalByType = {};
+      goals.forEach(function(g){ goalByType[g.exercise_type] = g; });
+
+      var html = '';
+      Object.keys(byType).forEach(function(type){
+        var ex = COG_EX_MAP[type] || {nombre:type, metrics:[{key:'metric_1',label:'Valor',unit:'',lowerIsBetter:false}]};
+        var sess = byType[type];
+        var m0 = ex.metrics[0];
+        var values = sess.map(function(s){ return parseFloat(s[m0.key]); });
+        var dates = sess.map(function(s){ return s.session_date; });
+        var record = m0.lowerIsBetter ? Math.min.apply(null, values.filter(function(v){return !isNaN(v);})) : Math.max.apply(null, values.filter(function(v){return !isNaN(v);}));
+        var canvasId = 'cog-chart-'+type;
+        html += '<div class="cogv2-card">';
+        html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
+        html += '<span style="font-size:22px;">'+(ex.icono||'•')+'</span>';
+        html += '<div style="flex:1;"><div style="font-size:14px;font-weight:600;color:#fff;">'+ex.nombre+'</div>';
+        html += '<div style="font-size:11px;color:var(--text2,#9ca3af);">'+sess.length+' sesión'+(sess.length===1?'':'es')+' · récord: <strong style="color:var(--accent,#a8e85c);">'+record+(m0.unit?(m0.unit.startsWith('/')?m0.unit:' '+m0.unit):'')+'</strong></div></div>';
+        if(goalByType[type]){
+          var g = goalByType[type];
+          html += '<div style="text-align:right;font-size:10px;color:var(--text2,#9ca3af);">🎯 Objetivo<br><strong style="color:#fff;">'+g.metric_target+(m0.unit?(m0.unit.startsWith('/')?m0.unit:' '+m0.unit):'')+'</strong></div>';
+        }
+        html += '</div>';
+        html += '<div style="position:relative;height:180px;"><canvas id="'+canvasId+'"></canvas></div>';
+        html += '</div>';
+      });
+      b.innerHTML = html;
+
+      // Crear gráficas
+      Object.keys(byType).forEach(function(type){
+        var ex = COG_EX_MAP[type] || {metrics:[{key:'metric_1',unit:''}]};
+        var sess = byType[type];
+        var m0 = ex.metrics[0];
+        var canvasId = 'cog-chart-'+type;
+        var ctx = document.getElementById(canvasId);
+        if(!ctx) return;
+        if(_state._chartInstances[canvasId]){ try { _state._chartInstances[canvasId].destroy(); } catch(e){} }
+        var labels = sess.map(function(s){ return new Date(s.session_date+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'}); });
+        var data = sess.map(function(s){ return parseFloat(s[m0.key]); });
+        var record = m0.lowerIsBetter ? Math.min.apply(null, data.filter(function(v){return !isNaN(v);})) : Math.max.apply(null, data.filter(function(v){return !isNaN(v);}));
+        var pointColors = data.map(function(v){ return v === record ? '#a8e85c' : '#58a6ff'; });
+        var pointRadius = data.map(function(v){ return v === record ? 6 : 3; });
+        var datasets = [{
+          label: m0.label || 'Valor',
+          data: data,
+          borderColor: 'rgba(168,232,92,0.7)',
+          backgroundColor: 'rgba(168,232,92,0.08)',
+          tension: 0.25,
+          fill: true,
+          pointRadius: pointRadius,
+          pointBackgroundColor: pointColors,
+          pointBorderColor: '#0a0e1a',
+          pointBorderWidth: 1.5
+        }];
+        var g = goalByType[type];
+        if(g){
+          datasets.push({
+            label: 'Objetivo',
+            data: data.map(function(){ return g.metric_target; }),
+            borderColor: 'rgba(244,197,66,0.75)',
+            borderWidth: 1.5,
+            borderDash: [5,4],
+            pointRadius: 0,
+            fill: false
+          });
+        }
+        try {
+          _state._chartInstances[canvasId] = new window.Chart(ctx, {
+            type: 'line',
+            data: { labels: labels, datasets: datasets },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    afterBody: function(items){
+                      var i = items[0].dataIndex;
+                      var s = sess[i];
+                      return s && s.notes ? '\n📝 '+s.notes : '';
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: { ticks: { color: 'rgba(255,255,255,0.5)', font:{size:10} }, grid:{color:'rgba(255,255,255,0.04)'} },
+                y: { ticks: { color: 'rgba(255,255,255,0.5)', font:{size:10} }, grid:{color:'rgba(255,255,255,0.04)'}, reverse: m0.lowerIsBetter }
+              }
+            }
+          });
+        } catch(e){ console.warn('chart err', e); }
+      });
+    });
+  }
+})();
+
+</script>
+</body></html>';
   }
 
   if(jugId && db) {
