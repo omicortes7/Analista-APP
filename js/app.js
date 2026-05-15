@@ -6853,28 +6853,44 @@ async function eliminarAnalisis(id) {
   renderAnalisisTab();
 }
 // ═══════════════════════════════════════════════════
-// TAB COGNITIVO v2 — Vista del analista (sesiones tipadas + objetivos)
+// TAB COGNITIVO v2 — Vista del analista
+// (Dashboard adherencia + 5 gráficas clave + sistema de objetivos)
 // ═══════════════════════════════════════════════════
 const COG_ANA_EX_MAP = {
-  BROCK_STRING:   {nombre:'Cuerda de Brock',    icono:'👁️', m:'Segundos de fusión', unit:'s', lower:true},
-  SCHULTE_5X5:    {nombre:'Schulte 5×5',         icono:'🔢', m:'Mejor tiempo',       unit:'s', lower:true},
-  SCHULTE_ALT:    {nombre:'Schulte alternante',  icono:'🔢', m:'Mejor tiempo',       unit:'s', lower:true},
-  DUAL_TASK_BALL: {nombre:'Doble tarea toques',  icono:'⚽', m:'Racha máxima',       unit:'toques', lower:false},
-  DUAL_TASK_DRIBBLE:{nombre:'Doble tarea regate', icono:'⚽', m:'Aciertos',          unit:'/10', lower:false},
-  REACTION_30:    {nombre:'Reacción x30',        icono:'⚡', m:'Tiempo total',       unit:'s', lower:true},
-  STROOP_MOTOR:   {nombre:'Stroop motor',        icono:'🎨', m:'Aciertos',           unit:'/20', lower:false},
-  DOUBLE_COLOR:   {nombre:'Doble color',         icono:'🎨', m:'Aciertos',           unit:'/15', lower:false},
-  DUAL_NBACK:     {nombre:'Dual N-Back',         icono:'🧠', m:'Nivel N',            unit:'N', lower:false},
-  MATCH_RECALL:   {nombre:'Recall de partido',   icono:'🎞️', m:'Jugadas recordadas', unit:'/3', lower:false}
+  BROCK_STRING:    {nombre:'Cuerda de Brock',          icono:'👁️', dia:'LUN', m:'Segundos de fusión',  unit:'s',     lower:true},
+  SCHULTE_5X5:     {nombre:'Tablas de Schulte 5×5',     icono:'🔢', dia:'MAR', m:'Mejor tiempo',         unit:'s',     lower:true},
+  SCHULTE_ALT:     {nombre:'Schulte alternada',         icono:'🔢', dia:'MAR', m:'Mejor tiempo',         unit:'s',     lower:true},
+  DUAL_TASK_BALL:  {nombre:'Bote + cálculo mental',     icono:'⚽', dia:'MIÉ', m:'Racha máxima',         unit:'s',     lower:false},
+  DUAL_TASK_DRIBBLE:{nombre:'Conducción + operaciones', icono:'⚽', dia:'MIÉ', m:'Aciertos',             unit:'/10',   lower:false},
+  REACTION_30:     {nombre:'Reacción 30 toques color',  icono:'⚡', dia:'JUE', m:'Tiempo total',         unit:'s',     lower:true},
+  STROOP_MOTOR:    {nombre:'Stroop motor cruzado',      icono:'🎨', dia:'JUE', m:'Aciertos',             unit:'/20',   lower:false},
+  DOUBLE_COLOR:    {nombre:'Memoria de dos colores',    icono:'🎨', dia:'JUE', m:'Aciertos',             unit:'/15',   lower:false},
+  DUAL_NBACK:      {nombre:'Dual N-Back app',           icono:'🧠', dia:'VIE', m:'Nivel N',              unit:'N',     lower:false},
+  MATCH_RECALL:    {nombre:'Práctica imaginativa partido', icono:'🎞️', dia:'VIE', m:'Jugadas recordadas', unit:'/3', lower:false}
 };
 const COG_ANA_PRIORIDAD = ['SCHULTE_5X5','REACTION_30','DUAL_NBACK','BROCK_STRING','MATCH_RECALL'];
+
+function _cogAnaISOWeek(date){
+  var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  var dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return d.getUTCFullYear()+'-W'+String(Math.ceil((((d - yearStart) / 86400000) + 1)/7)).padStart(2,'0');
+}
+function _cogAnaCalcRacha(sessions){
+  var weeks = new Set();
+  sessions.forEach(function(s){ if(s.session_date) weeks.add(_cogAnaISOWeek(new Date(s.session_date+'T12:00:00'))); });
+  if(!weeks.size) return 0;
+  var racha=0, cursor=new Date();
+  while(weeks.has(_cogAnaISOWeek(cursor))){ racha++; cursor.setDate(cursor.getDate()-7); }
+  return racha;
+}
 
 async function renderCognitivoAnalista(jugId) {
   const body = document.getElementById('djbody');
   if(!body) return;
   body.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text3);font-size:12px;">Cargando datos cognitivos…</div>';
 
-  // Cargar sesiones y objetivos en paralelo
   const [sesRes, goalsRes] = await Promise.all([
     DB.from('cognitive_sessions').select('*').eq('jugador_id', jugId).order('session_date', { ascending:false }).limit(500),
     DB.from('cognitive_goals').select('*').eq('jugador_id', jugId).order('created_at', { ascending:false })
@@ -6884,52 +6900,86 @@ async function renderCognitivoAnalista(jugId) {
 
   // ─── 1) DASHBOARD ADHERENCIA ───
   const hoy = new Date();
-  const hace4semanas = new Date(); hace4semanas.setDate(hoy.getDate() - 28);
-  const hace2semanas = new Date(); hace2semanas.setDate(hoy.getDate() - 14);
   const sesIso = function(d){ return d.toISOString().slice(0,10); };
-  const ses4 = sesiones.filter(s => s.session_date >= sesIso(hace4semanas));
-  const ses2 = sesiones.filter(s => s.session_date >= sesIso(hace2semanas));
-  const esperadas4 = 20; // 5 ejercicios/semana × 4 semanas
-  const esperadas2 = 10;
-  const pct4 = Math.round((ses4.length / esperadas4) * 100);
-  const pct2 = Math.round((ses2.length / esperadas2) * 100);
+  const hace4 = new Date(); hace4.setDate(hoy.getDate() - 28);
+  const hace2 = new Date(); hace2.setDate(hoy.getDate() - 14);
+  const ses4 = sesiones.filter(s => s.session_date >= sesIso(hace4));
+  const ses2 = sesiones.filter(s => s.session_date >= sesIso(hace2));
+  const pct4 = Math.round((ses4.length / 20) * 100);
+  const pct2 = Math.round((ses2.length / 10) * 100);
+  const racha = _cogAnaCalcRacha(sesiones);
   const ultima = sesiones[0];
-  const adherenciaColor = pct4 >= 80 ? '#3fb950' : pct4 >= 60 ? '#d29922' : '#f85149';
-  const flag2 = pct2 < 60;
+  const cAdh = pct4 >= 75 ? '#3fb950' : (pct4 >= 50 ? '#D4AF37' : '#f85149');
+  const flagRoja = pct2 < 60;
 
   let html = '<div style="padding:1rem;">';
-  html += '<div style="font-size:13px;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:8px;">🧠 <span>Cognitivo · Vista analista</span> <button onclick="renderCognitivoAnalistaV1(\''+jugId+'\')" style="margin-left:auto;background:transparent;border:0.5px solid var(--border);color:var(--text3);font-size:10px;padding:4px 9px;border-radius:99px;cursor:pointer;font-family:inherit;">Ver versión anterior</button></div>';
+  html += '<div style="font-size:13px;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:8px;">🧠 <span>Cognitivo · Vista analista</span></div>';
 
-  // Dashboard de adherencia
-  html += '<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">';
-  html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px;">📊 Adherencia (últimas 4 semanas)</div>';
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">';
-  html += '<div><div style="font-size:24px;font-weight:800;color:'+adherenciaColor+';">'+pct4+'%</div><div style="font-size:10px;color:var(--text3);">'+ses4.length+'/'+esperadas4+' sesiones · 4 sem</div></div>';
-  html += '<div><div style="font-size:24px;font-weight:800;color:'+(flag2?'#f85149':'#3fb950')+';">'+pct2+'%</div><div style="font-size:10px;color:var(--text3);">'+ses2.length+'/'+esperadas2+' sesiones · 2 sem</div></div>';
-  html += '</div>';
+  // KPI grande
+  html += '<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;">';
+  html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px;">Adherencia · 4 semanas</div>';
+  html += '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;">';
+  html += '<div style="font-family:Instrument Serif,serif;font-style:italic;font-size:54px;line-height:1;color:'+cAdh+';">'+pct4+'%</div>';
+  html += '<div style="font-size:12px;color:var(--text2);">'+ses4.length+' de 20 sesiones esperadas</div></div>';
   html += '<div style="height:8px;background:var(--bg3);border-radius:99px;overflow:hidden;margin-bottom:6px;">';
-  html += '<div style="width:'+Math.min(pct4,100)+'%;height:8px;background:'+adherenciaColor+';border-radius:99px;"></div></div>';
-  if(flag2){
-    html += '<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:rgba(248,81,73,0.1);border:0.5px solid rgba(248,81,73,0.3);font-size:11px;color:#f85149;">🚩 Bandera roja: adherencia &lt;60% en las últimas 2 semanas.</div>';
+  html += '<div style="width:'+Math.min(pct4,100)+'%;height:8px;background:'+cAdh+';border-radius:99px;transition:width .3s;"></div></div>';
+  if(flagRoja){
+    html += '<div style="margin-top:10px;padding:9px 12px;border-radius:8px;background:rgba(248,81,73,0.1);border:0.5px solid rgba(248,81,73,0.3);font-size:11px;color:#f85149;">🚩 Adherencia &lt;60% en las últimas 2 semanas — revisar con el jugador.</div>';
   }
+  // Sub-KPIs
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;">';
   if(ultima){
-    const exU = COG_ANA_EX_MAP[ultima.exercise_type] || {nombre:ultima.exercise_type,icono:'•'};
-    const fecha = new Date(ultima.session_date+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'});
-    html += '<div style="margin-top:10px;font-size:11px;color:var(--text2);">Última sesión: <strong style="color:#fff;">'+exU.icono+' '+exU.nombre+'</strong> · '+fecha+'</div>';
+    const exU = COG_ANA_EX_MAP[ultima.exercise_type] || {nombre:ultima.exercise_type, icono:'•'};
+    const fU = new Date(ultima.session_date+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+    html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px;"><div style="font-size:10px;color:var(--text3);">Última sesión</div><div style="font-size:13px;font-weight:600;color:#fff;margin-top:4px;">'+exU.icono+' '+fU+'</div></div>';
   } else {
-    html += '<div style="margin-top:10px;font-size:11px;color:var(--text3);font-style:italic;">Sin sesiones registradas aún.</div>';
+    html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px;"><div style="font-size:10px;color:var(--text3);">Última sesión</div><div style="font-size:13px;color:var(--text3);margin-top:4px;font-style:italic;">—</div></div>';
   }
+  html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px;"><div style="font-size:10px;color:var(--text3);">Racha</div><div style="font-size:18px;font-weight:800;color:#fff;margin-top:2px;">'+racha+' <span style="font-size:10px;color:var(--text3);font-weight:400;">sem</span></div></div>';
+  html += '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px;"><div style="font-size:10px;color:var(--text3);">Total histórico</div><div style="font-size:18px;font-weight:800;color:#fff;margin-top:2px;">'+sesiones.length+'</div></div>';
+  html += '</div>';
   html += '</div>';
 
-  // ─── 2) OBJETIVOS ACTIVOS ───
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
-  html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);">🎯 Objetivos a 8 semanas</div>';
-  html += '<button onclick="window._cogAnaAddGoal(\''+jugId+'\')" style="background:var(--gold,#D4AF37);color:#000;border:none;border-radius:99px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">+ Añadir objetivo</button>';
+  // ─── 2) GRÁFICAS CLAVE (5 en grid responsive) ───
+  html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:18px 0 10px;">📈 Gráficas clave</div>';
+  html += '<div class="cogana-grid" style="display:grid;grid-template-columns:1fr;gap:10px;">';
+  const byType = {};
+  sesiones.forEach(s => { (byType[s.exercise_type] = byType[s.exercise_type] || []).push(s); });
+  COG_ANA_PRIORIDAD.forEach(function(type){
+    const ex = COG_ANA_EX_MAP[type];
+    const arr = byType[type];
+    const canvasId = 'cogAnaChart-'+type;
+    html += '<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:12px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+    html += '<span style="font-size:18px;">'+ex.icono+'</span>';
+    html += '<div style="flex:1;font-size:12px;font-weight:600;color:#fff;">'+ex.nombre+'</div>';
+    if(arr && arr.length){
+      const vals = arr.map(function(s){return parseFloat(s.metric_1);}).filter(function(v){return !isNaN(v);});
+      const record = vals.length ? (ex.lower ? Math.min.apply(null,vals) : Math.max.apply(null,vals)) : '—';
+      const u = ex.unit ? (ex.unit.startsWith('/')?ex.unit:' '+ex.unit) : '';
+      html += '<div style="font-size:10px;color:var(--text3);">Récord <strong style="color:#D4AF37;">'+record+u+'</strong></div>';
+    }
+    html += '</div>';
+    if(!arr || !arr.length){
+      html += '<div style="height:140px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:11px;font-style:italic;">Sin datos todavía</div>';
+    } else {
+      html += '<div style="position:relative;height:140px;"><canvas id="'+canvasId+'"></canvas></div>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  // Media query inline para 2 columnas en desktop (no podemos usar @media en style inline, usamos clase)
+  html += '<style>@media(min-width:600px){.cogana-grid{grid-template-columns:repeat(2,1fr) !important;}}</style>';
+
+  // ─── 3) OBJETIVOS ───
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px;">';
+  html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);">🎯 Objetivos a 8 semanas</div>';
+  html += '<button onclick="window._cogAnaShowAddModal(\''+jugId+'\')" style="background:var(--gold,#D4AF37);color:#000;border:none;border-radius:99px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">+ Añadir objetivo</button>';
   html += '</div>';
   if(!objetivos.length){
-    html += '<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;text-align:center;color:var(--text3);font-size:11px;margin-bottom:1rem;">Sin objetivos definidos. Pulsa "+" para crear el primero.</div>';
+    html += '<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:1.2rem;text-align:center;color:var(--text3);font-size:11px;">Sin objetivos definidos. Pulsa <strong>"+ Añadir objetivo"</strong> para crear el primero.</div>';
   } else {
-    html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;">';
+    html += '<div style="display:flex;flex-direction:column;gap:8px;">';
     objetivos.forEach(function(g){
       const ex = COG_ANA_EX_MAP[g.exercise_type] || {nombre:g.exercise_type, icono:'•', unit:'', lower:false};
       const baseline = g.start_baseline == null ? '—' : g.start_baseline;
@@ -6937,69 +6987,38 @@ async function renderCognitivoAnalista(jugId) {
       const target = g.metric_target;
       let pct = 0;
       if(g.start_baseline != null && g.current_best != null){
-        if(ex.lower){
-          const range = g.start_baseline - target;
-          const adv = g.start_baseline - g.current_best;
-          pct = range > 0 ? Math.max(0, Math.min(100, Math.round((adv / range) * 100))) : 0;
-        } else {
-          const range = target - g.start_baseline;
-          const adv = g.current_best - g.start_baseline;
-          pct = range > 0 ? Math.max(0, Math.min(100, Math.round((adv / range) * 100))) : 0;
-        }
+        const range = ex.lower ? (g.start_baseline - target) : (target - g.start_baseline);
+        const adv = ex.lower ? (g.start_baseline - g.current_best) : (g.current_best - g.start_baseline);
+        pct = range !== 0 ? Math.max(0, Math.min(100, Math.round((adv / range) * 100))) : 0;
       }
-      const color = g.achieved ? '#3fb950' : (pct >= 50 ? '#D4AF37' : '#58a6ff');
-      const unitStr = ex.unit ? (ex.unit.startsWith('/') ? ex.unit : ' '+ex.unit) : '';
+      const c = g.achieved ? '#3fb950' : (pct >= 50 ? '#D4AF37' : '#58a6ff');
+      const u = ex.unit ? (ex.unit.startsWith('/') ? ex.unit : ' '+ex.unit) : '';
+      // Días restantes hasta target (8 semanas)
+      let diasRest = '';
+      if(g.start_date){
+        const fin = new Date(g.start_date); fin.setDate(fin.getDate() + (g.target_weeks||8)*7);
+        const d = Math.ceil((fin - new Date()) / 86400000);
+        diasRest = d > 0 ? d+' días restantes' : (g.achieved ? '✅ Conseguido' : '⌛ Plazo vencido');
+      }
       html += '<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:12px;">';
       html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
-      html += '<div style="font-size:12px;font-weight:600;color:#fff;">'+ex.icono+' '+ex.nombre+(g.achieved?' ✅':'')+'</div>';
-      html += '<button onclick="window._cogAnaDelGoal(\''+g.id+'\',\''+jugId+'\')" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:11px;">✕</button>';
+      html += '<div style="font-size:13px;font-weight:600;color:#fff;">'+ex.icono+' '+ex.nombre+(g.achieved?' <span style="color:#3fb950;">✅ Conseguido</span>':'')+'</div>';
+      html += '<button onclick="window._cogAnaDelGoal(\''+g.id+'\',\''+jugId+'\')" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 4px;">×</button>';
       html += '</div>';
-      html += '<div style="font-size:11px;color:var(--text2);margin-bottom:6px;">'+ex.m+': <strong style="color:#fff;">'+baseline+unitStr+'</strong> → <strong style="color:'+color+';">'+best+unitStr+'</strong> → 🎯 '+target+unitStr+'</div>';
+      html += '<div style="font-size:11px;color:var(--text2);margin-bottom:6px;">'+ex.m+': <strong style="color:#fff;">'+baseline+u+'</strong> → <strong style="color:'+c+';">'+best+u+'</strong> → 🎯 <strong style="color:#D4AF37;">'+target+u+'</strong></div>';
       html += '<div style="height:5px;background:var(--bg3);border-radius:99px;overflow:hidden;">';
-      html += '<div style="width:'+pct+'%;height:5px;background:'+color+';border-radius:99px;transition:width .3s;"></div>';
-      html += '</div>';
-      html += '<div style="font-size:10px;color:var(--text3);margin-top:4px;text-align:right;">'+pct+'% del objetivo</div>';
+      html += '<div style="width:'+pct+'%;height:5px;background:'+c+';border-radius:99px;transition:width .3s;"></div></div>';
+      html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:4px;"><span>'+pct+'% completado</span><span>'+diasRest+'</span></div>';
       html += '</div>';
     });
     html += '</div>';
   }
 
-  // ─── 3) 4-5 GRÁFICAS CLAVE ───
-  if(sesiones.length){
-    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px;">📈 Gráficas clave</div>';
-    const byType = {};
-    sesiones.forEach(s => { (byType[s.exercise_type] = byType[s.exercise_type] || []).push(s); });
-    let pintadas = 0;
-    COG_ANA_PRIORIDAD.forEach(function(type){
-      const arr = byType[type];
-      if(!arr || !arr.length) return;
-      pintadas++;
-      const ex = COG_ANA_EX_MAP[type];
-      const ordered = arr.slice().sort(function(a,b){ return (a.session_date||'').localeCompare(b.session_date||''); });
-      const values = ordered.map(function(s){ return parseFloat(s.metric_1); }).filter(function(v){ return !isNaN(v); });
-      const record = values.length ? (ex.lower ? Math.min.apply(null,values) : Math.max.apply(null,values)) : '—';
-      const canvasId = 'cogAnaChart-'+type;
-      html += '<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:10px;">';
-      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
-      html += '<span style="font-size:18px;">'+ex.icono+'</span>';
-      html += '<div style="flex:1;font-size:12px;font-weight:600;">'+ex.nombre+'</div>';
-      html += '<div style="font-size:10px;color:var(--text3);">Récord: <strong style="color:#D4AF37;">'+record+(ex.unit?(ex.unit.startsWith('/')?ex.unit:' '+ex.unit):'')+'</strong></div>';
-      html += '</div>';
-      html += '<div style="position:relative;height:140px;"><canvas id="'+canvasId+'"></canvas></div>';
-      html += '</div>';
-    });
-    if(!pintadas){
-      html += '<div style="font-size:11px;color:var(--text3);text-align:center;padding:1rem;">Aún no hay datos en los ejercicios prioritarios.</div>';
-    }
-  }
-
   html += '</div>';
   body.innerHTML = html;
 
-  // Crear los charts
-  if(typeof window.Chart !== 'undefined' && sesiones.length){
-    const byType = {};
-    sesiones.forEach(s => { (byType[s.exercise_type] = byType[s.exercise_type] || []).push(s); });
+  // Pintar gráficas
+  if(typeof window.Chart !== 'undefined'){
     if(!window._cogAnaCharts) window._cogAnaCharts = {};
     COG_ANA_PRIORIDAD.forEach(function(type){
       const arr = byType[type];
@@ -7008,35 +7027,26 @@ async function renderCognitivoAnalista(jugId) {
       const ordered = arr.slice().sort(function(a,b){ return (a.session_date||'').localeCompare(b.session_date||''); });
       const labels = ordered.map(function(s){ return new Date(s.session_date+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'}); });
       const values = ordered.map(function(s){ return parseFloat(s.metric_1); });
-      const goal = (objetivos.find(function(g){ return g.exercise_type === type && !g.achieved; }));
-      const valid = values.filter(function(v){ return !isNaN(v); });
+      const goal = objetivos.find(function(g){ return g.exercise_type === type && !g.achieved; });
+      const valid = values.filter(function(v){return !isNaN(v);});
       const record = valid.length ? (ex.lower ? Math.min.apply(null,valid) : Math.max.apply(null,valid)) : null;
       const ctx = document.getElementById('cogAnaChart-'+type);
       if(!ctx) return;
       if(window._cogAnaCharts[type]){ try { window._cogAnaCharts[type].destroy(); } catch(e){} }
-      const pointColors = values.map(function(v){ return v === record ? '#D4AF37' : '#58a6ff'; });
-      const pointR = values.map(function(v){ return v === record ? 5 : 3; });
+      const pColors = values.map(function(v){ return v === record ? '#D4AF37' : '#58a6ff'; });
+      const pR = values.map(function(v){ return v === record ? 5 : 3; });
       const datasets = [{
-        label: ex.m,
-        data: values,
-        borderColor: 'rgba(88,166,255,0.7)',
-        backgroundColor: 'rgba(88,166,255,0.08)',
-        tension: 0.25,
-        fill: true,
-        pointRadius: pointR,
-        pointBackgroundColor: pointColors,
-        pointBorderColor: '#0f1729',
-        pointBorderWidth: 1.5
+        label: ex.m, data: values,
+        borderColor: 'rgba(88,166,255,0.7)', backgroundColor: 'rgba(88,166,255,0.08)',
+        tension: 0.25, fill: true, pointRadius: pR,
+        pointBackgroundColor: pColors, pointBorderColor: '#0f1729', pointBorderWidth: 1.5
       }];
       if(goal){
         datasets.push({
           label: 'Objetivo',
-          data: values.map(function(){ return goal.metric_target; }),
-          borderColor: 'rgba(212,175,55,0.8)',
-          borderWidth: 1.5,
-          borderDash: [5,4],
-          pointRadius: 0,
-          fill: false
+          data: values.map(function(){return goal.metric_target;}),
+          borderColor: 'rgba(212,175,55,0.85)', borderWidth: 1.5, borderDash: [5,4],
+          pointRadius: 0, fill: false
         });
       }
       try {
@@ -7058,8 +7068,8 @@ async function renderCognitivoAnalista(jugId) {
               }
             },
             scales: {
-              x: { ticks:{color:'rgba(255,255,255,0.5)',font:{size:9}}, grid:{color:'rgba(255,255,255,0.04)'} },
-              y: { ticks:{color:'rgba(255,255,255,0.5)',font:{size:9}}, grid:{color:'rgba(255,255,255,0.04)'}, reverse: ex.lower }
+              x: { ticks:{color:'rgba(255,255,255,0.55)',font:{size:9}}, grid:{color:'rgba(255,255,255,0.04)'} },
+              y: { ticks:{color:'rgba(255,255,255,0.55)',font:{size:9}}, grid:{color:'rgba(255,255,255,0.04)'}, reverse: ex.lower }
             }
           }
         });
@@ -7068,36 +7078,84 @@ async function renderCognitivoAnalista(jugId) {
   }
 }
 
-// Crear objetivo (modal simple)
-window._cogAnaAddGoal = function(jugId){
-  const optsHtml = Object.keys(COG_ANA_EX_MAP).map(function(k){
-    return '<option value="'+k+'">'+COG_ANA_EX_MAP[k].icono+' '+COG_ANA_EX_MAP[k].nombre+'</option>';
-  }).join('');
-  const exType = prompt('Ejercicio (escribe el código):\n'+Object.keys(COG_ANA_EX_MAP).map(function(k){return '· '+k+' = '+COG_ANA_EX_MAP[k].nombre;}).join('\n'));
-  if(!exType) return;
-  const exU = exType.toUpperCase().trim();
-  if(!COG_ANA_EX_MAP[exU]){ alert('Código no válido: '+exU); return; }
-  const ex = COG_ANA_EX_MAP[exU];
-  const baseline = prompt('Valor BASELINE actual de '+ex.nombre+' (puede dejarse vacío):');
-  const target = prompt('Valor OBJETIVO a alcanzar en 8 semanas ('+(ex.lower?'menor':'mayor')+' es mejor):');
-  if(target === null || target.trim() === ''){ return; }
-  const targetNum = parseFloat(target);
-  if(isNaN(targetNum)){ alert('Valor objetivo no válido'); return; }
-  const baseNum = baseline && baseline.trim() !== '' ? parseFloat(baseline) : null;
+// Modal HTML para crear objetivo (no prompt)
+window._cogAnaShowAddModal = function(jugId){
+  // Calcular best histórico por ejercicio para baseline auto
+  DB.from('cognitive_sessions').select('exercise_type,metric_1').eq('jugador_id', jugId).then(function(r){
+    const sess = (r && r.data) || [];
+    const bestByType = {};
+    sess.forEach(function(s){
+      const ex = COG_ANA_EX_MAP[s.exercise_type];
+      const v = parseFloat(s.metric_1);
+      if(!ex || isNaN(v)) return;
+      if(!(s.exercise_type in bestByType)) bestByType[s.exercise_type] = v;
+      else bestByType[s.exercise_type] = ex.lower ? Math.min(bestByType[s.exercise_type], v) : Math.max(bestByType[s.exercise_type], v);
+    });
+    const opts = Object.keys(COG_ANA_EX_MAP).map(function(k){
+      const ex = COG_ANA_EX_MAP[k];
+      return '<option value="'+k+'" data-baseline="'+(bestByType[k]!==undefined?bestByType[k]:'')+'">'+ex.icono+' '+ex.nombre+' ('+ex.dia+')</option>';
+    }).join('');
+    let html = '<div id="cog-ana-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem;" onclick="if(event.target===this)window._cogAnaCloseModal()">';
+    html += '<div style="background:#0d1623;border:0.5px solid rgba(255,255,255,.12);border-radius:14px;padding:22px;max-width:420px;width:100%;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">';
+    html += '<div style="font-size:15px;font-weight:700;color:#fff;">+ Nuevo objetivo cognitivo</div>';
+    html += '<button onclick="window._cogAnaCloseModal()" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1;">×</button>';
+    html += '</div>';
+    html += '<form id="cog-ana-form" onsubmit="return window._cogAnaSubmit(event,\''+jugId+'\')">';
+    html += '<div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Ejercicio</label>';
+    html += '<select id="cog-ana-ex" required onchange="window._cogAnaOnExChange(this)" style="width:100%;padding:9px;background:var(--bg2);color:#fff;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">'+opts+'</select></div>';
+    html += '<div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Baseline (valor actual)</label>';
+    html += '<input id="cog-ana-baseline" type="number" step="0.01" inputmode="decimal" required style="width:100%;padding:9px;background:var(--bg2);color:#fff;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;" placeholder="ej: 32"></div>';
+    html += '<div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Valor objetivo <span id="cog-ana-hint" style="color:var(--text3);"></span></label>';
+    html += '<input id="cog-ana-target" type="number" step="0.01" inputmode="decimal" required style="width:100%;padding:9px;background:var(--bg2);color:#fff;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;" placeholder="ej: 25"></div>';
+    html += '<div style="margin-bottom:14px;"><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Semanas hasta el objetivo</label>';
+    html += '<input id="cog-ana-weeks" type="number" min="1" max="52" value="8" style="width:100%;padding:9px;background:var(--bg2);color:#fff;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;"></div>';
+    html += '<button type="submit" style="width:100%;background:var(--gold,#D4AF37);color:#000;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Guardar objetivo</button>';
+    html += '</form></div></div>';
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    document.body.appendChild(wrap.firstChild);
+    // Inicializar baseline auto y hint
+    setTimeout(function(){
+      const sel = document.getElementById('cog-ana-ex');
+      if(sel) window._cogAnaOnExChange(sel);
+    }, 30);
+  });
+};
+window._cogAnaOnExChange = function(sel){
+  const opt = sel.options[sel.selectedIndex];
+  const baseline = opt.getAttribute('data-baseline');
+  const ex = COG_ANA_EX_MAP[sel.value];
+  const baseInput = document.getElementById('cog-ana-baseline');
+  if(baseInput && baseline !== '' && baseline !== null) baseInput.value = baseline;
+  const hint = document.getElementById('cog-ana-hint');
+  if(hint && ex){ hint.textContent = '— '+(ex.lower?'menor':'mayor')+' es mejor ('+ex.unit+')'; }
+};
+window._cogAnaCloseModal = function(){
+  const m = document.getElementById('cog-ana-modal-bg');
+  if(m) m.remove();
+};
+window._cogAnaSubmit = function(ev, jugId){
+  ev.preventDefault();
+  const exU = document.getElementById('cog-ana-ex').value;
+  const base = parseFloat(document.getElementById('cog-ana-baseline').value);
+  const target = parseFloat(document.getElementById('cog-ana-target').value);
+  const weeks = parseInt(document.getElementById('cog-ana-weeks').value || '8', 10);
+  if(!exU || isNaN(target)){ alert('Faltan campos'); return false; }
   DB.from('cognitive_goals').insert({
-    jugador_id: jugId,
-    exercise_type: exU,
-    metric_target: targetNum,
-    target_weeks: 8,
+    jugador_id: jugId, exercise_type: exU,
+    metric_target: target, target_weeks: weeks,
     start_date: new Date().toISOString().slice(0,10),
-    start_baseline: baseNum,
-    current_best: baseNum,
+    start_baseline: isNaN(base) ? null : base,
+    current_best: isNaN(base) ? null : base,
     achieved: false
   }).select().then(function(r){
     if(r.error){ alert('Error: '+r.error.message); return; }
+    window._cogAnaCloseModal();
     if(window.showToast) window.showToast('Objetivo creado ✓');
     renderCognitivoAnalista(jugId);
   });
+  return false;
 };
 
 window._cogAnaDelGoal = function(goalId, jugId){
@@ -7108,226 +7166,6 @@ window._cogAnaDelGoal = function(goalId, jugId){
     renderCognitivoAnalista(jugId);
   });
 };
-
-// ═══════════════════════════════════════════════════
-// TAB COGNITIVO — Vista del analista
-// ═══════════════════════════════════════════════════
-async function renderCognitivoAnalistaV1(jugId) {
-  const body = document.getElementById('djbody');
-  body.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text3);font-size:12px;">Cargando datos cognitivos...</div>';
-
-  // Cargar los últimas 8 semanas de cognitivo_log
-  const { data: logs, error } = await DB
-    .from('cognitivo_log')
-    .select('*')
-    .eq('jugador_id', jugId)
-    .order('semana', { ascending: false })
-    .limit(8);
-
-  if(error || !logs || !logs.length) {
-    body.innerHTML = `
-      <div style="padding:1.5rem;">
-        <div style="font-size:13px;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:8px;">
-          🧠 <span>Protocolo Cognitivo — Areté Vision</span>
-        </div>
-        <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.5rem;text-align:center;color:var(--text3);font-size:12px;">
-          <div style="font-size:24px;margin-bottom:8px;">🧠</div>
-          El jugador aún no ha registrado datos cognitivos.<br>
-          Los datos aparecen automáticamente cuando el jugador use la sección Cognitivo en su app.
-        </div>
-        <div style="margin-top:1rem;padding:1rem;background:rgba(88,166,255,0.06);border:0.5px solid rgba(88,166,255,0.2);border-radius:var(--radius);font-size:11px;color:var(--text2);line-height:1.6;">
-          <div style="font-weight:700;color:#58a6ff;margin-bottom:6px;">📋 Protocolo semanal Lun-Vie</div>
-          <b>Lunes</b> — Cuerda de Brock (visión binocular) · 8-10 min<br>
-          <b>Martes</b> — Tablas de Schulte (barrido visual) · 10 min<br>
-          <b>Miércoles</b> — Doble tarea con balón · 8-10 min<br>
-          <b>Jueves</b> — Stroop motor con conos · 12 min<br>
-          <b>Viernes</b> — Dual N-Back + práctica imaginativa · 15 min
-        </div>
-      </div>`;
-    return;
-  }
-
-  // Procesar datos
-  let html = `<div style="padding:1rem;">
-    <div style="font-size:13px;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:8px;">
-      🧠 <span>Protocolo Cognitivo — Areté Vision</span>
-    </div>`;
-
-  // Semana más reciente — detalle completo
-  const ultima = logs[0];
-  const prog = ultima.progreso || {};
-  const rec = ultima.records || {};
-
-  // Calcular % de la última semana
-  const allTids = ['lun_t1','lun_t2','lun_t3','mar_t1','mar_t2','mar_t3','mie_t1','mie_t2','mie_t3','jue_t1','jue_t2','jue_t3','vie_t1','vie_t2','vie_t3'];
-  const done = allTids.filter(t => prog[t]).length;
-  const pct = Math.round((done/allTids.length)*100);
-  const pctColor = pct >= 80 ? '#3fb950' : pct >= 50 ? '#d29922' : '#f85149';
-
-  html += `<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <div style="font-size:12px;font-weight:600;">Semana ${ultima.semana}</div>
-      <div style="font-size:18px;font-weight:800;color:${pctColor};">${pct}%</div>
-    </div>
-    <div style="height:8px;background:var(--bg3);border-radius:99px;overflow:hidden;margin-bottom:6px;">
-      <div style="width:${pct}%;height:8px;background:${pctColor};border-radius:99px;"></div>
-    </div>
-    <div style="font-size:11px;color:var(--text3);">${done} de ${allTids.length} tareas completadas</div>
-  </div>`;
-
-  // Desglose por día
-  const dias = [
-    { key:'lun', nombre:'Lunes', icon:'👁️', tareas:['lun_t1','lun_t2','lun_t3'] },
-    { key:'mar', nombre:'Martes', icon:'⚡', tareas:['mar_t1','mar_t2','mar_t3'] },
-    { key:'mie', nombre:'Miércoles', icon:'🔄', tareas:['mie_t1','mie_t2','mie_t3'] },
-    { key:'jue', nombre:'Jueves', icon:'🎯', tareas:['jue_t1','jue_t2','jue_t3'] },
-    { key:'vie', nombre:'Viernes', icon:'🧩', tareas:['vie_t1','vie_t2','vie_t3'] },
-  ];
-
-  html += `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:1rem;">`;
-  dias.forEach(d => {
-    const dDone = d.tareas.filter(t => prog[t]).length;
-    const dPct = Math.round((dDone/3)*100);
-    const c = dPct===100?'#3fb950':dPct>0?'#d29922':'var(--text3)';
-    html += `<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:10px 8px;text-align:center;">
-      <div style="font-size:16px;">${d.icon}</div>
-      <div style="font-size:10px;font-weight:600;margin:4px 0;color:var(--text2);">${d.nombre}</div>
-      <div style="font-size:14px;font-weight:800;color:${c};">${dDone}/3</div>
-    </div>`;
-  });
-  html += `</div>`;
-
-  // Récords
-  if(rec.schulte_mejor || rec.nback_max) {
-    html += `<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px;">🏆 Récords del jugador</div>`;
-    if(rec.schulte_mejor) html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:12px;"><span>⚡ Schulte (mejor tiempo)</span><span style="font-weight:700;color:#D4AF37;">${rec.schulte_mejor}</span></div>`;
-    if(rec.nback_max) html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12px;"><span>🧩 N-Back (nivel máx)</span><span style="font-weight:700;color:#D4AF37;">N=${rec.nback_max}</span></div>`;
-    html += `</div>`;
-  }
-
-  // Reflexión semanal
-  if(prog.reflexion_semana) {
-    html += `<div style="background:rgba(163,113,247,0.06);border:0.5px solid rgba(163,113,247,0.2);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#a371f7;margin-bottom:8px;">✏️ Reflexión del jugador esta semana</div>
-      <div style="font-size:12px;line-height:1.6;color:var(--text2);font-style:italic;">"${prog.reflexion_semana}"</div>
-    </div>`;
-  }
-
-  // Historial de semanas anteriores
-  if(logs.length > 1) {
-    html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px;">📅 Historial semanas anteriores</div>`;
-    html += `<div style="display:flex;flex-direction:column;gap:6px;">`;
-    logs.slice(1).forEach(log => {
-      const p = log.progreso || {};
-      const d2 = allTids.filter(t => p[t]).length;
-      const p2 = Math.round((d2/allTids.length)*100);
-      const c2 = p2>=80?'#3fb950':p2>=50?'#d29922':'#f85149';
-      html += `<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:12px;color:var(--text2);">${log.semana}</span>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:80px;height:5px;background:var(--bg3);border-radius:99px;overflow:hidden;">
-            <div style="width:${p2}%;height:5px;background:${c2};border-radius:99px;"></div>
-          </div>
-          <span style="font-size:12px;font-weight:700;color:${c2};">${p2}%</span>
-        </div>
-      </div>`;
-    });
-    html += `</div>`;
-  }
-
-  html += `</div>`;
-  body.innerHTML = html;
-}
-
-// ═══════════════════════════════════════════════════
-// TAB MATERIAL — Objetos del jugador
-// ═══════════════════════════════════════════════════
-const MATERIAL_LISTA = [
-  {
-    id: 'cuerda_brock',
-    nombre: 'Cuerda de Brock',
-    precio: '~3€',
-    icon: '🪢',
-    donde: 'https://www.amazon.es/s?k=cuerda+brock+vision',
-    descripcion: 'Cuerda de 2-3m con 3 bolas de colores. Para entrenamiento de vergencia binocular y enfoque rápido.',
-    activa: ['lun'],
-    actividades_extra: [
-      'Antisupresión: cierra un ojo, enfoca cada bola 10 seg y abre el otro',
-      'Hart Chart: alterna foco entre cuerda y una carta en la pared a 3m',
-    ]
-  },
-  {
-    id: 'conos_colores',
-    nombre: '4 Conos de colores',
-    precio: '~8€',
-    icon: '🔶',
-    donde: 'https://www.amazon.es/s?k=conos+entrenamiento+futbol+colores',
-    descripcion: '4 conos de colores distintos (rojo, azul, verde, amarillo). Para Stroop motor y reacción visual.',
-    activa: ['jue'],
-    actividades_extra: [
-      'Stroop cruzado: dice un color, tocas el contrario',
-      'Secuencia de memoria: serie de 3 colores, reprodúcela en orden inverso',
-      'Reacción periférica: cono en visión periférica sin mover la cabeza',
-    ]
-  },
-  {
-    id: 'disco_equilibrio',
-    nombre: 'Disco de equilibrio',
-    precio: '~12€',
-    icon: '⭕',
-    donde: 'https://www.amazon.es/s?k=disco+equilibrio+entrenamiento',
-    descripcion: 'Superficie inestable para entrenamiento vestibular. Combina con doble tarea para máximo beneficio.',
-    activa: ['mie'],
-    actividades_extra: [
-      'Equilibrio + Schulte: tabla en papel mientras equilibras sobre el disco',
-      'Disco + operaciones: cálculo mental en superficie inestable',
-      'Equilibrio monopodal + pase: pie dominante y no dominante',
-    ]
-  },
-  {
-    id: 'pelota_reaccion',
-    nombre: 'Pelota de reacción (hexagonal)',
-    precio: '~15€',
-    icon: '⚾',
-    donde: 'https://www.amazon.es/s?k=pelota+reaccion+hexagonal+entrenamiento',
-    descripcion: 'Pelota con rebote imprevisible. Entrena tiempo de reacción y adaptabilidad motora.',
-    activa: ['jue', 'mie'],
-    actividades_extra: [
-      'Bote libre contra la pared: reacciona al rebote aleatorio',
-      'Pelota + decision: según el rebote, ejecuta acción diferente (cabeza/pie/mano)',
-      'Pelota + cálculo: atrapa y di el resultado de la operación que te dictan',
-    ]
-  },
-  {
-    id: 'palo_reaccion',
-    nombre: 'Palo de reacción',
-    precio: '~10€',
-    icon: '📏',
-    donde: 'https://www.amazon.es/s?k=palo+reaccion+tiempo+caida',
-    descripcion: 'Palo que cae y debes atraparlo. Mide y mejora el tiempo de reacción de forma cuantificable.',
-    activa: ['jue'],
-    actividades_extra: [
-      'Tiempo de reacción estándar: mide la distancia de caída, registra semanalmente',
-      'Reacción doble: palo en cada mano, suelta uno aleatoriamente',
-      'Reacción cognitiva: solo atrapa si el analista dice "ya", ignora si dice otra palabra',
-    ]
-  },
-  {
-    id: 'antifaces_estroboscopicos',
-    nombre: 'Antifaces estroboscópicos',
-    precio: '~80-150€',
-    icon: '🥽',
-    donde: 'https://www.amazon.es/s?k=gafas+estroboscopicas+deporte',
-    descripcion: 'Nivel avanzado. Interrumpen la visión para entrenar procesamiento visual bajo privación. Usadas en academias élite.',
-    activa: ['lun', 'mar', 'mie', 'jue', 'vie'],
-    actividades_extra: [
-      'Conducción con antifaces: el cerebro procesa información en ventanas muy cortas',
-      'Pase y recepción con antifaces: anticipación y lectura del juego sin visión continua',
-      'Schulte con antifaces: nivel avanzado de barrido visual',
-    ]
-  },
-];
 
 async function renderMaterialAnalista(jugId) {
   const body = document.getElementById('djbody');
