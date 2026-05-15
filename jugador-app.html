@@ -1760,22 +1760,6 @@ body:has(#app-screen[style*="display:none"]) .logout-floating { display: none !i
             </button>
           </div>
         </div>
-        <!-- Selector modo nutricional -->
-        <div style="margin-bottom:10px;">
-          <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:6px;">Modo nutricional</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <button onclick="setModoNut('estandar',this)" id="modo-estandar"
-              style="padding:10px 8px;border-radius:var(--radius-sm);background:rgba(210,153,34,0.15);border:1.5px solid rgba(210,153,34,0.5);cursor:pointer;font-family:inherit;text-align:left;">
-              <div style="font-size:12px;font-weight:700;color:#d29922;">⚽ Estándar</div>
-              <div style="font-size:10px;color:var(--text2);margin-top:2px;">UEFA · Pasta, arroz, pan</div>
-            </button>
-            <button onclick="setModoNut('funcional',this)" id="modo-funcional"
-              style="padding:10px 8px;border-radius:var(--radius-sm);background:none;border:0.5px solid var(--border2);cursor:pointer;font-family:inherit;text-align:left;">
-              <div style="font-size:12px;font-weight:700;color:var(--text2);">🦁 Funcional</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:2px;">Paleo · Sin harinas · Comida real</div>
-            </button>
-          </div>
-        </div>
         <button onclick="calcularPerfil()" style="width:100%;height:42px;background:linear-gradient(135deg,#d29922,#a07010);border:none;border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Calcular mi plan personalizado</button>
       </div>
 
@@ -1803,120 +1787,158 @@ body:has(#app-screen[style*="display:none"]) .logout-floating { display: none !i
         <!-- Menú del día -->
         <div id="plan-comidas"></div>
       </div>
-      <div class="card">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">Log de hoy</div>
-
-        <!-- DESAYUNO -->
-        <div class="nut-comida-block" id="nc-desayuno">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <div style="font-size:12px;font-weight:700;">🌅 Desayuno</div>
-            <button onclick="toggleNutBlock('desayuno')" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--text2);cursor:pointer;font-family:inherit;" id="btn-nc-desayuno">+ Añadir</button>
-          </div>
-          <div id="nc-desayuno-form" style="display:none;">
-            <div id="ac-wrap-desayuno" class="ac-wrap"></div>
-          </div>
-          <div id="log-desayuno" style="font-size:12px;color:var(--text2);min-height:0;"></div>
+      <!-- ─────────────────────────────────────────────────────── -->
+      <!-- DIARIO DEL DÍA — cumplimiento simple sin tracking detallado -->
+      <!-- ─────────────────────────────────────────────────────── -->
+      <div class="card" id="nut-diario-card" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#d29922;">Diario nutricional · Hoy</div>
+          <div id="nd-fecha" style="font-size:10px;color:var(--text3);"></div>
         </div>
-        <div style="height:0.5px;background:var(--border);margin:8px 0;"></div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:.875rem;">¿Cómo has cumplido tu plan hoy?</div>
 
-        <!-- MEDIA MAÑANA -->
-        <div class="nut-comida-block" id="nc-manana">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <div style="font-size:12px;font-weight:700;">🍎 Media mañana</div>
-            <button onclick="toggleNutBlock('manana')" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--text2);cursor:pointer;font-family:inherit;" id="btn-nc-manana">+ Añadir</button>
-          </div>
-          <div id="nc-manana-form" style="display:none;">
-            <div id="ac-wrap-manana" class="ac-wrap"></div>
-          </div>
-          <div id="log-manana" style="font-size:12px;color:var(--text2);min-height:0;"></div>
+        <!-- Cumplimiento general -->
+        <div style="display:flex;gap:6px;margin-bottom:1rem;">
+          <button onclick="setCumplimiento('completo',this)" id="nd-c-completo" style="flex:1;padding:14px 8px;border-radius:var(--radius-sm);background:none;border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <span style="font-size:22px;">😄</span>
+            <span>Completo</span>
+          </button>
+          <button onclick="setCumplimiento('mitad',this)" id="nd-c-mitad" style="flex:1;padding:14px 8px;border-radius:var(--radius-sm);background:none;border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <span style="font-size:22px;">😐</span>
+            <span>A medias</span>
+          </button>
+          <button onclick="setCumplimiento('no',this)" id="nd-c-no" style="flex:1;padding:14px 8px;border-radius:var(--radius-sm);background:none;border:0.5px solid var(--border2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <span style="font-size:22px;">😞</span>
+            <span>Mal</span>
+          </button>
         </div>
-        <div style="height:0.5px;background:var(--border);margin:8px 0;"></div>
 
-        <!-- COMIDA -->
-        <div class="nut-comida-block" id="nc-comida">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <div style="font-size:12px;font-weight:700;">🍗 Comida</div>
-            <button onclick="toggleNutBlock('comida')" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--text2);cursor:pointer;font-family:inherit;" id="btn-nc-comida">+ Añadir</button>
+        <!-- Pre/post (solo en días de entreno o partido) -->
+        <div id="nd-prepost-wrap" style="display:none;margin-bottom:1rem;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Pre y post (entreno/partido)</div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="setPrePost('pre',this)" id="nd-pre" style="flex:1;height:36px;border-radius:var(--radius-sm);background:none;border:0.5px solid var(--border2);color:var(--text3);cursor:pointer;font-family:inherit;font-size:11px;">⚡ Pre OK</button>
+            <button onclick="setPrePost('post',this)" id="nd-post" style="flex:1;height:36px;border-radius:var(--radius-sm);background:none;border:0.5px solid var(--border2);color:var(--text3);cursor:pointer;font-family:inherit;font-size:11px;">🥤 Post OK</button>
           </div>
-          <div id="nc-comida-form" style="display:none;">
-            <div id="ac-wrap-comida" class="ac-wrap"></div>
-          </div>
-          <div id="log-comida" style="font-size:12px;color:var(--text2);min-height:0;"></div>
-        </div>
-        <div style="height:0.5px;background:var(--border);margin:8px 0;"></div>
-
-        <!-- PRE-ENTRENO -->
-        <div class="nut-comida-block" id="nc-preentreno">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <div style="font-size:12px;font-weight:700;">⚡ Pre-entreno</div>
-            <button onclick="toggleNutBlock('preentreno')" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--text2);cursor:pointer;font-family:inherit;" id="btn-nc-preentreno">+ Añadir</button>
-          </div>
-          <div id="nc-preentreno-form" style="display:none;">
-            <div id="ac-wrap-preentreno" class="ac-wrap"></div>
-          </div>
-          <div id="log-preentreno" style="font-size:12px;color:var(--text2);min-height:0;"></div>
-        </div>
-        <div style="height:0.5px;background:var(--border);margin:8px 0;"></div>
-
-        <!-- MERIENDA -->
-        <div class="nut-comida-block" id="nc-merienda">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <div style="font-size:12px;font-weight:700;">🍌 Merienda / Post-entreno</div>
-            <button onclick="toggleNutBlock('merienda')" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--text2);cursor:pointer;font-family:inherit;" id="btn-nc-merienda">+ Añadir</button>
-          </div>
-          <div id="nc-merienda-form" style="display:none;">
-            <div id="ac-wrap-merienda" class="ac-wrap"></div>
-          </div>
-          <div id="log-merienda" style="font-size:12px;color:var(--text2);min-height:0;"></div>
-        </div>
-        <div style="height:0.5px;background:var(--border);margin:8px 0;"></div>
-
-        <!-- CENA -->
-        <div class="nut-comida-block" id="nc-cena">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <div style="font-size:12px;font-weight:700;">🌙 Cena</div>
-            <button onclick="toggleNutBlock('cena')" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--text2);cursor:pointer;font-family:inherit;" id="btn-nc-cena">+ Añadir</button>
-          </div>
-          <div id="nc-cena-form" style="display:none;">
-            <div id="ac-wrap-cena" class="ac-wrap"></div>
-          </div>
-          <div id="log-cena" style="font-size:12px;color:var(--text2);min-height:0;"></div>
         </div>
 
         <!-- Hidratación -->
-        <div style="margin-top:.875rem;padding:.75rem;background:var(--bg3);border-radius:var(--radius-sm);border:0.5px solid var(--border2);">
-          <div style="font-size:12px;font-weight:700;margin-bottom:8px;">💧 Hidratación</div>
-          <div style="display:flex;gap:6px;align-items:center;">
-            <div style="display:flex;gap:4px;" id="agua-vasos"></div>
-            <span style="font-size:11px;color:var(--text2);" id="agua-label">0 / 8 vasos</span>
+        <div style="padding:.75rem;background:var(--bg3);border-radius:var(--radius-sm);border:0.5px solid var(--border2);margin-bottom:1rem;">
+          <div style="font-size:11px;font-weight:700;margin-bottom:6px;display:flex;justify-content:space-between;">
+            <span>💧 Hidratación</span>
+            <span style="color:var(--text3);font-size:10px;font-weight:400;" id="nd-agua-label">0 / 8 vasos</span>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;" id="nd-agua-vasos"></div>
+        </div>
+
+        <!-- Comentario libre -->
+        <div style="margin-bottom:.875rem;">
+          <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;">¿Algo que comentar? (opcional)</label>
+          <textarea id="nd-comentario" placeholder="Hoy hice 2 entrenos, me costó comer suficiente carbos por la mañana..." style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;resize:vertical;min-height:60px;"></textarea>
+        </div>
+
+        <!-- Guardar -->
+        <button onclick="guardarDiarioNut()" id="btn-nd-save" style="width:100%;height:42px;background:rgba(210,153,34,0.15);border:0.5px solid rgba(210,153,34,0.4);border-radius:var(--radius-sm);color:#d29922;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar día</button>
+      </div>
+
+      <!-- ─────────────────────────────────────────────────────── -->
+      <!-- MODO FUNCIONAL · Recomendaciones específicas             -->
+      <!-- ─────────────────────────────────────────────────────── -->
+      <div class="card" id="nut-funcional-card" style="display:none;border:0.5px solid rgba(63,185,80,0.25);background:rgba(63,185,80,0.04);">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#3fb950;margin-bottom:6px;">🦁 Modo funcional · Tus fuentes recomendadas</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:.875rem;line-height:1.5;">Mismas macros, pero solo desde alimentos reales sin procesar.</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;color:var(--text2);line-height:1.55;">
+          <div style="background:rgba(255,255,255,.02);border-radius:8px;padding:10px;border-left:2px solid #3fb950;">
+            <div style="font-weight:700;color:#3fb950;font-size:11px;margin-bottom:4px;">🥩 Proteína</div>
+            Carne (ternera, cordero, pollo) · Pescado (salmón, sardinas) · Huevos · Vísceras
+          </div>
+          <div style="background:rgba(255,255,255,.02);border-radius:8px;padding:10px;border-left:2px solid #d29922;">
+            <div style="font-weight:700;color:#d29922;font-size:11px;margin-bottom:4px;">🍠 Carbos</div>
+            Boniato · Patata cocida · Plátano · Fruta · Calabaza · Yuca · Castañas
+          </div>
+          <div style="background:rgba(255,255,255,.02);border-radius:8px;padding:10px;border-left:2px solid #f78166;">
+            <div style="font-weight:700;color:#f78166;font-size:11px;margin-bottom:4px;">🥑 Grasas</div>
+            Aguacate · AOVE · Coco · Frutos secos · Yema de huevo · Mantequilla pastoreo
+          </div>
+          <div style="background:rgba(255,255,255,.02);border-radius:8px;padding:10px;border-left:2px solid #58a6ff;">
+            <div style="font-weight:700;color:#58a6ff;font-size:11px;margin-bottom:4px;">🧂 Sales / Minerales</div>
+            Sal marina sin refinar · Agua de mar diluida 1:5 · Caldo de huesos
           </div>
         </div>
 
-        <!-- Resultado macro del día -->
-        <div id="macro-resultado" style="display:none;margin-top:.875rem;background:var(--bg3);border-radius:var(--radius-sm);padding:.875rem;border:0.5px solid var(--border2);">
-          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:.75rem;">Resumen de macros del día</div>
-          <div id="macro-barras-dia"></div>
+        <div style="margin-top:.875rem;padding:10px;background:rgba(248,81,73,0.05);border:0.5px solid rgba(248,81,73,0.2);border-radius:8px;">
+          <div style="font-size:11px;font-weight:700;color:#f85149;margin-bottom:4px;">🚫 Evitar</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.55;">Cereales (pan, pasta, arroz) · Lácteos · Azúcar · Aceites de semillas · Ultraprocesados</div>
         </div>
 
-        <!-- Botones -->
-        <div style="display:flex;gap:8px;margin-top:.875rem;">
-          <button id="btn-save-nut" style="flex:1;height:42px;background:rgba(210,153,34,0.15);border:0.5px solid rgba(210,153,34,0.4);border-radius:var(--radius-sm);color:#d29922;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar día</button>
-          <button onclick="analizarNutricion()" style="flex:1;height:42px;background:rgba(29,158,117,0.15);border:0.5px solid rgba(29,158,117,0.4);border-radius:var(--radius-sm);color:#1D9E75;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">📊 Analizar</button>
-        </div>
-
-        <!-- Respuesta IA -->
-        <div id="ia-nut-response" style="display:none;margin-top:.875rem;background:var(--bg3);border:0.5px solid rgba(29,158,117,0.3);border-radius:var(--radius-sm);padding:.875rem;border-left:3px solid #1D9E75;">
-          <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#1D9E75;margin-bottom:.625rem;">Análisis de tu alimentación</div>
-          <div id="ia-nut-text" style="font-size:13px;line-height:1.8;color:var(--text);"></div>
+        <div style="margin-top:.75rem;font-size:10px;color:var(--text3);font-style:italic;line-height:1.55;">
+          Inspirado en el enfoque Paleo/Funcional de profesionales como Llorente. Mejora digestión, sensibilidad a la insulina y rendimiento sostenido.
         </div>
       </div>
 
-      <!-- HISTORIAL DÍAS -->
-      <div style="padding:0 1rem 1rem;">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.75rem;">📋 Historial de días guardados</div>
-        <div id="nut-hist">
-          <div style="font-size:12px;color:var(--text3);padding:.5rem;">Cargando...</div>
+      <!-- ─────────────────────────────────────────────────────── -->
+      <!-- TRACKING EXTERNO · Apps recomendadas                     -->
+      <!-- ─────────────────────────────────────────────────────── -->
+      <div class="card" id="nut-tracking-card" style="display:none;">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:6px;">📱 Tracking detallado de macros</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:.875rem;line-height:1.55;">Para llevar control exacto de calorías y macros comida a comida, usa una app especializada. Pásale tus números calculados arriba.</div>
+
+        <a href="https://www.myfitnesspal.com/" target="_blank" style="display:flex;gap:10px;padding:.75rem;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);margin-bottom:8px;text-decoration:none;">
+          <div style="font-size:24px;flex-shrink:0;">📲</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;">MyFitnessPal</div>
+            <div style="font-size:10px;color:var(--text3);line-height:1.4;">Gratis · La más popular · Scanner de códigos de barras · BD enorme de alimentos</div>
+          </div>
+          <div style="font-size:14px;color:var(--blue);align-self:center;">→</div>
+        </a>
+
+        <a href="https://cronometer.com/" target="_blank" style="display:flex;gap:10px;padding:.75rem;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);margin-bottom:8px;text-decoration:none;">
+          <div style="font-size:24px;flex-shrink:0;">⚙️</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;">Cronometer</div>
+            <div style="font-size:10px;color:var(--text3);line-height:1.4;">Gratis/Pro · Más precisa para deportistas · Incluye micronutrientes y vitaminas</div>
+          </div>
+          <div style="font-size:14px;color:var(--blue);align-self:center;">→</div>
+        </a>
+
+        <a href="https://www.carbmanager.com/" target="_blank" style="display:flex;gap:10px;padding:.75rem;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);margin-bottom:.875rem;text-decoration:none;">
+          <div style="font-size:24px;flex-shrink:0;">🥩</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;">Carb Manager</div>
+            <div style="font-size:10px;color:var(--text3);line-height:1.4;">Específica para low-carb/keto · Ideal si vas en modo Funcional</div>
+          </div>
+          <div style="font-size:14px;color:var(--blue);align-self:center;">→</div>
+        </a>
+
+        <div style="padding:10px;background:rgba(212,175,55,0.06);border:0.5px solid rgba(212,175,55,0.2);border-radius:8px;font-size:11px;color:var(--text2);line-height:1.5;">
+          <strong style="color:var(--gold,#D4AF37);">💡 Cómo funciona:</strong> Configuras tus macros en la app que elijas (las que calculamos arriba). Cada día registras lo que comes. <strong>1 vez a la semana</strong> haces captura del resumen semanal y se la pasas a Omar desde aquí abajo para que la revise.
         </div>
+      </div>
+
+      <!-- ─────────────────────────────────────────────────────── -->
+      <!-- SCREENSHOTS · Subida múltiple                            -->
+      <!-- ─────────────────────────────────────────────────────── -->
+      <div class="card" id="nut-screenshots-card" style="display:none;">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:6px;">📸 Capturas para tu analista</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:.875rem;line-height:1.55;">Sube capturas de tu tracking (1/semana es ideal). Omar las revisa y te orienta.</div>
+
+        <label for="nd-screenshot-input" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:80px;background:rgba(88,166,255,0.06);border:1.5px dashed rgba(88,166,255,0.35);border-radius:var(--radius-sm);color:#58a6ff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;margin-bottom:.875rem;">
+          📎 Añadir captura
+          <input type="file" id="nd-screenshot-input" accept="image/*" multiple style="display:none;" onchange="subirScreenshots(this)">
+        </label>
+
+        <div id="nd-screenshot-status" style="display:none;font-size:11px;color:var(--text3);text-align:center;padding:8px;background:var(--bg3);border-radius:6px;margin-bottom:.75rem;"></div>
+
+        <div id="nd-screenshots-list"><div style="font-size:11px;color:var(--text3);text-align:center;padding:1rem;">Cargando capturas...</div></div>
+      </div>
+
+      <!-- ─────────────────────────────────────────────────────── -->
+      <!-- HISTÓRICO DE DÍAS                                        -->
+      <!-- ─────────────────────────────────────────────────────── -->
+      <div class="card" id="nut-historico-card" style="display:none;">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:6px;">📋 Tus últimos 14 días</div>
+        <div id="nd-historico-list"><div style="font-size:11px;color:var(--text3);padding:.5rem;">Cargando...</div></div>
       </div>
 
     </div>
@@ -5492,5 +5514,339 @@ window.switchPsicoTab = function(tab, btn) {
     b.style.border     = on ? '0.5px solid rgba(163,113,247,0.3)' : '0.5px solid var(--border2)';
   });
 };
+</script>
+
+<!-- ═══ NUTRICIÓN v2 · diario + funcional + screenshots ═══ -->
+<script>
+(function(){
+  // ─── Estado del día actual ───
+  var ND = {
+    fecha: new Date().toISOString().slice(0,10),
+    cumplimiento: null,   // 'completo' | 'mitad' | 'no'
+    pre: false,
+    post: false,
+    agua: 0,              // 0..8 vasos
+    comentario: '',
+    cargado: false
+  };
+
+  // ─── Mostrar/ocultar cards en función del perfil ───
+  function mostrarCardsNutv2(){
+    var hayPerfil = !!(window._nutPerfil);
+    ['nut-diario-card','nut-funcional-card','nut-tracking-card','nut-screenshots-card','nut-historico-card'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(!el) return;
+      el.style.display = hayPerfil ? '' : 'none';
+    });
+    var modo = (window._nutPerfil && window._nutPerfil.modo) ? window._nutPerfil.modo : (window._modoNut || 'estandar');
+    var fc = document.getElementById('nut-funcional-card');
+    if(fc) fc.style.display = (hayPerfil && modo === 'funcional') ? '' : 'none';
+  }
+
+  // ─── Pre/post visible solo en entreno/partido ───
+  function actualizarPrePostVisibilidad(){
+    var dia = window._diaActual || 'entreno';
+    var wrap = document.getElementById('nd-prepost-wrap');
+    if(wrap) wrap.style.display = (dia === 'entreno' || dia === 'partido') ? '' : 'none';
+  }
+
+  // ─── Pintar vasos de agua ───
+  function pintarVasos(){
+    var wrap = document.getElementById('nd-agua-vasos');
+    var lbl  = document.getElementById('nd-agua-label');
+    if(!wrap) return;
+    var html = '';
+    for(var i = 1; i <= 8; i++){
+      var on = i <= ND.agua;
+      html += '<button onclick="window._ndSetAgua('+i+')" style="width:30px;height:30px;border-radius:6px;border:0.5px solid '+(on?'rgba(88,166,255,0.45)':'var(--border2)')+';background:'+(on?'rgba(88,166,255,0.18)':'transparent')+';cursor:pointer;font-family:inherit;font-size:14px;">'+(on?'💧':'·')+'</button>';
+    }
+    wrap.innerHTML = html;
+    if(lbl) lbl.textContent = ND.agua + ' / 8 vasos';
+  }
+
+  // ─── Helpers exposed ───
+  window._ndSetAgua = function(n){
+    ND.agua = (ND.agua === n) ? n-1 : n; // si tocas el mismo, baja
+    if(ND.agua < 0) ND.agua = 0;
+    pintarVasos();
+  };
+  window.setCumplimiento = function(val, btn){
+    ND.cumplimiento = val;
+    ['completo','mitad','no'].forEach(function(v){
+      var b = document.getElementById('nd-c-'+v);
+      if(!b) return;
+      var on = v === val;
+      var col = v==='completo' ? '#1D9E75' : v==='mitad' ? '#d29922' : '#f85149';
+      b.style.background  = on ? col.replace(')',',0.12)').replace('#','rgba(0,0,0,0.0); background:').replace(/^.*background:/,'') : 'none';
+      // simplifico: uso colores hex con alfa
+      b.style.background  = on ? (v==='completo'?'rgba(29,158,117,.12)':v==='mitad'?'rgba(210,153,34,.12)':'rgba(248,81,73,.12)') : 'none';
+      b.style.borderColor = on ? (v==='completo'?'rgba(29,158,117,.5)':v==='mitad'?'rgba(210,153,34,.5)':'rgba(248,81,73,.5)') : 'var(--border2)';
+      b.style.color       = on ? col : 'var(--text2)';
+    });
+  };
+  window.setPrePost = function(tipo, btn){
+    if(tipo === 'pre')  ND.pre  = !ND.pre;
+    if(tipo === 'post') ND.post = !ND.post;
+    var b = document.getElementById('nd-'+tipo);
+    if(!b) return;
+    var on = (tipo==='pre' ? ND.pre : ND.post);
+    b.style.background  = on ? 'rgba(29,158,117,.12)' : 'none';
+    b.style.borderColor = on ? 'rgba(29,158,117,.5)' : 'var(--border2)';
+    b.style.color       = on ? '#1D9E75' : 'var(--text3)';
+  };
+
+  // ─── Guardar día ───
+  window.guardarDiarioNut = async function(){
+    if(!ND.cumplimiento){ alert('Marca primero cómo has cumplido tu plan hoy.'); return; }
+    var btn = document.getElementById('btn-nd-save');
+    if(btn){ btn.disabled = true; btn.textContent = 'Guardando...'; }
+    var coment = document.getElementById('nd-comentario');
+    ND.comentario = coment ? coment.value.trim() : '';
+    var dia = window._diaActual || 'entreno';
+    var modo = (window._nutPerfil && window._nutPerfil.modo) ? window._nutPerfil.modo : 'estandar';
+
+    // Construimos un texto resumen + JSON estructurado en la misma fila
+    var texto = '[NUTv2] '+
+      'CUMPLIMIENTO: '+ND.cumplimiento+
+      ' | TIPO_DIA: '+dia+
+      ' | MODO: '+modo+
+      ' | AGUA: '+ND.agua+'/8'+
+      ((dia==='entreno'||dia==='partido') ? (' | PRE: '+(ND.pre?'OK':'-')+' | POST: '+(ND.post?'OK':'-')) : '')+
+      (ND.comentario ? ' | NOTA: '+ND.comentario : '');
+
+    try {
+      var db = window.DB_REF;
+      var jugId = window._jugId;
+      if(!db || !jugId) throw new Error('Sin sesión');
+
+      // Comprobar si ya hay fila para hoy
+      var existeRes = await db.from('nutricion_log').select('id').eq('jugador_id', jugId).eq('fecha', ND.fecha).limit(1);
+      if(existeRes.data && existeRes.data.length){
+        await db.from('nutricion_log').update({ texto: texto }).eq('id', existeRes.data[0].id);
+      } else {
+        await db.from('nutricion_log').insert({ jugador_id: jugId, fecha: ND.fecha, texto: texto });
+      }
+      if(btn){ btn.disabled = false; btn.textContent = '✓ Guardado'; setTimeout(function(){ btn.textContent = '💾 Guardar día'; }, 1500); }
+      if(typeof showToastGlobal === 'function') showToastGlobal('✓ Día guardado');
+      cargarHistorico();
+    } catch(e){
+      console.error('Error guardar nutricion', e);
+      if(btn){ btn.disabled = false; btn.textContent = '💾 Guardar día'; }
+      alert('No se pudo guardar: '+(e.message||e));
+    }
+  };
+
+  // ─── Cargar histórico de últimos 14 días ───
+  async function cargarHistorico(){
+    var cont = document.getElementById('nd-historico-list');
+    if(!cont) return;
+    var db = window.DB_REF;
+    var jugId = window._jugId;
+    if(!db || !jugId) return;
+    var hace14 = new Date(); hace14.setDate(hace14.getDate()-14);
+    var desde = hace14.toISOString().slice(0,10);
+    var res = await db.from('nutricion_log').select('fecha,texto').eq('jugador_id', jugId).gte('fecha', desde).order('fecha', {ascending: false}).limit(14);
+    var rows = (res.data||[]).filter(function(r){ return (r.texto||'').indexOf('[NUTv2]') === 0; });
+    if(!rows.length){
+      cont.innerHTML = '<div style="font-size:11px;color:var(--text3);text-align:center;padding:1rem;">Sin días registrados todavía. ¡Empieza hoy!</div>';
+      return;
+    }
+    var html = '';
+    rows.forEach(function(r){
+      var c = (r.texto.match(/CUMPLIMIENTO:\s*(\w+)/)||[])[1] || '?';
+      var d = (r.texto.match(/TIPO_DIA:\s*(\w+)/)||[])[1] || '';
+      var m = (r.texto.match(/MODO:\s*(\w+)/)||[])[1] || '';
+      var a = (r.texto.match(/AGUA:\s*(\d+)/)||[])[1] || '0';
+      var n = (r.texto.match(/NOTA:\s*(.+?)(?:$)/)||[])[1] || '';
+      var icon = c==='completo' ? '😄' : c==='mitad' ? '😐' : '😞';
+      var col  = c==='completo' ? '#1D9E75' : c==='mitad' ? '#d29922' : '#f85149';
+      var fecha = new Date(r.fecha + 'T12:00:00').toLocaleDateString('es-ES', { weekday:'short', day:'2-digit', month:'short' });
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg3);border:0.5px solid var(--border);border-left:2px solid '+col+';border-radius:6px;margin-bottom:6px;">';
+      html += '<div style="font-size:18px;">'+icon+'</div>';
+      html += '<div style="flex:1;min-width:0;">';
+      html += '<div style="font-size:11px;font-weight:700;color:var(--text);">'+fecha+'</div>';
+      html += '<div style="font-size:10px;color:var(--text3);">'+d+' · '+m+' · 💧'+a+'/8'+'</div>';
+      if(n) html += '<div style="font-size:10px;color:var(--text2);margin-top:3px;font-style:italic;">"'+n+'"</div>';
+      html += '</div>';
+      html += '</div>';
+    });
+    cont.innerHTML = html;
+  }
+
+  // ─── Cargar día de hoy si ya hay registro ───
+  async function cargarDiaHoy(){
+    var db = window.DB_REF;
+    var jugId = window._jugId;
+    if(!db || !jugId) return;
+    var res = await db.from('nutricion_log').select('texto').eq('jugador_id', jugId).eq('fecha', ND.fecha).limit(1);
+    var row = (res.data||[])[0];
+    if(!row || (row.texto||'').indexOf('[NUTv2]') !== 0){
+      pintarVasos();
+      var fechaLbl = document.getElementById('nd-fecha');
+      if(fechaLbl) fechaLbl.textContent = new Date().toLocaleDateString('es-ES', { weekday:'long', day:'2-digit', month:'long' });
+      return;
+    }
+    // Restaurar valores
+    var t = row.texto;
+    var c = (t.match(/CUMPLIMIENTO:\s*(\w+)/)||[])[1];
+    var a = (t.match(/AGUA:\s*(\d+)/)||[])[1] || '0';
+    var pre = /PRE:\s*OK/.test(t);
+    var post = /POST:\s*OK/.test(t);
+    var nota = (t.match(/NOTA:\s*(.+?)$/)||[])[1] || '';
+    if(c) window.setCumplimiento(c);
+    ND.agua = parseInt(a,10) || 0;
+    ND.pre = pre; ND.post = post;
+    if(pre){ var b1 = document.getElementById('nd-pre'); if(b1){ b1.style.background = 'rgba(29,158,117,.12)'; b1.style.borderColor='rgba(29,158,117,.5)'; b1.style.color='#1D9E75'; } }
+    if(post){ var b2 = document.getElementById('nd-post'); if(b2){ b2.style.background = 'rgba(29,158,117,.12)'; b2.style.borderColor='rgba(29,158,117,.5)'; b2.style.color='#1D9E75'; } }
+    var coment = document.getElementById('nd-comentario');
+    if(coment) coment.value = nota;
+    pintarVasos();
+    var fechaLbl2 = document.getElementById('nd-fecha');
+    if(fechaLbl2) fechaLbl2.textContent = new Date().toLocaleDateString('es-ES', { weekday:'long', day:'2-digit', month:'long' });
+  }
+
+  // ─── SCREENSHOTS ───
+  // Tabla `nutricion_screenshots`: id, jugador_id, fecha, imagen_b64, comentario, created_at
+  window.subirScreenshots = async function(input){
+    if(!input.files || !input.files.length) return;
+    var status = document.getElementById('nd-screenshot-status');
+    var db = window.DB_REF;
+    var jugId = window._jugId;
+    if(!db || !jugId){ alert('Sin sesión'); return; }
+
+    var files = Array.from(input.files);
+    if(status){ status.style.display = ''; status.textContent = 'Subiendo '+files.length+' captura(s)...'; }
+
+    var subidas = 0, fallos = 0;
+    for(var i = 0; i < files.length; i++){
+      var file = files[i];
+      try {
+        // Comprimir / convertir a base64 escalando a max 1200px ancho
+        var b64 = await comprimirImagen(file, 1200, 0.85);
+        var res = await db.from('nutricion_screenshots').insert({
+          jugador_id: jugId,
+          fecha: new Date().toISOString().slice(0,10),
+          imagen_b64: b64,
+          comentario: ''
+        });
+        if(res.error) throw res.error;
+        subidas++;
+      } catch(e){
+        console.error('Fallo subiendo', file.name, e);
+        fallos++;
+      }
+    }
+    if(status){
+      status.textContent = '✓ '+subidas+' subidas'+(fallos?' · '+fallos+' fallaron':'');
+      setTimeout(function(){ status.style.display = 'none'; }, 3000);
+    }
+    input.value = '';
+    cargarScreenshots();
+  };
+
+  function comprimirImagen(file, maxWidth, quality){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onload = function(e){
+        var img = new Image();
+        img.onload = function(){
+          var canvas = document.createElement('canvas');
+          var w = img.width, h = img.height;
+          if(w > maxWidth){ h = h * (maxWidth/w); w = maxWidth; }
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function cargarScreenshots(){
+    var cont = document.getElementById('nd-screenshots-list');
+    if(!cont) return;
+    var db = window.DB_REF;
+    var jugId = window._jugId;
+    if(!db || !jugId) return;
+    try {
+      var res = await db.from('nutricion_screenshots').select('id,fecha,imagen_b64,created_at').eq('jugador_id', jugId).order('created_at', { ascending: false }).limit(20);
+      var rows = res.data || [];
+      if(res.error){
+        // Si la tabla no existe, lo indicamos
+        cont.innerHTML = '<div style="font-size:11px;color:var(--text3);text-align:center;padding:1rem;line-height:1.5;">Esta función necesita una tabla en Supabase. Pídele a Omar que ejecute el SQL.</div>';
+        return;
+      }
+      if(!rows.length){
+        cont.innerHTML = '<div style="font-size:11px;color:var(--text3);text-align:center;padding:1rem;">Sin capturas todavía.</div>';
+        return;
+      }
+      var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">';
+      rows.forEach(function(r){
+        var f = new Date(r.created_at).toLocaleDateString('es-ES', {day:'2-digit', month:'short'});
+        html += '<div style="position:relative;border-radius:8px;overflow:hidden;border:0.5px solid var(--border);">';
+        html += '<img src="'+r.imagen_b64+'" style="width:100%;height:120px;object-fit:cover;cursor:pointer;" onclick="window.open(this.src,\'_blank\')">';
+        html += '<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.8));padding:14px 8px 6px;font-size:10px;color:#fff;display:flex;justify-content:space-between;align-items:center;">';
+        html += '<span>'+f+'</span>';
+        html += '<button onclick="window._eliminarScreenshot(\''+r.id+'\')" style="background:rgba(248,81,73,0.2);border:none;color:#f85149;font-size:10px;padding:2px 6px;border-radius:4px;cursor:pointer;font-family:inherit;">×</button>';
+        html += '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+      cont.innerHTML = html;
+    } catch(e){
+      cont.innerHTML = '<div style="font-size:11px;color:var(--text3);text-align:center;padding:1rem;">Función no disponible todavía.</div>';
+    }
+  }
+
+  window._eliminarScreenshot = async function(id){
+    if(!confirm('¿Eliminar esta captura?')) return;
+    var db = window.DB_REF;
+    if(!db) return;
+    await db.from('nutricion_screenshots').delete().eq('id', id);
+    cargarScreenshots();
+  };
+
+  // ─── HOOK: cuando entres a la sección Nut o cuando termine renderNut ───
+  // Observador simple sobre la visibilidad de sec-nut
+  var lastShown = false;
+  setInterval(function(){
+    var sec = document.getElementById('sec-nut');
+    if(!sec) return;
+    var shown = sec.style.display !== 'none' && sec.offsetParent !== null;
+    if(shown && !lastShown){
+      // Entrando a la sección
+      mostrarCardsNutv2();
+      actualizarPrePostVisibilidad();
+      if(!ND.cargado){
+        cargarDiaHoy();
+        cargarHistorico();
+        cargarScreenshots();
+        ND.cargado = true;
+      }
+    }
+    lastShown = shown;
+  }, 500);
+
+  // Re-aplicar cuando se calcule el perfil o se cambie modo/día
+  var _origCalcP = window.calcularPerfil;
+  window.calcularPerfil = function(){
+    if(_origCalcP) _origCalcP.apply(this, arguments);
+    setTimeout(function(){ mostrarCardsNutv2(); actualizarPrePostVisibilidad(); }, 200);
+  };
+  var _origSetModoNut = window.setModoNut;
+  window.setModoNut = function(){
+    if(_origSetModoNut) _origSetModoNut.apply(this, arguments);
+    setTimeout(mostrarCardsNutv2, 50);
+  };
+  var _origSetDia = window.setDia;
+  window.setDia = function(){
+    if(_origSetDia) _origSetDia.apply(this, arguments);
+    setTimeout(actualizarPrePostVisibilidad, 50);
+  };
+})();
 </script>
 </html>
