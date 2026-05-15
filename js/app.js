@@ -7293,6 +7293,92 @@ window._cogAnaDelGoal = function(goalId, jugId){
   });
 };
 
+// ═══════════════════════════════════════════════════════
+// MATERIAL DEL JUGADOR
+// ═══════════════════════════════════════════════════════
+const MATERIAL_LISTA = [
+  {
+    id: 'cuerda_brock',
+    icon: '🧵',
+    nombre: 'Cuerda de Brock',
+    precio: '~3€',
+    descripcion: 'Cuerda blanca de 2m con 3 bolas de colores (roja, amarilla, verde). Entrena vergencia binocular y enfoque rápido entre distancias.',
+    donde: 'https://www.amazon.es/s?k=cuerda+de+brock',
+    activa: ['lun'],
+    actividades_extra: [
+      'Cambios rápidos de enfoque cada 2 segundos (3 min)',
+      'Cierra ojos 5s, abre y enfoca la bola que te indiquen'
+    ]
+  },
+  {
+    id: 'conos_colores',
+    icon: '🚧',
+    nombre: '4 Conos de colores',
+    precio: '~8€',
+    descripcion: 'Set de conos con colores distintos (rojo, azul, verde, amarillo). Imprescindibles para los ejercicios de reacción y Stroop motor.',
+    donde: 'https://www.amazon.es/s?k=conos+entrenamiento+colores',
+    activa: ['mie', 'jue'],
+    actividades_extra: [
+      'Toca el color dictado (30 reps, 4 conos en círculo)',
+      'Stroop motor cruzado: dice rojo, tocas azul (20 reps)',
+      'Memoria de dos colores: tocar el segundo primero (15 reps)'
+    ]
+  },
+  {
+    id: 'disco_equilibrio',
+    icon: '⚪',
+    nombre: 'Disco de equilibrio',
+    precio: '~12€',
+    descripcion: 'Cojín hinchable para entrenar propiocepción y equilibrio. Suma carga propioceptiva a los ejercicios cognitivos.',
+    donde: 'https://www.amazon.es/s?k=disco+equilibrio+propiocepcion',
+    activa: ['mie'],
+    actividades_extra: [
+      'Bote de balón a pierna no dominante de pie sobre el disco',
+      'Doble tarea sobre superficie inestable (suma exigencia)'
+    ]
+  },
+  {
+    id: 'pelota_reaccion',
+    icon: '⚾',
+    nombre: 'Pelota de reacción hexagonal',
+    precio: '~15€',
+    descripcion: 'Pelota con caras irregulares para botes impredecibles. Reflejos visuales-motores en alto nivel.',
+    donde: 'https://www.amazon.es/s?k=pelota+reaccion+hexagonal',
+    activa: ['mie', 'jue'],
+    actividades_extra: [
+      'Lanzar contra pared y atrapar tras bote irregular',
+      'Trabajo de reacción con balón impredecible (60s)'
+    ]
+  },
+  {
+    id: 'palo_reaccion',
+    icon: '🪄',
+    nombre: 'Palo de reacción',
+    precio: '~10€',
+    descripcion: 'Palo de 50cm que se deja caer para atraparlo. Mide reacción visual-motora.',
+    donde: 'https://www.amazon.es/s?k=palo+reaccion+tiempo',
+    activa: ['jue'],
+    actividades_extra: [
+      'Test de reacción: medir cm hasta atrapar (10 reps)',
+      'Versión con consigna: solo coger si dice "sí"'
+    ]
+  },
+  {
+    id: 'antifaces_strobo',
+    icon: '🥽',
+    nombre: 'Antifaces estroboscópicos',
+    precio: '80-150€',
+    descripcion: 'Gafas con parpadeo programable. Entrenan procesamiento visual fragmentado, predicción y memoria.',
+    donde: 'https://www.amazon.es/s?k=strobe+training+glasses',
+    activa: ['lun', 'mar', 'mie', 'jue', 'vie'],
+    actividades_extra: [
+      'Schulte con estrobo (procesar bajo carga visual)',
+      'Reacción con conos en modo estroboscópico',
+      'Bote + cálculo mental con visión fragmentada'
+    ]
+  }
+];
+
 async function renderMaterialAnalista(jugId) {
   const body = document.getElementById('djbody');
   body.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text3);font-size:12px;">Cargando material...</div>';
