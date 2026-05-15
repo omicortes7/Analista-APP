@@ -5468,4 +5468,29 @@ window.renderEvolucionJugador = async function() {
 })();
 
 </script>
+
+<!-- ═══ FIX: switchPsicoTab — tabs Entrenamiento/Partido/Mensual del módulo Mental ═══ -->
+<script>
+window.switchPsicoTab = function(tab, btn) {
+  // Mapeo: el botón "entreno" muestra el div psico-tab-diario (legacy)
+  var divMap = {
+    entreno: 'psico-tab-diario',
+    partido: 'psico-tab-partido',
+    mensual: 'psico-tab-mensual'
+  };
+  Object.keys(divMap).forEach(function(k) {
+    var el = document.getElementById(divMap[k]);
+    if(el) el.style.display = (k === tab) ? 'block' : 'none';
+  });
+  // Estilos visuales de los botones
+  ['entreno', 'partido', 'mensual'].forEach(function(k) {
+    var b = document.getElementById('ptab-' + k);
+    if(!b) return;
+    var on = k === tab;
+    b.style.background = on ? 'rgba(163,113,247,0.15)' : 'none';
+    b.style.color      = on ? '#a371f7' : 'var(--text3)';
+    b.style.border     = on ? '0.5px solid rgba(163,113,247,0.3)' : '0.5px solid var(--border2)';
+  });
+};
+</script>
 </html>
