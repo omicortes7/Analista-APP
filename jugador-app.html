@@ -5044,6 +5044,8 @@ window.renderEvolucionJugador = async function() {
       .cogv2-btn:disabled{opacity:.6;cursor:wait;}\
       .cogv2-btn-ghost{background:transparent;color:var(--text2,#9ca3af);border:0.5px solid rgba(255,255,255,.15);border-radius:99px;padding:8px 16px;font-size:12px;cursor:pointer;font-family:inherit;width:100%;}\
       .cogv2-btn-ghost:hover{background:rgba(255,255,255,.04);color:#fff;}\
+      .cogv2-btn-otros{margin-top:20px;margin-bottom:24px;background:linear-gradient(180deg,rgba(168,232,92,0.12),rgba(168,232,92,0.04));color:var(--accent,#a8e85c);border:1px solid rgba(168,232,92,.35);border-radius:14px;padding:14px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;width:100%;letter-spacing:.01em;transition:all .15s;}\
+      .cogv2-btn-otros:hover{background:linear-gradient(180deg,rgba(168,232,92,0.2),rgba(168,232,92,0.08));border-color:rgba(168,232,92,.6);}\
       .cogv2-sens-row{display:flex;gap:8px;flex-wrap:wrap;}\
       .cogv2-sens-btn{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.1);cursor:pointer;font-family:inherit;color:var(--text2,#9ca3af);font-size:10px;transition:.15s;}\
       .cogv2-sens-btn .emoji{font-size:22px;line-height:1;}\
@@ -5127,8 +5129,8 @@ window.renderEvolucionJugador = async function() {
         });
       }
 
-      // Botón "Ver otros ejercicios"
-      html += '<button class="cogv2-btn-ghost" style="margin-top:6px;" onclick="window._cogV2ToggleOtros()">'+(_state.showOtros?'▴ Ocultar otros ejercicios':'▾ Ver otros ejercicios disponibles')+'</button>';
+      // Botón "Ver otros ejercicios" — visible y destacado
+      html += '<button class="cogv2-btn-otros" onclick="window._cogV2ToggleOtros()">'+(_state.showOtros?'▴ Ocultar otros ejercicios':'▾ Ver otros ejercicios disponibles')+'</button>';
       if(_state.showOtros){
         html += '<div style="margin-top:14px;">';
         ejOtros.forEach(function(ej, idx){
@@ -5139,7 +5141,17 @@ window.renderEvolucionJugador = async function() {
       b.innerHTML = html;
     });
   }
-  window._cogV2ToggleOtros = function(){ _state.showOtros = !_state.showOtros; _renderTab(); };
+  window._cogV2ToggleOtros = function(){
+    _state.showOtros = !_state.showOtros;
+    _renderTab();
+    // Si se acaba de desplegar, hacer scroll suave al botón
+    if(_state.showOtros){
+      setTimeout(function(){
+        var btn = document.querySelector('.cogv2-btn-otros');
+        if(btn && btn.scrollIntoView) btn.scrollIntoView({behavior:'smooth', block:'start'});
+      }, 80);
+    }
+  };
 
   function _cardEjercicio(ej, formIdx, sessions, compact){
     var record = calcRecord(sessions, ej.type);
