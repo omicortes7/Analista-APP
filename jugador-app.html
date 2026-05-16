@@ -5517,6 +5517,158 @@ window.switchPsicoTab = function(tab, btn) {
 </script>
 
 <!-- ═══ NUTRICIÓN v2 · diario + funcional + screenshots ═══ -->
+
+<!-- FIX previo: calcularPerfil real (Mifflin-St Jeor + UEFA) -->
+<script>
+window.calcularPerfil = function() {
+  // Leer inputs
+  var peso = parseFloat((document.getElementById('np-peso')||{}).value);
+  var altura = parseFloat((document.getElementById('np-altura')||{}).value);
+  var edad = parseInt((document.getElementById('np-edad')||{}).value, 10);
+  var dias = parseInt((document.getElementById('np-dias')||{}).value, 10) || 5;
+  var objetivo = (document.getElementById('np-objetivo')||{}).value || 'rendimiento';
+  var aversiones = ((document.getElementById('np-aversiones')||{}).value || '').trim();
+
+  if(!peso || !altura || !edad){
+    alert('Rellena peso, altura y edad para calcular tu plan.');
+    return;
+  }
+  // Altura: si meten 1.80, lo pasamos a 180
+  if(altura < 3) altura = altura * 100;
+
+  // BMR · Mifflin-St Jeor (asumiendo hombre por defecto; en futbolista base es lo más habitual)
+  // BMR = 10 * peso + 6.25 * altura - 5 * edad + 5
+  var bmr = 10 * peso + 6.25 * altura - 5 * edad + 5;
+
+  // Factores actividad UEFA según día
+  // entreno: 1.7 · partido: 1.9 · descanso: 1.4
+  // Ajustamos por días/semana: si entrena más días, sus tdee promedio es mayor
+  var ajusteDias = 1 + (dias - 4) * 0.02; // 3d=0.98, 4d=1.0, 5d=1.02, 6d=1.04
+
+  var kcalEntreno  = Math.round(bmr * 1.70 * ajusteDias);
+  var kcalPartido  = Math.round(bmr * 1.90 * ajusteDias);
+  var kcalDescanso = Math.round(bmr * 1.40 * ajusteDias);
+
+  // Ajuste por objetivo
+  if(objetivo === 'masa') {
+    kcalEntreno  = Math.round(kcalEntreno  * 1.10);
+    kcalPartido  = Math.round(kcalPartido  * 1.05);
+    kcalDescanso = Math.round(kcalDescanso * 1.10);
+  } else if(objetivo === 'perder') {
+    kcalEntreno  = Math.round(kcalEntreno  * 0.88);
+    kcalPartido  = Math.round(kcalPartido  * 0.95); // en partido no se restringe mucho
+    kcalDescanso = Math.round(kcalDescanso * 0.80);
+  }
+  // rendimiento y peso → sin ajuste extra
+
+  // Proteína · 1.6g/kg (UEFA Consensus, Collins et al. 2021)
+  var protBase = Math.round(peso * 1.6);
+  // En masa subimos a 1.8, en pérdida a 2.0 (para preservar masa magra)
+  var protPorObj = objetivo === 'masa' ? Math.round(peso * 1.8)
+                 : objetivo === 'perder' ? Math.round(peso * 2.0)
+                 : protBase;
+
+  // Construir _nutPerfil
+  window._nutPerfil = {
+    peso: peso,
+    altura: altura,
+    edad: edad,
+    dias: dias,
+    objetivo: objetivo,
+    aversiones: aversiones,
+    vegetariano: window._vegPref || 'no',
+    modo: window._modoNut || 'estandar',
+    bmr: Math.round(bmr),
+    entreno:  { kcal: kcalEntreno,  prot: protPorObj },
+    partido:  { kcal: kcalPartido,  prot: protPorObj },
+    descanso: { kcal: kcalDescanso, prot: protBase }
+  };
+
+  // Guardar en localStorage (por jugador)
+  if(window._jugId){
+    try { localStorage.setItem('nut_perfil_v3_' + window._jugId, JSON.stringify(window._nutPerfil)); } catch(e){}
+  }
+
+  // Mostrar la card del plan, ocultar el onboarding
+  var perfilCard = document.getElementById('nut-perfil-card');
+  var planCard   = document.getElementById('nut-plan-card');
+  if(perfilCard) perfilCard.style.display = 'none';
+  if(planCard)   planCard.style.display = '';
+
+  // Día por defecto: entreno
+  window._diaActual = window._diaActual || 'entreno';
+
+  // Render: macros + menú según modo
+  if(typeof renderMacrosPorModo === 'function') renderMacrosPorModo(window._diaActual);
+  if(typeof renderMenuPorModo === 'function')   renderMenuPorModo(window._diaActual);
+
+  // Notificación
+  if(typeof showToastGlobal === 'function') showToastGlobal('✓ Plan calculado');
+};
+
+// Función para volver al editor del perfil
+window.editarPerfil = function() {
+  var perfilCard = document.getElementById('nut-perfil-card');
+  var planCard   = document.getElementById('nut-plan-card');
+  if(perfilCard) perfilCard.style.display = '';
+  if(planCard)   planCard.style.display = 'none';
+  // Rellenar inputs con los valores actuales
+  if(window._nutPerfil){
+    var setVal = function(id, v){ var el = document.getElementById(id); if(el) el.value = v; };
+    setVal('np-peso', window._nutPerfil.peso);
+    setVal('np-altura', window._nutPerfil.altura);
+    setVal('np-edad', window._nutPerfil.edad);
+    setVal('np-dias', window._nutPerfil.dias);
+    setVal('np-objetivo', window._nutPerfil.objetivo);
+    setVal('np-aversiones', window._nutPerfil.aversiones || '');
+  }
+};
+
+// Función para selector vegetariano/vegano
+window.setVeg = function(val, btn) {
+  window._vegPref = val;
+  ['no','si','vegano'].forEach(function(v){
+    var b = document.getElementById('veg-'+v);
+    if(!b) return;
+    var on = v === val;
+    b.style.background = on ? 'rgba(29,158,117,0.15)' : 'none';
+    b.style.color      = on ? '#1D9E75' : 'var(--text3)';
+    b.style.borderColor= on ? 'rgba(29,158,117,0.4)' : 'var(--border2)';
+  });
+  if(window._nutPerfil){
+    window._nutPerfil.vegetariano = val;
+    if(window._jugId){
+      try { localStorage.setItem('nut_perfil_v3_' + window._jugId, JSON.stringify(window._nutPerfil)); } catch(e){}
+    }
+  }
+};
+
+// Cargar perfil de localStorage al iniciar (si existe)
+(function cargarPerfilLS(){
+  function intentar(){
+    if(!window._jugId){ setTimeout(intentar, 300); return; }
+    try {
+      var raw = localStorage.getItem('nut_perfil_v3_' + window._jugId);
+      if(!raw) return;
+      window._nutPerfil = JSON.parse(raw);
+      window._modoNut = window._nutPerfil.modo || 'estandar';
+      window._vegPref = window._nutPerfil.vegetariano || 'no';
+      // Mostrar plan ya calculado
+      var perfilCard = document.getElementById('nut-perfil-card');
+      var planCard   = document.getElementById('nut-plan-card');
+      if(perfilCard) perfilCard.style.display = 'none';
+      if(planCard)   planCard.style.display = '';
+      window._diaActual = window._diaActual || 'entreno';
+      setTimeout(function(){
+        if(typeof renderMacrosPorModo === 'function') renderMacrosPorModo(window._diaActual);
+        if(typeof renderMenuPorModo === 'function')   renderMenuPorModo(window._diaActual);
+      }, 100);
+    } catch(e){ console.warn('No se pudo cargar perfil nut', e); }
+  }
+  intentar();
+})();
+</script>
+
 <script>
 (function(){
   // ─── Estado del día actual ───
