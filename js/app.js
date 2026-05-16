@@ -6517,8 +6517,172 @@ async function renderSeguimientoSection() {
     html = '<div style="text-align:center;padding:3rem 1rem;color:var(--text3);"><div style="font-size:40px;margin-bottom:12px;">📊</div><div style="font-size:14px;font-weight:600;margin-bottom:6px;">Sin datos todavía</div><div style="font-size:12px;line-height:1.6;">El jugador debe rellenar la nutrición<br>y el bienestar diario desde su app.</div></div>';
   }
 
+  // ═══════════════════════════════════════════════════
+  // BLOQUE: NUTRICIÓN v2 (diario + plan + screenshots)
+  // ═══════════════════════════════════════════════════
+  const GOLD = '#D4AF37';
+  const nutV2Logs = nutLogs.filter(r => (r.texto||'').indexOf('[NUTv2]') === 0);
+
+  // Parser del texto guardado por la app jugador
+  function parseNutV2(texto){
+    return {
+      cumplimiento: (texto.match(/CUMPLIMIENTO:\s*(\w+)/)||[])[1] || null,
+      tipoDia:      (texto.match(/TIPO_DIA:\s*(\w+)/)||[])[1] || null,
+      modo:         (texto.match(/MODO:\s*(\w+)/)||[])[1] || null,
+      agua:    parseInt((texto.match(/AGUA:\s*(\d+)/)||[])[1] || '0', 10),
+      pre:          /PRE:\s*OK/.test(texto),
+      post:         /POST:\s*OK/.test(texto),
+      nota:         (texto.match(/NOTA:\s*(.+?)$/)||[])[1] || ''
+    };
+  }
+
+  // KPIs nutrición
+  const totalDiasV2 = nutV2Logs.length;
+  let pctCompleto = 0, mediaAgua = 0;
+  let modoMasUsado = '—';
+  if(totalDiasV2 > 0) {
+    let completos = 0, sumAgua = 0;
+    const modoCount = {};
+    nutV2Logs.forEach(r => {
+      const p = parseNutV2(r.texto);
+      if(p.cumplimiento === 'completo') completos++;
+      else if(p.cumplimiento === 'mitad') completos += 0.5;
+      sumAgua += (p.agua || 0);
+      if(p.modo) modoCount[p.modo] = (modoCount[p.modo]||0) + 1;
+    });
+    pctCompleto = Math.round((completos / totalDiasV2) * 100);
+    mediaAgua = (sumAgua / totalDiasV2).toFixed(1);
+    const modoEntries = Object.entries(modoCount).sort((a,b)=>b[1]-a[1]);
+    if(modoEntries.length) modoMasUsado = modoEntries[0][0] === 'funcional' ? '🦁 Funcional' : '⚽ Estándar';
+  }
+
+  let nutHtml = '';
+  if(totalDiasV2 > 0) {
+    const pctColor = pctCompleto >= 75 ? '#1D9E75' : pctCompleto >= 50 ? GOLD : '#f85149';
+
+    nutHtml += '<div style="'+CARD+'border-left:3px solid '+GOLD+';">';
+    nutHtml += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">';
+    nutHtml += '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:'+GOLD+';">🥗 Nutrición · Últimas 2 semanas</div>';
+    nutHtml += '<div style="font-size:10px;color:var(--text3);">'+totalDiasV2+' día'+(totalDiasV2!==1?'s':'')+' registrado'+(totalDiasV2!==1?'s':'')+'</div>';
+    nutHtml += '</div>';
+
+    // KPIs
+    nutHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">';
+    nutHtml += '<div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center;border:0.5px solid var(--border);"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Cumplimiento</div><div style="font-size:22px;font-weight:800;color:'+pctColor+';margin-top:3px;">'+pctCompleto+'%</div></div>';
+    nutHtml += '<div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center;border:0.5px solid var(--border);"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Hidratación</div><div style="font-size:22px;font-weight:800;color:#58a6ff;margin-top:3px;">'+mediaAgua+'/8</div></div>';
+    nutHtml += '<div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center;border:0.5px solid var(--border);"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Modo</div><div style="font-size:13px;font-weight:700;color:var(--text);margin-top:8px;">'+modoMasUsado+'</div></div>';
+    nutHtml += '</div>';
+
+    // Barra de progreso
+    nutHtml += '<div style="height:6px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;margin-bottom:1rem;">';
+    nutHtml += '<div style="height:100%;width:'+pctCompleto+'%;background:'+pctColor+';"></div>';
+    nutHtml += '</div>';
+
+    // Diario reciente (últimos 7)
+    nutHtml += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px;">📋 Diario reciente</div>';
+    nutV2Logs.slice(0, 7).forEach(r => {
+      const p = parseNutV2(r.texto);
+      const icon = p.cumplimiento === 'completo' ? '😄' : p.cumplimiento === 'mitad' ? '😐' : '😞';
+      const col  = p.cumplimiento === 'completo' ? '#1D9E75' : p.cumplimiento === 'mitad' ? GOLD : '#f85149';
+      const fecha = new Date(r.fecha + 'T12:00:00').toLocaleDateString('es-ES', { weekday:'short', day:'2-digit', month:'short' });
+      const diaIco = p.tipoDia === 'partido' ? '⚽' : p.tipoDia === 'descanso' ? '🛌' : '💪';
+      const modoIco = p.modo === 'funcional' ? '🦁' : '⚽';
+      nutHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg);border:0.5px solid var(--border);border-left:2px solid '+col+';border-radius:6px;margin-bottom:6px;">';
+      nutHtml += '<div style="font-size:18px;flex-shrink:0;">'+icon+'</div>';
+      nutHtml += '<div style="flex:1;min-width:0;">';
+      nutHtml += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:3px;">';
+      nutHtml += '<span style="font-size:11px;font-weight:700;color:var(--text);">'+fecha+'</span>';
+      nutHtml += '<span style="font-size:10px;color:var(--text3);">'+diaIco+' '+(p.tipoDia||'-')+' · '+modoIco+' '+(p.modo||'-')+' · 💧'+p.agua+'/8</span>';
+      nutHtml += '</div>';
+      if((p.tipoDia === 'entreno' || p.tipoDia === 'partido') && (p.pre || p.post)) {
+        nutHtml += '<div style="font-size:10px;color:var(--text3);margin-bottom:3px;">';
+        if(p.pre)  nutHtml += '<span style="color:#1D9E75;">⚡ Pre OK</span> ';
+        if(p.post) nutHtml += '<span style="color:#1D9E75;">🥤 Post OK</span>';
+        nutHtml += '</div>';
+      }
+      if(p.nota) nutHtml += '<div style="font-size:11px;color:var(--text2);font-style:italic;line-height:1.4;">"'+p.nota+'"</div>';
+      nutHtml += '</div></div>';
+    });
+
+    // Plan del jugador (read-only) — se carga asíncrono más abajo
+    nutHtml += '<div id="seg-nut-plan-wrap" style="margin-top:1rem;"></div>';
+
+    // Galería de capturas — se carga asíncrona más abajo
+    nutHtml += '<div id="seg-nut-screenshots-wrap" style="margin-top:1rem;"></div>';
+
+    nutHtml += '</div>'; // /CARD
+  }
+
+  // Insertar el bloque de nutrición justo después de la cabecera (o después del mensaje "Sin datos")
+  if(nutHtml) {
+    // Si hay HTML principal, lo prepongo. Si solo había "Sin datos", lo sobrescribo
+    if(!nutLogs.length && !psicoDiario.length && !psicoPartido.length) {
+      html = nutHtml; // si todo estaba vacío pero hay v2 esto no debería pasar; safety
+    } else {
+      html = nutHtml + html;
+    }
+  }
+
   body.innerHTML = html;
+
+  // Carga asíncrona del plan del jugador y screenshots (no bloqueamos el render principal)
+  if(totalDiasV2 > 0) {
+    cargarPlanJugadorSeg(id);
+    cargarScreenshotsSeg(id);
+  }
 }
+
+// ─── Plan calculado del jugador (read-only) ───
+async function cargarPlanJugadorSeg(jugId) {
+  const wrap = document.getElementById('seg-nut-plan-wrap');
+  if(!wrap) return;
+  // El perfil del jugador se guarda en localStorage SUYO, no en BD.
+  // Como analista no podemos leerlo. Solución: nada que mostrar aquí salvo aviso.
+  // ALTERNATIVA: leer la última fila NUTv2 y extraer modo + tipo de día, ya disponible arriba.
+  // Por simplicidad, hacemos un mini-resumen con info de los últimos días.
+  wrap.innerHTML = '<div style="background:rgba(212,175,55,0.06);border:0.5px solid rgba(212,175,55,0.2);border-radius:8px;padding:10px;font-size:11px;color:var(--text3);line-height:1.5;">ℹ️ El plan de macros calculado por el jugador se guarda en su dispositivo. Para verlo, pídeselo por chat o invítale a compartir captura.</div>';
+}
+
+// ─── Galería de capturas (Supabase) ───
+async function cargarScreenshotsSeg(jugId) {
+  const wrap = document.getElementById('seg-nut-screenshots-wrap');
+  if(!wrap) return;
+  try {
+    const res = await DB.from('nutricion_screenshots').select('id,fecha,imagen_b64,created_at').eq('jugador_id', jugId).order('created_at', { ascending: false }).limit(12);
+    if(res.error) {
+      wrap.innerHTML = ''; // tabla no existe todavía, no mostramos nada
+      return;
+    }
+    const rows = res.data || [];
+    if(!rows.length) {
+      wrap.innerHTML = ''; // no mostramos sección si no hay capturas
+      return;
+    }
+    let html = '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:0 0 8px;">📸 Capturas del jugador ('+rows.length+')</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));gap:6px;">';
+    rows.forEach(r => {
+      const f = new Date(r.created_at).toLocaleDateString('es-ES', { day:'2-digit', month:'short' });
+      html += '<div style="position:relative;border-radius:8px;overflow:hidden;border:0.5px solid var(--border);cursor:pointer;" onclick="ampliarScreenshot(\''+r.imagen_b64+'\')">';
+      html += '<img src="'+r.imagen_b64+'" style="width:100%;height:100px;object-fit:cover;display:block;">';
+      html += '<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.8));padding:14px 6px 4px;font-size:9px;color:#fff;">'+f+'</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    wrap.innerHTML = html;
+  } catch(e) {
+    console.warn('No screenshots', e);
+    wrap.innerHTML = '';
+  }
+}
+
+// ─── Lightbox simple para ampliar captura ───
+window.ampliarScreenshot = function(b64) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:20px;';
+  overlay.innerHTML = '<img src="'+b64+'" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;">';
+  overlay.onclick = () => overlay.remove();
+  document.body.appendChild(overlay);
+};
 
 
 // ═══════════════════════════════════════════════════
