@@ -5518,6 +5518,84 @@ window.switchPsicoTab = function(tab, btn) {
 
 <!-- ═══ NUTRICIÓN v2 · diario + funcional + screenshots ═══ -->
 
+<!-- FIX previo: funciones de render de macros y menú estándar (faltaban) -->
+<script>
+// Helper: caja de macro (compartido por estándar y funcional)
+window.macroBox = function(valor, label, color){
+  return '<div style="background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:8px 6px;text-align:center;">'
+       + '<div style="font-size:16px;font-weight:800;color:'+color+';line-height:1;">'+valor+'</div>'
+       + '<div style="font-size:9px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:.04em;">'+label+'</div>'
+       + '</div>';
+};
+
+// Pinta los 4 macros del modo Estándar UEFA
+window.renderMacrosObjetivo = function(tipo){
+  var cont = document.getElementById('macros-barras');
+  if(!cont || !window._nutPerfil) return;
+  var peso = window._nutPerfil.peso || 65;
+  // Modo Estándar UEFA: carbos según día (3-8g/kg)
+  var macros = {
+    entreno:  { kcal: window._nutPerfil.entreno.kcal,  prot: window._nutPerfil.entreno.prot,  carb: Math.round(peso*5.0), grasas: Math.round(peso*1.0) },
+    partido:  { kcal: window._nutPerfil.partido.kcal,  prot: window._nutPerfil.partido.prot,  carb: Math.round(peso*7.0), grasas: Math.round(peso*1.0) },
+    descanso: { kcal: window._nutPerfil.descanso.kcal, prot: window._nutPerfil.descanso.prot, carb: Math.round(peso*3.0), grasas: Math.round(peso*1.0) }
+  };
+  var m = macros[tipo] || macros.entreno;
+  var c = tipo==='partido' ? '#58a6ff' : tipo==='descanso' ? '#484f58' : '#d29922';
+  cont.innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:.5rem;">'
+    + macroBox(m.kcal,'kcal',c)
+    + macroBox(m.prot+'g','Proteína','#a371f7')
+    + macroBox(m.carb+'g','Carbos','#d29922')
+    + macroBox(m.grasas+'g','Grasas','#58a6ff')
+    + '</div>'
+    + '<div style="font-size:9px;color:var(--text3);text-align:right;">⚽ UEFA Consensus · Carbos según carga del día</div>';
+};
+
+// Pinta el menú de ejemplo del día (modo Estándar)
+window.renderMenuDia = function(tipo){
+  var cont = document.getElementById('plan-comidas');
+  if(!cont || !window._nutPerfil) return;
+  // Plantilla de menús según tipo de día (modo Estándar UEFA)
+  var menus = {
+    entreno: [
+      { e:'🌅', h:'Desayuno', t:'Avena con plátano, miel y frutos secos · Leche o yogur · Café' },
+      { e:'🍎', h:'Media mañana', t:'Fruta + tostada integral con jamón / queso' },
+      { e:'🍗', h:'Comida', t:'Arroz o pasta integral · Pollo / pescado · Verdura · AOVE' },
+      { e:'⚡', h:'Pre-entreno (1h antes)', t:'Plátano + tostada con miel + agua' },
+      { e:'🥤', h:'Post-entreno (30 min)', t:'Batido de leche con plátano y avena (1:3 prot:carb)' },
+      { e:'🌙', h:'Cena', t:'Pescado / huevos · Patata o arroz · Ensalada · AOVE' }
+    ],
+    partido: [
+      { e:'🌅', h:'Desayuno (4h antes)', t:'Avena cocida + plátano + miel + frutos secos · Café opcional' },
+      { e:'🍌', h:'Pre-partido (2h antes)', t:'Plátano + dátiles + tostada con miel · 500ml agua en sorbos' },
+      { e:'⚡', h:'Calentamiento (-45 min)', t:'Gel, isotónica o medio plátano + agua' },
+      { e:'🥤', h:'Post-partido (30 min)', t:'Batido recuperación 1:3 (proteína:carbo)' },
+      { e:'🍽️', h:'Cena (2h post)', t:'Comida completa: pasta · proteína · verdura · postre con fruta' }
+    ],
+    descanso: [
+      { e:'🌅', h:'Desayuno', t:'Yogur con frutos secos y fruta · Tostada con aguacate' },
+      { e:'🍎', h:'Media mañana', t:'Fruta y un puñado de almendras' },
+      { e:'🥗', h:'Comida', t:'Ensalada completa · Pescado / carne magra · Poco hidrato' },
+      { e:'🍌', h:'Merienda', t:'Yogur natural + fruta' },
+      { e:'🌙', h:'Cena', t:'Verdura · Huevos / pescado · AOVE' }
+    ]
+  };
+  var lista = menus[tipo] || menus.entreno;
+  var html = '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.625rem;">Ejemplo de menú</div>';
+  lista.forEach(function(c){
+    html += '<div style="display:flex;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);">'
+         +  '<div style="font-size:18px;flex-shrink:0;">'+c.e+'</div>'
+         +  '<div style="flex:1;min-width:0;">'
+         +    '<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:2px;">'+c.h+'</div>'
+         +    '<div style="font-size:11px;color:var(--text2);line-height:1.45;">'+c.t+'</div>'
+         +  '</div>'
+         +  '</div>';
+  });
+  html += '<div style="font-size:9px;color:var(--text3);margin-top:8px;font-style:italic;line-height:1.4;">Ejemplo orientativo. Ajusta cantidades a tus macros objetivo de arriba.</div>';
+  cont.innerHTML = html;
+};
+</script>
+
 <!-- FIX previo: calcularPerfil real (Mifflin-St Jeor + UEFA) -->
 <script>
 window.calcularPerfil = function() {
