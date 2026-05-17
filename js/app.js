@@ -7814,3 +7814,53 @@ function _pintarGraficaEvolucionObjetivos() {
     });
   } catch(e) { console.warn('chart evo objs err', e); }
 }
+
+// ═══════════════════════════════════════════════════════
+// EXPORTAR INFORME PROFESIONAL (HTML — abrir y guardar como PDF desde Chrome)
+// ═══════════════════════════════════════════════════════
+window.exportarInformeProfesionalPDF = function() {
+  // El modal del informe profesional es #modal-inf-profesional
+  var modal = document.getElementById('modal-inf-profesional');
+  if(!modal){ alert('Modal del informe no encontrado.'); return; }
+
+  // Obtener el contenido del informe (sin header del modal)
+  var contenido = modal.querySelector('#inf-profesional-body') || modal.querySelector('.modal-body') || modal;
+  var titulo = (document.getElementById('inf-profesional-title') || {}).textContent || 'Informe profesional';
+
+  // Construir HTML standalone con estilos básicos para impresión limpia
+  var fecha = new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' });
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8">'+
+    '<title>'+titulo+'</title>'+
+    '<style>'+
+    'body{font-family:-apple-system,BlinkMacSystemFont,Inter,sans-serif;max-width:780px;margin:32px auto;padding:24px;color:#222;line-height:1.6;}'+
+    'h1{font-size:22px;border-bottom:2px solid #D4AF37;padding-bottom:10px;margin-bottom:6px;}'+
+    'h2{font-size:16px;color:#444;margin-top:24px;margin-bottom:8px;border-left:3px solid #D4AF37;padding-left:10px;}'+
+    'h3{font-size:14px;color:#555;margin-top:14px;}'+
+    '.meta{font-size:11px;color:#888;margin-bottom:20px;}'+
+    'p{margin:6px 0;}'+
+    'ul,ol{margin:6px 0 12px 22px;}'+
+    'li{margin:3px 0;}'+
+    'button,.btn,.close-btn{display:none !important;}'+
+    '@media print { body { margin:0; padding:14px; } }'+
+    '</style></head><body>'+
+    '<h1>'+titulo+'</h1>'+
+    '<div class="meta">Generado por IA · Omar Cortés Ferrero · Areté Academy · '+fecha+'</div>'+
+    contenido.innerHTML+
+    '</body></html>';
+
+  // Descargar como HTML (que el usuario abre y hace Ctrl+P → Guardar como PDF)
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  var nombre = titulo.replace(/[^a-zA-Z0-9_\-]/g, '_') || 'Informe';
+  a.href = url;
+  a.download = nombre + '.html';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
+
+  if(typeof showToast === 'function') showToast('✓ Descargado. Ábrelo y usa Ctrl+P → "Guardar como PDF"');
+};
