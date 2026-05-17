@@ -6079,4 +6079,172 @@ window.setVeg = function(val, btn) {
   };
 })();
 </script>
+
+<!-- ═══ MÓDULO MENTAL · selOpt + guardarEntreno + guardarPartido ═══ -->
+<script>
+(function(){
+
+  // ─── selOpt: marcar opción y desmarcar hermanos del mismo .opt-row ───
+  window.selOpt = function(btn) {
+    if(!btn) return;
+    var row = btn.closest('.opt-row');
+    if(!row) return;
+    // Desmarcar todos en este grupo
+    var siblings = row.querySelectorAll('.opt-btn');
+    siblings.forEach(function(b){
+      b.classList.remove('selected');
+      b.style.background  = 'var(--bg3)';
+      b.style.borderColor = 'var(--border2)';
+      b.style.color       = 'var(--text2)';
+    });
+    // Marcar el pulsado
+    btn.classList.add('selected');
+    // Color por tipo: morado para entreno (me_), azul para partido (mp_)
+    var field = row.getAttribute('data-field') || '';
+    var isPartido = field.startsWith('mp_');
+    var col1 = isPartido ? 'rgba(88,166,255,0.18)' : 'rgba(163,113,247,0.18)';
+    var col2 = isPartido ? 'rgba(88,166,255,0.55)' : 'rgba(163,113,247,0.55)';
+    var col3 = isPartido ? '#58a6ff' : '#a371f7';
+    btn.style.background  = col1;
+    btn.style.borderColor = col2;
+    btn.style.color       = col3;
+  };
+
+  // ─── Recoger valores: opciones seleccionadas + textareas ───
+  function recogerCampos(prefijo){
+    var data = {};
+    // Botones seleccionados
+    document.querySelectorAll('.opt-row[data-field^="'+prefijo+'_"]').forEach(function(row){
+      var field = row.getAttribute('data-field');
+      var sel = row.querySelector('.opt-btn.selected');
+      if(sel) data[field] = sel.getAttribute('data-val');
+    });
+    // Textareas con id que empieza por prefijo_
+    document.querySelectorAll('[id^="'+prefijo+'_"]').forEach(function(el){
+      if(el.tagName === 'TEXTAREA' || el.tagName === 'INPUT'){
+        var v = (el.value || '').trim();
+        if(v) data[el.id] = v;
+      }
+    });
+    return data;
+  }
+
+  // ─── Restaurar: marcar valores + rellenar textareas ───
+  function restaurarCampos(data){
+    if(!data) return;
+    Object.keys(data).forEach(function(k){
+      var v = data[k];
+      // Si k corresponde a una opt-row: marcar el botón
+      var row = document.querySelector('.opt-row[data-field="'+k+'"]');
+      if(row){
+        var btn = row.querySelector('.opt-btn[data-val="'+v+'"]');
+        if(btn) window.selOpt(btn);
+        return;
+      }
+      // Si k es id de input/textarea
+      var el = document.getElementById(k);
+      if(el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) el.value = v;
+    });
+  }
+
+  // ─── Guardar MENTAL ENTRENO ───
+  window.guardarMentalEntreno = async function(){
+    var btn = document.getElementById('btn-save-mental-entreno');
+    if(!window.DB_REF || !window._jugId){ alert('Sin sesión. Recarga la app.'); return; }
+    var data = recogerCampos('me');
+    if(Object.keys(data).length === 0){ alert('Rellena al menos una pregunta antes de guardar.'); return; }
+    var hoy = new Date().toISOString().slice(0,10);
+    var payload = {
+      jugador_id: window._jugId,
+      fecha: hoy,
+      tipo: 'entreno',
+      datos: data  // jsonb
+    };
+    if(btn){ btn.disabled = true; btn.textContent = 'Guardando...'; }
+    try {
+      // ¿Ya hay registro de hoy de tipo entreno?
+      var existe = await window.DB_REF.from('mental_log').select('id').eq('jugador_id', window._jugId).eq('fecha', hoy).eq('tipo', 'entreno').limit(1);
+      if(existe.data && existe.data.length){
+        await window.DB_REF.from('mental_log').update({ datos: data }).eq('id', existe.data[0].id);
+      } else {
+        var res = await window.DB_REF.from('mental_log').insert(payload);
+        if(res.error) throw res.error;
+      }
+      if(btn){ btn.textContent = '✓ Guardado'; setTimeout(function(){ btn.disabled = false; btn.textContent = '💾 Guardar cuestionario de entreno'; }, 1800); }
+      if(typeof showToastGlobal === 'function') showToastGlobal('✓ Cuestionario entreno guardado');
+    } catch(e){
+      console.error('Error guardar mental entreno', e);
+      if(btn){ btn.disabled = false; btn.textContent = '💾 Guardar cuestionario de entreno'; }
+      var msg = (e && e.message) || '';
+      if(/mental_log/i.test(msg) && /(does not exist|no existe|relation)/i.test(msg)){
+        alert('Falta la tabla mental_log en Supabase. Pídele a Omar que ejecute el SQL.');
+      } else {
+        alert('No se pudo guardar: '+msg);
+      }
+    }
+  };
+
+  // ─── Guardar MENTAL PARTIDO ───
+  window.guardarMentalPartido = async function(){
+    var btn = document.getElementById('btn-save-mental-partido');
+    if(!window.DB_REF || !window._jugId){ alert('Sin sesión. Recarga la app.'); return; }
+    var data = recogerCampos('mp');
+    if(Object.keys(data).length === 0){ alert('Rellena al menos una pregunta antes de guardar.'); return; }
+    var fechaInp = document.getElementById('mp_fecha');
+    var fecha = (fechaInp && fechaInp.value) ? fechaInp.value : new Date().toISOString().slice(0,10);
+    var payload = {
+      jugador_id: window._jugId,
+      fecha: fecha,
+      tipo: 'partido',
+      datos: data
+    };
+    if(btn){ btn.disabled = true; btn.textContent = 'Guardando...'; }
+    try {
+      var existe = await window.DB_REF.from('mental_log').select('id').eq('jugador_id', window._jugId).eq('fecha', fecha).eq('tipo', 'partido').limit(1);
+      if(existe.data && existe.data.length){
+        await window.DB_REF.from('mental_log').update({ datos: data }).eq('id', existe.data[0].id);
+      } else {
+        var res = await window.DB_REF.from('mental_log').insert(payload);
+        if(res.error) throw res.error;
+      }
+      if(btn){ btn.textContent = '✓ Guardado'; setTimeout(function(){ btn.disabled = false; btn.textContent = '💾 Guardar cuestionario de partido'; }, 1800); }
+      if(typeof showToastGlobal === 'function') showToastGlobal('✓ Cuestionario partido guardado');
+    } catch(e){
+      console.error('Error guardar mental partido', e);
+      if(btn){ btn.disabled = false; btn.textContent = '💾 Guardar cuestionario de partido'; }
+      var msg = (e && e.message) || '';
+      if(/mental_log/i.test(msg) && /(does not exist|no existe|relation)/i.test(msg)){
+        alert('Falta la tabla mental_log en Supabase. Pídele a Omar que ejecute el SQL.');
+      } else {
+        alert('No se pudo guardar: '+msg);
+      }
+    }
+  };
+
+  // ─── Cargar el registro del día actual si existe (para no rellenar de cero) ───
+  async function cargarSiExiste(tipo){
+    if(!window.DB_REF || !window._jugId) return;
+    var hoy = new Date().toISOString().slice(0,10);
+    try {
+      var res = await window.DB_REF.from('mental_log').select('datos').eq('jugador_id', window._jugId).eq('fecha', hoy).eq('tipo', tipo).limit(1);
+      var row = (res.data || [])[0];
+      if(row && row.datos) restaurarCampos(row.datos);
+    } catch(e){ /* silencioso, la tabla puede no existir */ }
+  }
+
+  // Al entrar en la sección Mental, intentar restaurar
+  var ultimoMental = false;
+  setInterval(function(){
+    var sec = document.getElementById('sec-psico');
+    if(!sec) return;
+    var visible = sec.style.display !== 'none' && sec.offsetParent !== null;
+    if(visible && !ultimoMental){
+      cargarSiExiste('entreno');
+      cargarSiExiste('partido');
+    }
+    ultimoMental = visible;
+  }, 800);
+
+})();
+</script>
 </html>
