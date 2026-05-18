@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cuestionario Inicial · Areté Academy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:   #F8F5EE;
+    --ink:     #1A1F2E;
+    --ink-2:   #3B4252;
+    --ink-3:   #6B7280;
+    --gold:    #B8862F;
+    --gold-pale:#E8D5A5;
+    --line:    #D8CFB8;
+    --line-2:  #E5DEC9;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    font-weight: 400;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' /><feColorMatrix values='0 0 0 0 0.10 0 0 0 0 0.12 0 0 0 0 0.18 0 0 0 0.04 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    z-index: 1;
+    opacity: 0.6;
+  }
+  .page { position: relative; z-index: 2; max-width: 760px; margin: 0 auto; padding: 64px 56px 80px; }
+  .header { text-align: center; margin-bottom: 56px; padding-bottom: 36px; border-bottom: 0.5px solid var(--line); position: relative; }
+  .header::after { content: ''; position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); width: 56px; height: 5px; background: var(--gold); border-radius: 2px; }
+  .logo { display: inline-block; margin-bottom: 28px; }
+  .logo-mark { width: 64px; height: 64px; margin: 0 auto 14px; border: 1.5px solid var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 600; color: var(--gold); font-style: italic; letter-spacing: -0.02em; position: relative; }
+  .logo-mark::before { content: ''; position: absolute; inset: 5px; border: 0.5px solid var(--gold-pale); border-radius: 50%; }
+  .logo-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500; color: var(--ink); letter-spacing: 0.18em; text-transform: uppercase; }
+  .logo-tag { font-size: 9px; font-weight: 500; letter-spacing: 0.36em; color: var(--ink-3); text-transform: uppercase; margin-top: 4px; }
+  .doc-kicker { font-size: 10px; font-weight: 600; letter-spacing: 0.36em; color: var(--gold); text-transform: uppercase; margin-bottom: 16px; }
+  .doc-title { font-family: 'Cormorant Garamond', serif; font-size: 56px; font-weight: 500; line-height: 1; color: var(--ink); letter-spacing: -0.02em; margin: 0 0 16px; }
+  .doc-title em { font-style: italic; color: var(--gold); font-weight: 400; }
+  .doc-sub { font-size: 13px; color: var(--ink-2); max-width: 480px; margin: 0 auto; line-height: 1.7; }
+  .quote { margin: 48px auto 64px; max-width: 580px; text-align: center; position: relative; padding: 0 40px; }
+  .quote::before, .quote::after { content: ''; position: absolute; top: 50%; width: 24px; height: 1px; background: var(--gold); }
+  .quote::before { left: 0; } .quote::after { right: 0; }
+  .quote-text { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 22px; line-height: 1.5; color: var(--ink); margin-bottom: 12px; }
+  .quote-author { font-size: 10px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold); }
+  .block { margin-bottom: 56px; padding-bottom: 8px; }
+  .block-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 28px; padding-bottom: 14px; border-bottom: 0.5px solid var(--line); }
+  .block-num { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 44px; line-height: 1; color: var(--gold); width: 50px; flex-shrink: 0; }
+  .block-title-wrap { flex: 1; }
+  .block-kicker { font-size: 9px; font-weight: 600; letter-spacing: 0.3em; color: var(--ink-3); text-transform: uppercase; margin-bottom: 4px; }
+  .block-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 500; color: var(--ink); line-height: 1.2; letter-spacing: -0.01em; }
+  .block-desc { font-size: 12px; color: var(--ink-3); margin-top: 6px; font-style: italic; }
+  .block-intro { background: rgba(184, 134, 47, 0.06); border-left: 2px solid var(--gold); padding: 12px 18px; margin-bottom: 28px; font-size: 12px; color: var(--ink-2); font-style: italic; line-height: 1.7; border-radius: 0 4px 4px 0; }
+  .row { display: grid; gap: 22px; margin-bottom: 22px; }
+  .row-2 { grid-template-columns: 1fr 1fr; }
+  .row-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .field { display: flex; flex-direction: column; }
+  .label { font-size: 10px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 8px; }
+  .hint { font-size: 11px; color: var(--ink-3); font-style: italic; margin-bottom: 8px; margin-top: -4px; }
+  .input, .textarea, .select { background: transparent; border: none; border-bottom: 0.5px solid var(--line); font-family: 'Inter', sans-serif; font-size: 14px; color: var(--ink); padding: 10px 2px; outline: none; transition: border-color .2s; width: 100%; border-radius: 0; -webkit-appearance: none; appearance: none; }
+  .input:focus, .textarea:focus, .select:focus { border-bottom-color: var(--gold); }
+  .input::placeholder, .textarea::placeholder { color: var(--ink-3); font-style: italic; opacity: 0.7; }
+  .textarea { resize: vertical; min-height: 70px; line-height: 1.7; border: 0.5px solid var(--line); border-radius: 2px; padding: 12px 14px; background: rgba(255,255,255,.4); }
+  .textarea:focus { border-color: var(--gold); background: rgba(255,255,255,.7); }
+  .textarea-big { min-height: 110px; }
+  .select { background: rgba(255,255,255,.4); border: 0.5px solid var(--line); border-radius: 2px; padding: 10px 14px; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23B8862F' d='M0 0l5 6 5-6z'/></svg>"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: center; padding: 7px 14px; border: 0.5px solid var(--line); border-radius: 99px; font-size: 12px; font-weight: 500; color: var(--ink-2); background: rgba(255,255,255,.4); cursor: pointer; user-select: none; transition: all .15s; }
+  .chip:hover { border-color: var(--gold); color: var(--ink); }
+  .chip.selected { background: var(--gold); color: white; border-color: var(--gold); box-shadow: 0 2px 6px rgba(184,134,47,.25); }
+  .commit-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+  .commit-btn { padding: 11px 8px; border: 0.5px solid var(--line); border-radius: 2px; background: rgba(255,255,255,.4); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; color: var(--ink-2); cursor: pointer; text-align: center; transition: all .15s; line-height: 1.3; }
+  .commit-btn:hover { border-color: var(--gold); color: var(--ink); }
+  .commit-btn.selected[data-val="no"] { background: rgba(180, 50, 50, 0.08); border-color: rgba(180,50,50,.4); color: #8B2C2C; }
+  .commit-btn.selected[data-val="medio"] { background: rgba(184, 134, 47, 0.15); border-color: var(--gold); color: var(--gold); }
+  .commit-btn.selected[data-val="si"] { background: rgba(26, 31, 46, 0.92); color: var(--paper); border-color: var(--ink); }
+  .commit-item { background: rgba(255,255,255,.5); border: 0.5px solid var(--line-2); border-radius: 2px; padding: 16px 18px; margin-bottom: 10px; }
+  .commit-title { font-size: 13px; color: var(--ink); font-weight: 600; margin-bottom: 4px; }
+  .commit-desc { font-size: 11px; color: var(--ink-3); font-style: italic; margin-bottom: 12px; line-height: 1.5; }
+  .spectrum { background: rgba(255,255,255,.5); border: 0.5px solid var(--line-2); border-radius: 2px; padding: 16px 18px; margin-bottom: 14px; }
+  .spectrum-q { font-size: 13px; color: var(--ink); font-weight: 500; margin-bottom: 12px; line-height: 1.5; }
+  .spectrum-scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .spectrum-btn { height: 36px; background: rgba(255,255,255,.4); border: 0.5px solid var(--line); border-radius: 2px; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; color: var(--ink-2); cursor: pointer; line-height: 1.2; padding: 4px 6px; transition: all .12s; }
+  .spectrum-btn:hover { border-color: var(--gold); color: var(--ink); }
+  .spectrum-btn.selected { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .actions { margin-top: 56px; padding-top: 36px; border-top: 0.5px solid var(--line); display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn { background: transparent; border: 0.5px solid var(--ink); color: var(--ink); padding: 14px 28px; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; transition: all .15s; border-radius: 2px; }
+  .btn:hover { background: var(--ink); color: var(--paper); }
+  .btn-primary { background: var(--gold); color: white; border-color: var(--gold); }
+  .btn-primary:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .footer { margin-top: 48px; text-align: center; font-size: 10px; color: var(--ink-3); letter-spacing: 0.16em; text-transform: uppercase; font-weight: 500; }
+  .footer-divider { width: 24px; height: 1px; background: var(--gold); margin: 0 auto 14px; }
+  @media print {
+    body { background: white; } body::before { display: none; }
+    .page { max-width: 100%; padding: 24px; }
+    .actions { display: none; } .footer { margin-top: 24px; }
+    .input, .textarea, .select { border-color: #999 !important; background: white !important; }
+    .chip { background: white !important; border-color: #999 !important; }
+    .commit-btn, .spectrum-btn { background: white !important; border-color: #999 !important; }
+    .spectrum, .commit-item, .block-intro { background: white !important; }
+    .block { page-break-inside: avoid; } @page { margin: 1.5cm; }
+  }
+  @media (max-width: 640px) {
+    .page { padding: 32px 22px 60px; }
+    .doc-title { font-size: 36px; } .block-num { font-size: 32px; width: 36px; } .block-title { font-size: 22px; }
+    .row-2, .row-3 { grid-template-columns: 1fr; }
+    .quote { padding: 0 24px; } .quote::before, .quote::after { display: none; } .quote-text { font-size: 18px; }
+    .spectrum-scale { grid-template-columns: 1fr; gap: 6px; } .spectrum-btn { height: 34px; }
+    .commit-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="header">
+    <div class="logo">
+      <div class="logo-mark">A</div>
+      <div class="logo-name">Areté Academy</div>
+      <div class="logo-tag">Análisis Individual · Fútbol</div>
+    </div>
+    <div class="doc-kicker">Documento confidencial · 01</div>
+    <h1 class="doc-title">Cuestionario <em>inicial</em></h1>
+    <p class="doc-sub">
+      Este documento es el punto de partida de nuestro trabajo juntos.
+      Te llevará unos veinte minutos. No hay respuestas correctas — hay respuestas tuyas.
+      Cuanto más honesto seas contigo, mejor servicio recibirás. Lo que escribas aquí es confidencial.
+    </p>
+  </header>
+
+  <blockquote class="quote">
+    <div class="quote-text">«Jugar al fútbol es muy simple, pero jugar al fútbol simple es lo más difícil que hay.»</div>
+    <div class="quote-author">— Johan Cruyff</div>
+  </blockquote>
+
+  <!-- BLOQUE I -->
+  <section class="block">
+    <div class="block-head">
+      <div class="block-num">I</div>
+      <div class="block-title-wrap">
+        <div class="block-kicker">Bloque 1</div>
+        <div class="block-title">Datos esenciales</div>
+        <div class="block-desc">Lo básico para tu ficha.</div>
+      </div>
+    </div>
+    <div class="row row-2">
+      <div class="field"><div class="label">Nombre completo</div><input class="input" type="text" name="nombre" placeholder="Nombre y apellidos"></div>
+      <div class="field"><div class="label">Fecha de nacimiento</div><input class="input" type="text" name="nacimiento" placeholder="DD / MM / AAAA"></div>
+    </div>
+    <div class="row row-3">
+      <div class="field"><div class="label">Altura</div><input class="input" type="text" name="altura" placeholder="cm"></div>
+      <div class="field"><div class="label">Peso</div><input class="input" type="text" name="peso" placeholder="kg"></div>
+      <div class="field"><div class="label">Pie dominante</div>
+        <select class="select" name="pie"><option value="">Selecciona</option><option value="diestro">Diestro</option><option value="zurdo">Zurdo</option><option value="ambidiestro">Ambidiestro</option></select>
+      </div>
+    </div>
+    <div class="row row-2">
+      <div class="field"><div class="label">Club y categoría actual</div><input class="input" type="text" name="club" placeholder="Ej: CD Aurrera, Juvenil División de Honor"></div>
+      <div class="field"><div class="label">Posición principal</div>
+        <select class="select" name="posicion"><option value="">Selecciona</option><option>Portero</option><option>Lateral derecho</option><option>Lateral izquierdo</option><option>Central</option><option>Pivote / Mediocentro defensivo</option><option>Interior</option><option>Mediapunta</option><option>Banda derecha</option><option>Banda izquierda</option><option>Delantero centro</option></select>
+      </div>
+    </div>
+    <div class="row row-2">
+      <div class="field"><div class="label">Posiciones secundarias</div><div class="hint">Otras posiciones en las que te puedes adaptar bien.</div><input class="input" type="text" name="pos_sec" placeholder="Ej: Interior, banda izquierda"></div>
+      <div class="field"><div class="label">Años jugando al fútbol</div><input class="input" type="text" name="anios" placeholder="Desde que tenías..."></div>
+    </div>
+    <div class="row">
+      <div class="field"><div class="label">Contacto</div><div class="hint">Email o teléfono donde te localice de forma rápida.</div><input class="input" type="text" name="contacto" placeholder="email@ejemplo.com · 600 000 000"></div>
+    </div>
+  </section>
+
+  <!-- BLOQUE II -->
+  <section class="block">
+    <div class="block-head">
+      <div class="block-num">II</div>
+      <div class="block-title-wrap">
+        <div class="block-kicker">Bloque 2</div>
+        <div class="block-title">Tu fútbol hoy</div>
+        <div class="block-desc">Cómo te ves a ti mismo, sin filtros.</div>
+      </div>
+    </div>
+
+    <div class="row row-2">
+      <div class="field">
+        <div class="label">Tu semana TIPO de entrenamientos</div>
+        <div class="hint">Días reales que pisas el campo. Si lunes descansas, no lo cuentes.</div>
+        <input class="input" type="text" name="entrenos_semana" placeholder="Ej: 4 días · martes a viernes · 2h cada día">
+      </div>
+      <div class="field">
+        <div class="label">¿Tienes partidos entre semana?</div>
+        <div class="hint">Más allá del fin de semana: Copa, amistosos en pretemporada, partidos dobles...</div>
+        <input class="input" type="text" name="partidos_extra" placeholder="Ej: en pretemporada sí, en liga no">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field"><div class="label">¿Trabajas con otros profesionales?</div><div class="hint">Preparador físico, psicólogo deportivo, nutricionista, fisioterapeuta, otro analista...</div><input class="input" type="text" name="otros_pros" placeholder="Especifica con quién y para qué"></div>
+    </div>
+
+    <div class="row">
+      <div class="field"><div class="label">Historial de lesiones (último año)</div><textarea class="textarea" name="lesiones" placeholder="Tipo de lesión, cuándo, cuánto tiempo de baja, recuperación..."></textarea></div>
+    </div>
+
+    <div class="row">
+      <div class="field"><div class="label">Tus 3 mayores fortalezas en el campo</div><div class="hint">¿Qué crees que se te da bien de verdad? ¿Qué te diferencia?</div><textarea class="textarea textarea-big" name="fortalezas" placeholder="1.&#10;2.&#10;3."></textarea></div>
+    </div>
+
+    <div class="row">
+      <div class="field"><div class="label">Tus 3 aspectos a mejorar</div><div class="hint">¿En qué te quedas atascado? ¿Qué te gustaría hacer mejor?</div><textarea class="textarea textarea-big" name="mejorar" placeholder="1.&#10;2.&#10;3."></textarea></div>
+    </div>
+
+    <div class="row">
+      <div class="field"><div class="label">¿A qué jugador profesional crees que se parece tu juego?</div><div class="hint">No por idolatría — por estilo, características, manera de leer el juego.</div><input class="input" type="text" name="ref_jugador" placeholder="Un nombre y, si quieres, en una línea, por qué."></div>
+    </div>
+  </section>
+
+  <!-- BLOQUE III -->
+  <section class="block">
+    <div class="block-head">
+      <div class="block-num">III</div>
+      <div class="block-title-wrap">
+        <div class="block-kicker">Bloque 3</div>
+        <div class="block-title">Tu mente y carácter</div>
+        <div class="block-desc">El bloque más importante. Aquí está la mitad del trabajo.</div>
+      </div>
+    </div>
+    <div class="block-intro">Lo que respondas aquí marca cómo voy a trabajar contigo. No hay respuestas buenas ni malas. Si me dices que te hundes con un error, no es un punto en contra — es información para que te ayude a no hacerlo. La sinceridad aquí vale más que cualquier currículum.</div>
+
+    <div class="spectrum">
+      <div class="spectrum-q">Cuando alguien te dice algo que te puede ayudar a mejorar (entrenador, familia, analista) — ¿cómo lo recibes habitualmente?</div>
+      <div class="spectrum-scale" data-field="psy_critica">
+        <button type="button" class="spectrum-btn" data-val="1">Me defiendo / me molesta</button>
+        <button type="button" class="spectrum-btn" data-val="2">Me cuesta digerirlo en el momento</button>
+        <button type="button" class="spectrum-btn" data-val="3">Depende de quién y cómo</button>
+        <button type="button" class="spectrum-btn" data-val="4">Lo escucho y reflexiono</button>
+        <button type="button" class="spectrum-btn" data-val="5">Lo agradezco, busco aplicarlo</button>
+      </div>
+    </div>
+
+    <div class="spectrum">
+      <div class="spectrum-q">Cuando el equipo pierde un partido en el que tú no jugaste bien — ¿hacia dónde mira tu cabeza?</div>
+      <div class="spectrum-scale" data-field="psy_culpa">
+        <button type="button" class="spectrum-btn" data-val="1">Casi siempre culpa de fuera (rival, árbitro, equipo)</button>
+        <button type="button" class="spectrum-btn" data-val="2">Más fuera que dentro</button>
+        <button type="button" class="spectrum-btn" data-val="3">Mitad y mitad</button>
+        <button type="button" class="spectrum-btn" data-val="4">Pienso más en lo que yo pude hacer mejor</button>
+        <button type="button" class="spectrum-btn" data-val="5">Asumo mi parte primero, siempre</button>
+      </div>
+    </div>
+
+    <div class="spectrum">
+      <div class="spectrum-q">¿Te comparas con tus compañeros de equipo?</div>
+      <div class="spectrum-scale" data-field="psy_compara">
+        <button type="button" class="spectrum-btn" data-val="1">Todo el rato, y me afecta para mal</button>
+        <button type="button" class="spectrum-btn" data-val="2">A menudo, y me genera presión</button>
+        <button type="button" class="spectrum-btn" data-val="3">Algunas veces, depende</button>
+        <button type="button" class="spectrum-btn" data-val="4">Poco, voy a lo mío</button>
+        <button type="button" class="spectrum-btn" data-val="5">Solo me comparo conmigo mismo</button>
+      </div>
+    </div>
+
+    <div class="spectrum">
+      <div class="spectrum-q">Cometes un error grave en mitad de un partido. ¿Qué te pasa los 10 minutos siguientes?</div>
+      <div class="spectrum-scale" data-field="psy_error">
+        <button type="button" class="spectrum-btn" data-val="1">Me hundo y voy a peor</button>
+        <button type="button" class="spectrum-btn" data-val="2">Me enfado y juego con rabia</button>
+        <button type="button" class="spectrum-btn" data-val="3">Depende del momento del partido</button>
+        <button type="button" class="spectrum-btn" data-val="4">Lo paso rápido y sigo</button>
+        <button type="button" class="spectrum-btn" data-val="5">Lo paso rápido y busco hacerlo mejor enseguida</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <div class="label">Antes de un partido importante</div>
+        <div class="hint">Marca todo lo que se aplica a ti.</div>
+        <div class="chip-row" data-multi="prepartido">
+          <span class="chip" data-val="nervioso">Nervioso</span>
+          <span class="chip" data-val="tranquilo">Tranquilo</span>
+          <span class="chip" data-val="motivado">Muy motivado</span>
+          <span class="chip" data-val="ansioso">Ansioso</span>
+          <span class="chip" data-val="dudas">Con dudas</span>
+          <span class="chip" data-val="confiado">Confiado</span>
+          <span class="chip" data-val="distraido">Me distraigo</span>
+          <span class="chip" data-val="vacio">Vacío / plano</span>
+          <span class="chip" data-val="rabia">Con rabia / ganas</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="spectrum">
+      <div class="spectrum-q">Tras un partido, ¿recuerdas tus jugadas con detalle?</div>
+      <div class="spectrum-scale" data-field="psy_memoria">
+        <button type="button" class="spectrum-btn" data-val="1">Casi no recuerdo nada</button>
+        <button type="button" class="spectrum-btn" data-val="2">Solo lo más llamativo</button>
+        <button type="button" class="spectrum-btn" data-val="3">Bastante, en general</button>
+        <button type="button" class="spectrum-btn" data-val="4">Mucho detalle</button>
+        <button type="button" class="spectrum-btn" data-val="5">Puedo revivir el partido entero</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <div class="label">Tu partido en flow</div>
+        <div class="hint">Piensa en uno de esos partidos donde TODO salía. ¿Qué hiciste diferente esos días? Las 48h previas: comida, sueño, rutinas, descanso, visualización, música, ritual... cualquier cosa que recuerdes que se repite.</div>
+        <textarea class="textarea textarea-big" name="flow" placeholder="Describe esos partidos. Lo que pasaba antes, durante, qué sentías. Cuanto más detalle, mejor."></textarea>
+      </div>
+    </div>
+
+    <div class="spectrum">
+      <div class="spectrum-q">Para llegar donde quieres llegar como jugador — ¿quién es el responsable principal?</div>
+      <div class="spectrum-scale" data-field="psy_agente">
+        <button type="button" class="spectrum-btn" data-val="1">Depende mucho de quién me toque</button>
+        <button type="button" class="spectrum-btn" data-val="2">Necesito que alguien apueste por mí</button>
+        <button type="button" class="spectrum-btn" data-val="3">Mitad yo, mitad las oportunidades</button>
+        <button type="button" class="spectrum-btn" data-val="4">Sobre todo yo, con buena gente al lado</button>
+        <button type="button" class="spectrum-btn" data-val="5">Solo yo. Llego si trabajo lo que toca</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field"><div class="label">¿Hay algo o alguien que te limita ahora mismo?</div><div class="hint">Entrenador, compañeros, lesión arrastrada, presión familiar, falta de minutos, miedos internos... Confidencial.</div><textarea class="textarea" name="limita" placeholder="Lo que escribas aquí solo lo vamos a ver tú y yo."></textarea></div>
+    </div>
+  </section>
+
+  <!-- BLOQUE IV -->
+  <section class="block">
+    <div class="block-head">
+      <div class="block-num">IV</div>
+      <div class="block-title-wrap">
+        <div class="block-kicker">Bloque 4</div>
+        <div class="block-title">Tu compromiso</div>
+        <div class="block-desc">¿Qué estás dispuesto a hacer? Sin filtros.</div>
+      </div>
+    </div>
+    <div class="block-intro">Esto NO es una promesa. Es para que yo sepa qué dejar fuera y qué exigirte de verdad. Si me dices "no me interesa" en algo, no pasa nada — adapto el servicio. Si me dices "sí, al 100%" y luego no lo haces, perdemos los dos el tiempo.</div>
+
+    <div class="commit-item">
+      <div class="commit-title">Entrenamiento cognitivo diario (Areté Vision)</div>
+      <div class="commit-desc">10-15 minutos al día, 5 días a la semana. Visión, decisión, atención, memoria. Material sencillo (cuerda, conos, una app).</div>
+      <div class="commit-row" data-commit="commit_cog">
+        <button type="button" class="commit-btn" data-val="no">No me interesa</button>
+        <button type="button" class="commit-btn" data-val="medio">A veces, según el día</button>
+        <button type="button" class="commit-btn" data-val="si">Sí, al 100%</button>
+      </div>
+    </div>
+
+    <div class="commit-item">
+      <div class="commit-title">Plan de nutrición personalizado</div>
+      <div class="commit-desc">Tus macros calculados según día (entreno, partido, descanso). Seguirlo y registrar cumplimiento.</div>
+      <div class="commit-row" data-commit="commit_nut">
+        <button type="button" class="commit-btn" data-val="no">No me interesa</button>
+        <button type="button" class="commit-btn" data-val="medio">A veces, según el día</button>
+        <button type="button" class="commit-btn" data-val="si">Sí, al 100%</button>
+      </div>
+    </div>
+
+    <div class="commit-item">
+      <div class="commit-title">Plan de partido ritualizado (-48h a +24h)</div>
+      <div class="commit-desc">Timeline desde dos días antes hasta el día después: hidratación, sueño, comida, activación, recuperación.</div>
+      <div class="commit-row" data-commit="commit_plan">
+        <button type="button" class="commit-btn" data-val="no">No me interesa</button>
+        <button type="button" class="commit-btn" data-val="medio">Solo en los importantes</button>
+        <button type="button" class="commit-btn" data-val="si">Sí, en todos</button>
+      </div>
+    </div>
+
+    <div class="commit-item">
+      <div class="commit-title">Cuestionarios mentales post-entreno y post-partido</div>
+      <div class="commit-desc">5 minutos rellenando preguntas sobre cómo te sentiste. Es donde se ven los patrones reales.</div>
+      <div class="commit-row" data-commit="commit_mental">
+        <button type="button" class="commit-btn" data-val="no">No me interesa</button>
+        <button type="button" class="commit-btn" data-val="medio">Solo los de partido</button>
+        <button type="button" class="commit-btn" data-val="si">Sí, los dos</button>
+      </div>
+    </div>
+
+    <div class="commit-item">
+      <div class="commit-title">Reunión mensual de seguimiento</div>
+      <div class="commit-desc">Una videollamada al mes para repasar tu evolución, hablar del trabajo psicológico y ajustar lo que haga falta.</div>
+      <div class="commit-row" data-commit="commit_reunion">
+        <button type="button" class="commit-btn" data-val="no">No me interesa</button>
+        <button type="button" class="commit-btn" data-val="medio">Solo si me hace falta</button>
+        <button type="button" class="commit-btn" data-val="si">Sí, todos los meses</button>
+      </div>
+    </div>
+
+    <div class="commit-item">
+      <div class="commit-title">Diario de bienestar (mood, energía, estrés)</div>
+      <div class="commit-desc">30 segundos al día. Marcar cómo estás. Para ver cómo te afectan los entrenos y la vida fuera del campo.</div>
+      <div class="commit-row" data-commit="commit_bienestar">
+        <button type="button" class="commit-btn" data-val="no">No me interesa</button>
+        <button type="button" class="commit-btn" data-val="medio">Solo si me acuerdo</button>
+        <button type="button" class="commit-btn" data-val="si">Sí, cada día</button>
+      </div>
+    </div>
+
+    <div class="commit-item">
+      <div class="commit-title">Visualización antes de los partidos</div>
+      <div class="commit-desc">1-2 horas antes del partido (en casa, en el viaje al campo), 10-15 minutos visualizando jugadas, acciones tuyas, soluciones tácticas. Práctica imaginativa estructurada.</div>
+      <div class="commit-row" data-commit="commit_visual">
+        <button type="button" class="commit-btn" data-val="no">No me interesa</button>
+        <button type="button" class="commit-btn" data-val="medio">Solo en los importantes</button>
+        <button type="button" class="commit-btn" data-val="si">Sí, en todos</button>
+      </div>
+    </div>
+
+    <div class="commit-item">
+      <div class="commit-title">Hábitos de biohacking</div>
+      <div class="commit-desc">Sueño optimizado, exposición al sol matinal, hidratación con sales, ayunos suaves, frío/calor. Lo que mueve la aguja sin esfuerzo táctico.</div>
+      <div class="commit-row" data-commit="commit_biohack">
+        <button type="button" class="commit-btn" data-val="no">No me interesa</button>
+        <button type="button" class="commit-btn" data-val="medio">Algunos, los que vea fáciles</button>
+        <button type="button" class="commit-btn" data-val="si">Sí, los que me propongas</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOQUE V -->
+  <section class="block">
+    <div class="block-head">
+      <div class="block-num">V</div>
+      <div class="block-title-wrap">
+        <div class="block-kicker">Bloque 5</div>
+        <div class="block-title">Tus objetivos y libertad</div>
+        <div class="block-desc">Sin plazos. Sin filtros.</div>
+      </div>
+    </div>
+    <div class="block-intro">Aquí no te pongo límites de tiempo. No es "dónde estarás en X años". Es: ¿qué quieres conseguir? Si te lo imaginas, escríbelo. Si suena loco, también. Tu cabeza tiene una imagen ahí dentro — sácala al papel.</div>
+
+    <div class="row">
+      <div class="field"><div class="label">¿Qué buscas con Areté Academy?</div><div class="hint">¿Qué te ha hecho aceptar trabajar conmigo? ¿Qué esperas que cambie?</div><textarea class="textarea textarea-big" name="busca_arete" placeholder="Habla con calma. Cuanto más concreto, mejor."></textarea></div>
+    </div>
+
+    <div class="row">
+      <div class="field"><div class="label">¿Dónde te imaginas a ti mismo si todo va bien?</div><div class="hint">No te pongas plazos. Solo dime hasta dónde te gustaría llegar.</div><textarea class="textarea textarea-big" name="vision" placeholder="Categoría, club, país, sensaciones, vida que llevas. Lo que sea."></textarea></div>
+    </div>
+
+    <div class="row">
+      <div class="field"><div class="label">¿Algo más que quieras contarme?</div><div class="hint">Cualquier cosa que creas que me ayuda a conocerte mejor. Espacio libre.</div><textarea class="textarea" name="extra" placeholder=""></textarea></div>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button class="btn" onclick="window.print()">⎙ Imprimir</button>
+    <button class="btn btn-primary" onclick="descargarRespuestas()">↓ Descargar mis respuestas</button>
+  </div>
+
+  <div class="footer">
+    <div class="footer-divider"></div>
+    Areté Academy · Omar Cortés Ferrero · Análisis Individual de Fútbol<br>
+    <span style="margin-top:6px;display:inline-block;">@arete.academy7 · omicortes7@gmail.com</span>
+  </div>
+
+</div>
+
+<script>
+  document.querySelectorAll('[data-single]').forEach(function(row){
+    row.querySelectorAll('.chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        row.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('selected'); });
+        chip.classList.add('selected');
+      });
+    });
+  });
+  document.querySelectorAll('[data-multi]').forEach(function(row){
+    row.querySelectorAll('.chip').forEach(function(chip){
+      chip.addEventListener('click', function(){ chip.classList.toggle('selected'); });
+    });
+  });
+  document.querySelectorAll('[data-commit]').forEach(function(row){
+    row.querySelectorAll('.commit-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        row.querySelectorAll('.commit-btn').forEach(function(b){ b.classList.remove('selected'); });
+        btn.classList.add('selected');
+      });
+    });
+  });
+  document.querySelectorAll('.spectrum-scale').forEach(function(scale){
+    scale.querySelectorAll('.spectrum-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        scale.querySelectorAll('.spectrum-btn').forEach(function(b){ b.classList.remove('selected'); });
+        btn.classList.add('selected');
+      });
+    });
+  });
+
+  function descargarRespuestas(){
+    document.querySelectorAll('input, textarea, select').forEach(function(el){
+      if(el.tagName === 'SELECT'){
+        Array.from(el.options).forEach(function(opt){
+          if(opt.value === el.value){ opt.setAttribute('selected','selected'); }
+          else { opt.removeAttribute('selected'); }
+        });
+      } else if(el.tagName === 'TEXTAREA'){
+        el.textContent = el.value || '';
+      } else {
+        el.setAttribute('value', el.value || '');
+      }
+    });
+    document.querySelectorAll('.chip.selected, .commit-btn.selected, .spectrum-btn.selected').forEach(function(el){
+      el.setAttribute('data-was-selected', 'true');
+    });
+
+    var html = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<title>'+document.title+'</title>\n';
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach(function(s){ html += s.outerHTML + '\n'; });
+    html += '<style>[data-was-selected="true"]{background:#1A1F2E !important;color:#F8F5EE !important;border-color:#1A1F2E !important;}.chip[data-was-selected="true"]{background:#B8862F !important;color:white !important;border-color:#B8862F !important;}.commit-btn[data-was-selected="true"][data-val="no"]{background:rgba(180,50,50,.15) !important;border-color:rgba(180,50,50,.4) !important;color:#8B2C2C !important;}.commit-btn[data-was-selected="true"][data-val="medio"]{background:rgba(184,134,47,.25) !important;border-color:#B8862F !important;color:#B8862F !important;}.commit-btn[data-was-selected="true"][data-val="si"]{background:#1A1F2E !important;color:#F8F5EE !important;border-color:#1A1F2E !important;}</style>';
+    html += '</head>\n<body>\n' + document.querySelector('.page').outerHTML + '\n</body>\n</html>';
+
+    var nombre = (document.querySelector('input[name="nombre"]').value || 'cuestionario').trim();
+    var slug = nombre.toLowerCase()
+      .replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i')
+      .replace(/[óòö]/g,'o').replace(/[úùü]/g,'u').replace(/[ñ]/g,'n')
+      .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+    var fecha = new Date().toISOString().slice(0,10);
+    var filename = 'cuestionario_arete_' + slug + '_' + fecha + '.html';
+
+    var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    document.querySelectorAll('[data-was-selected]').forEach(function(el){ el.removeAttribute('data-was-selected'); });
+  }
+  window.descargarRespuestas = descargarRespuestas;
+</script>
+
+</body>
+</html>
