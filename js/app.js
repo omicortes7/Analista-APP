@@ -6176,29 +6176,6 @@ function renderCalendarioSection() {
       const porFecha = {};
       eventos.forEach(e => { porFecha[e.fecha] = e; });
 
-      // ─── CALCULAR MD-X ───
-      const mdxPorFecha = {};
-      Object.keys(porFecha).forEach(fp => {
-        const e = porFecha[fp];
-        if(e.tipo !== 'partido') return;
-        mdxPorFecha[fp] = 'MD';
-        const partidoDate = new Date(fp + 'T12:00:00');
-        for(let off = -4; off <= 2; off++) {
-          if(off === 0) continue;
-          const dd = new Date(partidoDate);
-          dd.setDate(dd.getDate() + off);
-          const fs = dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
-          if(porFecha[fs] && porFecha[fs].tipo === 'partido') continue;
-          if(mdxPorFecha[fs]) {
-            const prevDist = parseInt(mdxPorFecha[fs].replace(/[^0-9]/g,''), 10) || 0;
-            if(prevDist <= Math.abs(off)) continue;
-          }
-          mdxPorFecha[fs] = (off < 0 ? 'MD' + off : 'MD+' + off);
-        }
-      });
-
-      const mdxColor = (mdx) => mdx === 'MD' ? '#58a6ff' : (mdx.indexOf('+') > -1 ? '#a371f7' : '#d29922');
-
       let html = `
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">
           Semana del ${lunes.toLocaleDateString('es-ES',{day:'numeric',month:'short'})} al ${dias[6].toLocaleDateString('es-ES',{day:'numeric',month:'short'})}
@@ -6210,10 +6187,7 @@ function renderCalendarioSection() {
         const ev = porFecha[fecha];
         const tc = ev ? (TIPOS[ev.tipo]||TIPOS.entreno) : null;
         const esHoy = fecha === hoy.toISOString().slice(0,10);
-        const mdx = mdxPorFecha[fecha];
-        const mdxBadge = mdx ? `<div style="position:absolute;top:2px;right:3px;font-size:8px;font-weight:800;color:${mdxColor(mdx)};letter-spacing:.02em;line-height:1;">${mdx}</div>` : '';
-        html += `<div onclick="abrirDiaCalendario('${fecha}','${id}')" style="position:relative;cursor:pointer;border-radius:8px;padding:6px 4px;text-align:center;border:0.5px solid ${esHoy?'rgba(255,255,255,0.25)':ev?tc.color+'40':'var(--border)'};background:${ev?tc.bg:'var(--bg)'};transition:all .15s;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='${esHoy?'rgba(255,255,255,0.25)':ev?tc.color+'40':'var(--border)'}'">
-          ${mdxBadge}
+        html += `<div onclick="abrirDiaCalendario('${fecha}','${id}')" style="cursor:pointer;border-radius:8px;padding:6px 4px;text-align:center;border:0.5px solid ${esHoy?'rgba(255,255,255,0.25)':ev?tc.color+'40':'var(--border)'};background:${ev?tc.bg:'var(--bg)'};transition:all .15s;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='${esHoy?'rgba(255,255,255,0.25)':ev?tc.color+'40':'var(--border)'}'">
           <div style="font-size:9px;color:var(--text3);margin-bottom:2px;">${NOMBRES[i]}</div>
           <div style="font-size:13px;font-weight:${esHoy?'800':'600'};color:${esHoy?'#fff':'var(--text)'};">${d.getDate()}</div>
           ${ev ? `<div style="width:6px;height:6px;border-radius:50%;background:${tc.color};margin:3px auto 0;"></div>` : '<div style="height:9px;"></div>'}
@@ -6228,13 +6202,10 @@ function renderCalendarioSection() {
         const ev = porFecha[fecha];
         if(!ev) return;
         const tc = TIPOS[ev.tipo]||TIPOS.entreno;
-        const mdx = mdxPorFecha[fecha];
-        const mdxTag = mdx ? `<span style="font-size:8px;font-weight:800;color:#fff;background:${mdxColor(mdx)};padding:2px 7px;border-radius:99px;margin-left:6px;letter-spacing:.02em;">${mdx}</span>` : '';
         html += `<div style="background:var(--bg);border:0.5px solid ${tc.color}40;border-left:3px solid ${tc.color};border-radius:var(--radius-sm);padding:.875rem;margin-bottom:8px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${ev.foco||ev.notas?'8px':'0'};">
             <div>
               <span style="font-size:9px;padding:2px 7px;border-radius:99px;background:${tc.bg};color:${tc.color};font-weight:700;">${tc.label}</span>
-              ${mdxTag}
               <span style="font-size:12px;font-weight:600;margin-left:8px;">${NOMBRES[i]} ${d.getDate()}</span>
               ${ev.hora?`<span style="font-size:10px;color:var(--text2);margin-left:6px;">⏰ ${ev.hora}</span>`:''}
               ${ev.rival?`<span style="font-size:11px;color:${tc.color};margin-left:6px;">vs ${ev.rival}</span>`:''}
