@@ -2964,34 +2964,6 @@ window.renderCalJugador = function() {
     window._calTareas  = tareasPorFecha;
     window._calNotas   = notasPorFecha;
 
-    // ─── CALCULAR MD-X (Match Day codes) ───
-    // Para cada partido encontrado, etiquetar los días alrededor con MD-4, MD-3, etc.
-    var mdxPorFecha = {};
-    Object.keys(porFecha).forEach(function(fp){
-      var ev = porFecha[fp];
-      if(ev.tipo !== 'partido') return;
-      // El día del partido es MD
-      mdxPorFecha[fp] = 'MD';
-      var partidoDate = new Date(fp + 'T12:00:00');
-      // Marcar 4 días antes y 2 días después
-      for(var off = -4; off <= 2; off++){
-        if(off === 0) continue;
-        var d = new Date(partidoDate);
-        d.setDate(d.getDate() + off);
-        var fechaStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-        // No sobrescribir si ya es otro partido (caso doble partido en la semana)
-        if(porFecha[fechaStr] && porFecha[fechaStr].tipo === 'partido') continue;
-        // No sobrescribir si ya tiene MDx de otro partido más cercano (priorizar el más cercano)
-        if(mdxPorFecha[fechaStr]){
-          // Comparar distancia con el partido actual y el ya asignado
-          var prevDist = parseInt(mdxPorFecha[fechaStr].replace(/[^0-9]/g,''), 10) || 0;
-          if(prevDist <= Math.abs(off)) continue;
-        }
-        mdxPorFecha[fechaStr] = (off < 0 ? 'MD' + off : 'MD+' + off);
-      }
-    });
-    window._calMDX = mdxPorFecha;
-
     var TIPOS = {
       entreno:  {color:'#3fb950', bg:'rgba(63,185,80,0.15)',  label:'Entreno',  ico:'💪'},
       partido:  {color:'#58a6ff', bg:'rgba(88,166,255,0.15)', label:'Partido',  ico:'⚽'},
@@ -3043,13 +3015,7 @@ window.renderCalJugador = function() {
       var bgColor     = esHoy ? 'rgba(255,255,255,0.1)' : tc ? tc.bg : 'transparent';
       var textColor   = esHoy ? '#fff' : 'var(--text)';
 
-      html += '<div onclick="verDiaCalendario(\'' + fecha + '\')" style="height:68px;border-radius:10px;border:1.5px solid ' + borderColor + ';background:' + bgColor + ';cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:transform .12s;padding:2px;position:relative;" onmouseover="this.style.transform=\'scale(1.06)\'" onmouseout="this.style.transform=\'scale(1)\'">';
-      // Badge MD-X arriba a la derecha
-      var mdx = mdxPorFecha[fecha];
-      if(mdx) {
-        var mdxColor = mdx === 'MD' ? '#58a6ff' : (mdx.indexOf('+') > -1 ? '#a371f7' : '#d29922');
-        html += '<div style="position:absolute;top:2px;right:3px;font-size:8px;font-weight:800;color:' + mdxColor + ';letter-spacing:0.02em;line-height:1;">' + mdx + '</div>';
-      }
+      html += '<div onclick="verDiaCalendario(\'' + fecha + '\')" style="height:68px;border-radius:10px;border:1.5px solid ' + borderColor + ';background:' + bgColor + ';cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:transform .12s;padding:2px;" onmouseover="this.style.transform=\'scale(1.06)\'" onmouseout="this.style.transform=\'scale(1)\'">';
       html += '<div style="font-size:14px;font-weight:' + (esHoy?'800':'600') + ';color:' + textColor + ';line-height:1;">' + dnum + '</div>';
       if(tc) {
         html += '<div style="font-size:13px;line-height:1;">' + tc.ico + '</div>';
@@ -3072,7 +3038,6 @@ window.renderCalJugador = function() {
     html += '<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);">📌 Otros</div>';
     html += '<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);"><span style="width:6px;height:6px;border-radius:50%;background:#7C6FF0;display:inline-block;"></span>Tarea</div>';
     html += '<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);"><span style="width:6px;height:6px;border-radius:50%;background:#d29922;display:inline-block;"></span>Nota</div>';
-    html += '<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);"><span style="font-size:8px;font-weight:800;color:#fff;background:#58a6ff;padding:1px 6px;border-radius:99px;">MD</span><span>Match Day · días respecto al partido</span></div>';
     html += '</div>';
 
     // Hoy destacado si tiene evento (solo si estamos viendo el mes actual)
@@ -3080,16 +3045,10 @@ window.renderCalJugador = function() {
       var evHoy = porFecha[hoyStr];
       if(evHoy) {
         var tch = TIPOS[evHoy.tipo] || TIPOS.entreno;
-        var mdxHoy = mdxPorFecha[hoyStr];
-        var mdxHoyBadge = '';
-        if(mdxHoy) {
-          var mdxHoyColor = mdxHoy === 'MD' ? '#58a6ff' : (mdxHoy.indexOf('+') > -1 ? '#a371f7' : '#d29922');
-          mdxHoyBadge = '<span style="display:inline-block;font-size:9px;font-weight:800;color:#fff;background:' + mdxHoyColor + ';padding:2px 7px;border-radius:99px;margin-left:8px;letter-spacing:.02em;vertical-align:middle;">' + mdxHoy + '</span>';
-        }
         html += '<div style="background:' + tch.bg + ';border:1.5px solid ' + tch.color + '40;border-left:4px solid ' + tch.color + ';border-radius:var(--radius);padding:1rem;margin-bottom:1rem;cursor:pointer;" onclick="verDiaCalendario(\'' + hoyStr + '\')">';
         html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:' + (evHoy.foco?'8px':'0') + ';">';
         html += '<span style="font-size:20px;">' + tch.ico + '</span>';
-        html += '<div><div style="font-size:13px;font-weight:700;">Hoy — ' + tch.label + mdxHoyBadge + '</div>';
+        html += '<div><div style="font-size:13px;font-weight:700;">Hoy — ' + tch.label + '</div>';
         if(evHoy.hora) html += '<div style="font-size:10px;color:var(--text2);">⏰ ' + evHoy.hora + '</div>';
         html += '</div></div>';
         if(evHoy.foco) html += '<div style="font-size:12px;color:var(--text2);line-height:1.6;">' + evHoy.foco + '</div>';
@@ -3112,13 +3071,7 @@ window.renderCalJugador = function() {
         dLabel = dLabel.charAt(0).toUpperCase() + dLabel.slice(1);
         html += '<div onclick="verDiaCalendario(\'' + fecha + '\')" style="display:flex;align-items:center;gap:12px;padding:.75rem;background:var(--card);border:0.5px solid var(--border);border-left:3px solid ' + tc.color + ';border-radius:var(--radius);margin-bottom:6px;cursor:pointer;">';
         html += '<div style="font-size:20px;">' + tc.ico + '</div>';
-        html += '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;">' + dLabel;
-        var mdxItem = mdxPorFecha[fecha];
-        if(mdxItem) {
-          var mdxItemColor = mdxItem === 'MD' ? '#58a6ff' : (mdxItem.indexOf('+') > -1 ? '#a371f7' : '#d29922');
-          html += '<span style="font-size:8px;font-weight:800;color:#fff;background:' + mdxItemColor + ';padding:1px 6px;border-radius:99px;letter-spacing:.02em;">' + mdxItem + '</span>';
-        }
-        html += '</div>';
+        html += '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;">' + dLabel + '</div>';
         html += '<div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + tc.label + (ev.hora ? ' · ' + ev.hora : '') + (ev.foco ? ' · ' + ev.foco.slice(0,40) + (ev.foco.length>40?'…':'') : '') + '</div></div>';
         if(tareasPorFecha[fecha] && tareasPorFecha[fecha].length) {
           html += '<span style="font-size:9px;background:rgba(124,111,240,0.15);color:#7C6FF0;padding:2px 7px;border-radius:99px;font-weight:700;flex-shrink:0;">' + tareasPorFecha[fecha].length + ' tarea' + (tareasPorFecha[fecha].length>1?'s':'') + '</span>';
@@ -3163,18 +3116,10 @@ window.verDiaCalendario = function(fecha) {
   html += '<div style="width:40px;height:4px;background:var(--border2);border-radius:99px;margin:0 auto 1.25rem;"></div>';
   // Header
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">';
-  html += '<div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800;">' + dLabel;
-  // Badge MD-X
-  var mdxMap = window._calMDX || {};
-  var mdxDia = mdxMap[fecha];
-  if(mdxDia) {
-    var mdxDiaColor = mdxDia === 'MD' ? '#58a6ff' : (mdxDia.indexOf('+') > -1 ? '#a371f7' : '#d29922');
-    html += '<span style="font-size:9px;font-weight:800;color:#fff;background:' + mdxDiaColor + ';padding:2px 8px;border-radius:99px;letter-spacing:.02em;">' + mdxDia + '</span>';
-  }
-  html += '</div>';
+  html += '<div><div style="font-size:16px;font-weight:800;">' + dLabel + '</div>';
   if(tc) html += '<div style="font-size:11px;color:' + tc.color + ';font-weight:700;margin-top:2px;">' + tc.ico + ' ' + tc.label + (ev.hora ? ' · ' + ev.hora : '') + '</div>';
   html += '</div>';
-  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">×</button>';
+  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
   html += '</div>';
 
   if(!ev && !tareas.length && !notasDia.length) {
