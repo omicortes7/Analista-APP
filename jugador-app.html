@@ -948,6 +948,8 @@ body:has(#app-screen[style*="display:none"]) .logout-floating { display: none !i
     <!-- INICIO -->
     <div class="sec active" id="sec-inicio">
       <div id="inicio-cal-block" style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:.875rem;margin-bottom:.875rem;display:none;"></div>
+      <div id="inicio-prioridades-block" style="margin-bottom:.875rem;display:none;"></div>
+      <div id="inicio-cardplayer-block" style="margin-bottom:.875rem;display:none;"></div>
       <div id="app-content"><div class="loading">Cargando datos...</div></div>
     </div>
 
@@ -6294,5 +6296,137 @@ window.setVeg = function(val, btn) {
   }, 800);
 
 })();
+
+// ════════════════════════════════════════════════════════════════════
+// ENTREGA B · CARD PLAYER + PRIORIDADES DEL MES (Jugador · solo lectura)
+// ════════════════════════════════════════════════════════════════════
+
+window._renderCardPlayerJugador = async function() {
+  var cont = document.getElementById('inicio-cardplayer-block');
+  if(!cont || !window._jugId || !window.DB_REF) return;
+
+  var cardData = null;
+  try {
+    var r = await window.DB_REF.from('card_player').select('*').eq('jugador_id', window._jugId).maybeSingle();
+    if(r.data) cardData = r.data;
+  } catch(e) {}
+
+  if(!cardData || (!cardData.staff_fortalezas && !cardData.staff_mejorar && !cardData.self_fortalezas && !cardData.self_mejorar)) {
+    cont.style.display = 'none';
+    return;
+  }
+
+  var j = window._jugadorData || {};
+  var iniciales = (j.nombre || '?').split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
+  var foto = j.foto_jugador || '';
+  var edad = j.fecha_nacimiento ? Math.floor((Date.now() - new Date(j.fecha_nacimiento)) / (365.25*24*3600*1000)) : '';
+
+  var html = '<div style="background:linear-gradient(135deg, rgba(212,175,55,0.1), rgba(0,0,0,0.3));border:1px solid rgba(212,175,55,0.35);border-radius:14px;padding:1rem;">';
+
+  // Header con foto + datos
+  html += '<div style="display:flex;gap:14px;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.08);">';
+  if(foto) {
+    html += '<img src="'+foto+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #D4AF37;flex-shrink:0;">';
+  } else {
+    html += '<div style="width:64px;height:64px;border-radius:50%;background:#1a2040;color:#D4AF37;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;border:2px solid #D4AF37;flex-shrink:0;">'+iniciales+'</div>';
+  }
+  html += '<div style="flex:1;min-width:0;">';
+  html += '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:3px;">'+(j.nombre||'-')+'</div>';
+  html += '<div style="font-size:10px;color:#D4AF37;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">MI CARD PLAYER · '+(j.posicion||'')+'</div>';
+  var metaParts = [];
+  if(j.pie) metaParts.push('Pie: '+j.pie);
+  if(j.altura) metaParts.push(j.altura+'cm');
+  if(j.peso) metaParts.push(j.peso+'kg');
+  if(edad) metaParts.push(edad+' años');
+  if(j.club) metaParts.push(j.club);
+  if(metaParts.length) html += '<div style="font-size:10px;color:#9090a0;">'+metaParts.join(' · ')+'</div>';
+  html += '</div></div>';
+
+  // 2 columnas Staff vs Self
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+
+  // STAFF
+  html += '<div style="background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);border-radius:8px;padding:10px;">';
+  html += '<div style="font-size:9px;font-weight:800;color:#3fb950;letter-spacing:.08em;margin-bottom:6px;">ANÁLISIS STAFF</div>';
+  html += '<div style="font-size:10px;color:#9090a0;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">✓ Fortalezas</div>';
+  html += '<div style="font-size:11px;color:#fff;line-height:1.5;margin-bottom:8px;min-height:30px;">'+(cardData.staff_fortalezas||'<span style=\'color:#9090a0;font-style:italic;\'>—</span>')+'</div>';
+  html += '<div style="font-size:10px;color:#9090a0;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">⚠ A mejorar</div>';
+  html += '<div style="font-size:11px;color:#fff;line-height:1.5;min-height:30px;">'+(cardData.staff_mejorar||'<span style=\'color:#9090a0;font-style:italic;\'>—</span>')+'</div>';
+  html += '</div>';
+
+  // SELF
+  html += '<div style="background:rgba(88,166,255,0.1);border:1px solid rgba(88,166,255,0.3);border-radius:8px;padding:10px;">';
+  html += '<div style="font-size:9px;font-weight:800;color:#58a6ff;letter-spacing:.08em;margin-bottom:6px;">TU AUTOEVALUACIÓN</div>';
+  html += '<div style="font-size:10px;color:#9090a0;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">✓ Fortalezas</div>';
+  html += '<div style="font-size:11px;color:#fff;line-height:1.5;margin-bottom:8px;min-height:30px;">'+(cardData.self_fortalezas||'<span style=\'color:#9090a0;font-style:italic;\'>—</span>')+'</div>';
+  html += '<div style="font-size:10px;color:#9090a0;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">⚠ A mejorar</div>';
+  html += '<div style="font-size:11px;color:#fff;line-height:1.5;min-height:30px;">'+(cardData.self_mejorar||'<span style=\'color:#9090a0;font-style:italic;\'>—</span>')+'</div>';
+  html += '</div>';
+
+  html += '</div></div>';
+  cont.innerHTML = html;
+  cont.style.display = 'block';
+};
+
+window._renderPrioridadesJugador = async function() {
+  var cont = document.getElementById('inicio-prioridades-block');
+  if(!cont || !window._jugId || !window.DB_REF) return;
+
+  var hoy = new Date();
+  var mesActual = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0');
+  var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var nombreMes = MESES[hoy.getMonth()] + ' ' + hoy.getFullYear();
+
+  var prioridades = [];
+  try {
+    var r = await window.DB_REF.from('prioridades_mes').select('*')
+      .eq('jugador_id', window._jugId)
+      .eq('mes', mesActual)
+      .order('orden');
+    if(r.data) prioridades = r.data;
+  } catch(e) {}
+
+  if(prioridades.length === 0) {
+    cont.style.display = 'none';
+    return;
+  }
+
+  var html = '<div style="background:linear-gradient(135deg, rgba(124,111,240,0.12), rgba(0,0,0,0.3));border:1px solid rgba(124,111,240,0.35);border-radius:14px;padding:1rem;">';
+
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);">';
+  html += '<div>';
+  html += '<div style="font-size:9px;font-weight:800;color:#7C6FF0;letter-spacing:.1em;text-transform:uppercase;">🎖️ Mis prioridades del mes</div>';
+  html += '<div style="font-size:13px;font-weight:800;color:#fff;margin-top:2px;">'+nombreMes+'</div>';
+  html += '</div>';
+  html += '</div>';
+
+  prioridades.forEach(function(p, i) {
+    html += '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;padding:10px;background:rgba(255,255,255,0.04);border-radius:8px;border-left:3px solid #7C6FF0;">';
+    html += '<div style="width:26px;height:26px;background:#7C6FF0;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">'+(i+1)+'</div>';
+    html += '<div style="flex:1;font-size:12px;color:#fff;line-height:1.5;">'+p.texto+'</div>';
+    html += '</div>';
+  });
+
+  html += '</div>';
+  cont.innerHTML = html;
+  cont.style.display = 'block';
+};
+
+// Hook: cuando se carga Inicio, intentar renderizar
+(function(){
+  var tryRender = function() {
+    if(window._renderCardPlayerJugador) window._renderCardPlayerJugador();
+    if(window._renderPrioridadesJugador) window._renderPrioridadesJugador();
+  };
+  // Reintentos al arrancar
+  setTimeout(tryRender, 1000);
+  setTimeout(tryRender, 2500);
+  // Cuando se vuelva a la pestaña inicio
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('[onclick*="inicio"]');
+    if(t) setTimeout(tryRender, 200);
+  });
+})();
+
 </script>
 </html>
