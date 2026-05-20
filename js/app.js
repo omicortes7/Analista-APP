@@ -561,6 +561,14 @@ function renderDT(tab){
     const objsSuperados = getObjJugador(id).filter(o=>o.superado);
     const FASE_CFG={OF:{dot:'#1D9E75',bg:'#E1F5EE',color:'#085041',cls:'badge-of'},DE:{dot:'#378ADD',bg:'#E6F1FB',color:'#0C447C',cls:'badge-de'},TO:{dot:'#E07B00',bg:'#FAEEDA',color:'#633806',cls:'badge-to'},TD:{dot:'#D85A30',bg:'#FAECE7',color:'#993C1D',cls:'badge-td'},GEN:{dot:'#7C6FF0',bg:'#EEEDFE',color:'#3C3489',cls:''}};
 
+    // ─── CARD PLAYER + PRIORIDADES DEL MES (inyectado por funciones async) ───
+    const cardPlayerHtml = '<div id="card-player-container" style="margin-bottom:1rem;"><div style="text-align:center;padding:1rem;color:var(--text3);font-size:11px;">Cargando Card Player...</div></div>';
+    const prioridadesHtml = '<div id="prioridades-mes-container" style="margin-bottom:1rem;"><div style="text-align:center;padding:1rem;color:var(--text3);font-size:11px;">Cargando prioridades...</div></div>';
+    setTimeout(function(){
+      if(window.renderCardPlayerAnalista) window.renderCardPlayerAnalista(id);
+      if(window.renderPrioridadesMesAnalista) window.renderPrioridadesMesAnalista(id);
+    }, 50);
+
     // ─── BLOQUE DE EVOLUCIÓN DE OBJETIVOS ───
     let evoHtml = '';
     const totalObjs = objs.length + objsSuperados.length;
@@ -627,7 +635,7 @@ function renderDT(tab){
 
     const objsCountHtml = objs.length ? '<div style="'+SEC_TITLE+'margin-top:.5rem;">'+objs.length+' objetivo'+(objs.length!==1?'s':'')+' activos</div>' : '';
 
-    body.innerHTML = evoHtml + '<div style="'+CARD+'">'+
+    body.innerHTML = cardPlayerHtml + prioridadesHtml + evoHtml + '<div style="'+CARD+'">'+
       '<div style="'+SEC_TITLE+'">Selecciona microconcepto a mejorar</div>'+
       '<div style="font-size:11px;color:var(--text2);margin-bottom:.75rem;">Toca el microconcepto para añadirlo como objetivo</div>'+
       '<div id="micro-obj-selector" style="max-height:200px;overflow-y:auto;margin-bottom:.875rem;padding-right:4px;">Cargando...</div>'+
@@ -7892,4 +7900,352 @@ window.exportarInformeProfesionalPDF = function() {
   }, 100);
 
   if(typeof showToast === 'function') showToast('✓ Descargado. Ábrelo y usa Ctrl+P → "Guardar como PDF"');
+};
+
+// ════════════════════════════════════════════════════════════════════
+// ENTREGA B · CARD PLAYER + PRIORIDADES DEL MES (Analista)
+// ════════════════════════════════════════════════════════════════════
+
+// ─── CARD PLAYER ANALISTA ───
+window.renderCardPlayerAnalista = async function(jugId) {
+  const cont = document.getElementById('card-player-container');
+  if(!cont) return;
+  const j = state.jugadores.find(x => x.id === jugId);
+  if(!j) { cont.innerHTML = ''; return; }
+
+  // Cargar card_player de Supabase
+  let cardData = { staff_fortalezas: '', staff_mejorar: '', self_fortalezas: '', self_mejorar: '' };
+  try {
+    const { data } = await DB.from('card_player').select('*').eq('jugador_id', jugId).maybeSingle();
+    if(data) cardData = data;
+  } catch(e) { /* tabla puede no existir aún */ }
+
+  const av = AV_COLORS[j.posicion] || {bg:'#1a2040', color:'#8090d0'};
+  const iniciales = (j.nombre || '?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const foto = j.foto_jugador || '';
+  const edad = j.fecha_nacimiento ? Math.floor((Date.now() - new Date(j.fecha_nacimiento)) / (365.25*24*3600*1000)) : '';
+
+  let html = '<div style="background:linear-gradient(135deg, rgba(212,175,55,0.08), rgba(255,255,255,0.02));border:0.5px solid rgba(212,175,55,0.3);border-radius:14px;padding:1rem;margin-bottom:1rem;">';
+
+  // Encabezado: foto + datos
+  html += '<div style="display:flex;gap:14px;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:0.5px solid var(--border);">';
+  // Avatar/Foto
+  if(foto) {
+    html += '<img src="'+foto+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #D4AF37;flex-shrink:0;">';
+  } else {
+    html += '<div style="width:64px;height:64px;border-radius:50%;background:'+av.bg+';color:'+av.color+';display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;border:2px solid #D4AF37;flex-shrink:0;">'+iniciales+'</div>';
+  }
+  // Datos
+  html += '<div style="flex:1;min-width:0;">';
+  html += '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:3px;">'+(j.nombre||'-')+'</div>';
+  html += '<div style="font-size:10px;color:#D4AF37;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">CARD PLAYER · '+(j.posicion||'Sin posición')+'</div>';
+  let metaParts = [];
+  if(j.pie) metaParts.push('Pie: '+j.pie);
+  if(j.altura) metaParts.push(j.altura+'cm');
+  if(j.peso) metaParts.push(j.peso+'kg');
+  if(edad) metaParts.push(edad+' años');
+  if(j.club) metaParts.push(j.club);
+  if(metaParts.length) html += '<div style="font-size:10px;color:var(--text2);">'+metaParts.join(' · ')+'</div>';
+  html += '</div>';
+  html += '</div>';
+
+  // 2 columnas: Staff vs Self
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+
+  // STAFF ANALYSIS (lo que el analista ve)
+  html += '<div style="background:rgba(63,185,80,0.08);border:0.5px solid rgba(63,185,80,0.3);border-radius:8px;padding:10px;">';
+  html += '<div style="font-size:9px;font-weight:800;color:#3fb950;letter-spacing:.08em;margin-bottom:6px;">STAFF ANALYSIS</div>';
+  html += '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">✓ Fortalezas</div>';
+  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;margin-bottom:8px;min-height:30px;">'+(cardData.staff_fortalezas||'<span style=\'color:var(--text3);font-style:italic;\'>Sin definir</span>')+'</div>';
+  html += '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">⚠ A mejorar</div>';
+  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;min-height:30px;">'+(cardData.staff_mejorar||'<span style=\'color:var(--text3);font-style:italic;\'>Sin definir</span>')+'</div>';
+  html += '</div>';
+
+  // SELF-ASSESSMENT (lo que él dijo en el cuestionario)
+  html += '<div style="background:rgba(88,166,255,0.08);border:0.5px solid rgba(88,166,255,0.3);border-radius:8px;padding:10px;">';
+  html += '<div style="font-size:9px;font-weight:800;color:#58a6ff;letter-spacing:.08em;margin-bottom:6px;">SELF-ASSESSMENT</div>';
+  html += '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">✓ Fortalezas</div>';
+  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;margin-bottom:8px;min-height:30px;">'+(cardData.self_fortalezas||'<span style=\'color:var(--text3);font-style:italic;\'>Sin completar</span>')+'</div>';
+  html += '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">⚠ A mejorar</div>';
+  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;min-height:30px;">'+(cardData.self_mejorar||'<span style=\'color:var(--text3);font-style:italic;\'>Sin completar</span>')+'</div>';
+  html += '</div>';
+
+  html += '</div>';
+
+  // Botón editar
+  html += '<div style="text-align:right;margin-top:10px;">';
+  html += '<button onclick="window.editarCardPlayer(\''+jugId+'\')" style="background:rgba(212,175,55,0.15);border:0.5px solid #D4AF37;color:#D4AF37;padding:5px 12px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:.04em;cursor:pointer;font-family:inherit;text-transform:uppercase;">✏ Editar Card Player</button>';
+  html += '</div>';
+
+  html += '</div>';
+  cont.innerHTML = html;
+};
+
+// Modal de edición Card Player
+window.editarCardPlayer = async function(jugId) {
+  const j = state.jugadores.find(x => x.id === jugId);
+  if(!j) return;
+
+  let cardData = { staff_fortalezas: '', staff_mejorar: '', self_fortalezas: '', self_mejorar: '' };
+  try {
+    const { data } = await DB.from('card_player').select('*').eq('jugador_id', jugId).maybeSingle();
+    if(data) cardData = data;
+  } catch(e) {}
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;';
+
+  const TA = 'width:100%;border:0.5px solid var(--border2);border-radius:8px;padding:10px;font-size:12px;background:var(--bg);color:var(--text);resize:vertical;font-family:inherit;outline:none;line-height:1.5;box-sizing:border-box;min-height:80px;';
+
+  let html = '<div style="background:var(--bg2);border-radius:14px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;padding:1.25rem;">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">';
+  html += '<div style="font-size:14px;font-weight:800;">Editar Card Player · '+j.nombre+'</div>';
+  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
+  html += '</div>';
+
+  html += '<div style="font-size:11px;color:var(--text2);margin-bottom:1rem;line-height:1.6;">';
+  html += '<strong style="color:#3fb950;">STAFF</strong>: tu análisis del jugador (lo que tú ves).<br>';
+  html += '<strong style="color:#58a6ff;">SELF</strong>: lo que el jugador puso en su cuestionario inicial (copia-pega de lo que te mandó).';
+  html += '</div>';
+
+  // STAFF
+  html += '<div style="background:rgba(63,185,80,0.05);border-left:3px solid #3fb950;padding:12px;margin-bottom:12px;border-radius:6px;">';
+  html += '<div style="font-size:10px;font-weight:800;color:#3fb950;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">STAFF ANALYSIS</div>';
+  html += '<div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Fortalezas (1 por línea)</div>';
+  html += '<textarea id="cp-staff-f" style="'+TA+'" placeholder="Visión de juego&#10;Pase corto preciso&#10;Cabeceo defensivo">'+(cardData.staff_fortalezas||'')+'</textarea>';
+  html += '<div style="font-size:11px;color:var(--text2);margin:8px 0 4px;">A mejorar (1 por línea)</div>';
+  html += '<textarea id="cp-staff-m" style="'+TA+'" placeholder="Disciplina posicional&#10;Selección de centros">'+(cardData.staff_mejorar||'')+'</textarea>';
+  html += '</div>';
+
+  // SELF
+  html += '<div style="background:rgba(88,166,255,0.05);border-left:3px solid #58a6ff;padding:12px;margin-bottom:12px;border-radius:6px;">';
+  html += '<div style="font-size:10px;font-weight:800;color:#58a6ff;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">SELF-ASSESSMENT</div>';
+  html += '<div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Fortalezas que él dice (1 por línea)</div>';
+  html += '<textarea id="cp-self-f" style="'+TA+'" placeholder="1v1 atacante&#10;Finalización&#10;Velocidad">'+(cardData.self_fortalezas||'')+'</textarea>';
+  html += '<div style="font-size:11px;color:var(--text2);margin:8px 0 4px;">A mejorar que él dice (1 por línea)</div>';
+  html += '<textarea id="cp-self-m" style="'+TA+'" placeholder="Disciplina posicional&#10;Pase largo">'+(cardData.self_mejorar||'')+'</textarea>';
+  html += '</div>';
+
+  html += '<div style="display:flex;gap:8px;justify-content:flex-end;">';
+  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:0.5px solid var(--border);color:var(--text);padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>';
+  html += '<button onclick="window.guardarCardPlayer(\''+jugId+'\')" style="background:#D4AF37;border:none;color:#000;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar</button>';
+  html += '</div>';
+
+  html += '</div>';
+  modal.innerHTML = html;
+  document.body.appendChild(modal);
+};
+
+window.guardarCardPlayer = async function(jugId) {
+  const staffF = document.getElementById('cp-staff-f').value.trim();
+  const staffM = document.getElementById('cp-staff-m').value.trim();
+  const selfF = document.getElementById('cp-self-f').value.trim();
+  const selfM = document.getElementById('cp-self-m').value.trim();
+
+  try {
+    const { data: existing } = await DB.from('card_player').select('id').eq('jugador_id', jugId).maybeSingle();
+    if(existing) {
+      await DB.from('card_player').update({
+        staff_fortalezas: staffF, staff_mejorar: staffM,
+        self_fortalezas: selfF, self_mejorar: selfM,
+        updated_at: new Date().toISOString()
+      }).eq('id', existing.id);
+    } else {
+      await DB.from('card_player').insert({
+        jugador_id: jugId,
+        staff_fortalezas: staffF, staff_mejorar: staffM,
+        self_fortalezas: selfF, self_mejorar: selfM
+      });
+    }
+    showToast('✓ Card Player guardada');
+    document.querySelectorAll('div[style*="position:fixed"]').forEach(d => {
+      if(d.style.zIndex === '600') d.remove();
+    });
+    window.renderCardPlayerAnalista(jugId);
+  } catch(e) {
+    showToast('Error al guardar. ¿Has creado la tabla card_player en Supabase?');
+    console.error(e);
+  }
+};
+
+// ─── PRIORIDADES DEL MES ANALISTA ───
+window.renderPrioridadesMesAnalista = async function(jugId) {
+  const cont = document.getElementById('prioridades-mes-container');
+  if(!cont) return;
+
+  const hoy = new Date();
+  const mesActual = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0');
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const nombreMes = MESES[hoy.getMonth()] + ' ' + hoy.getFullYear();
+
+  let prioridades = [];
+  try {
+    const { data } = await DB.from('prioridades_mes').select('*')
+      .eq('jugador_id', jugId)
+      .eq('mes', mesActual)
+      .order('orden');
+    if(data) prioridades = data;
+  } catch(e) {}
+
+  let html = '<div style="background:linear-gradient(135deg, rgba(124,111,240,0.08), rgba(255,255,255,0.02));border:0.5px solid rgba(124,111,240,0.3);border-radius:14px;padding:1rem;margin-bottom:1rem;">';
+
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid var(--border);">';
+  html += '<div>';
+  html += '<div style="font-size:9px;font-weight:800;color:#7C6FF0;letter-spacing:.1em;text-transform:uppercase;">🎖️ Prioridades del mes</div>';
+  html += '<div style="font-size:13px;font-weight:800;color:#fff;margin-top:2px;">'+nombreMes+'</div>';
+  html += '</div>';
+  html += '<div style="display:flex;gap:6px;">';
+  html += '<button onclick="window.verHistoricoPrioridades(\''+jugId+'\')" style="background:rgba(255,255,255,0.05);border:0.5px solid var(--border);color:var(--text2);padding:5px 10px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">📚 Histórico</button>';
+  html += '<button onclick="window.editarPrioridadesMes(\''+jugId+'\')" style="background:rgba(124,111,240,0.15);border:0.5px solid #7C6FF0;color:#7C6FF0;padding:5px 12px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">✏ Editar</button>';
+  html += '</div>';
+  html += '</div>';
+
+  if(prioridades.length === 0) {
+    html += '<div style="text-align:center;padding:1rem;color:var(--text3);font-size:11px;font-style:italic;">Sin prioridades definidas para este mes. Pulsa Editar para añadir hasta 3.</div>';
+  } else {
+    prioridades.forEach((p, i) => {
+      html += '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px;">';
+      html += '<div style="width:24px;height:24px;background:#7C6FF0;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">'+(i+1)+'</div>';
+      html += '<div style="flex:1;font-size:12px;color:var(--text);line-height:1.5;">'+p.texto+'</div>';
+      html += '</div>';
+    });
+  }
+
+  html += '</div>';
+  cont.innerHTML = html;
+};
+
+window.editarPrioridadesMes = async function(jugId) {
+  const hoy = new Date();
+  const mesActual = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0');
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const nombreMes = MESES[hoy.getMonth()] + ' ' + hoy.getFullYear();
+
+  let prioridades = [];
+  try {
+    const { data } = await DB.from('prioridades_mes').select('*')
+      .eq('jugador_id', jugId)
+      .eq('mes', mesActual)
+      .order('orden');
+    if(data) prioridades = data;
+  } catch(e) {}
+
+  // Rellenar con vacíos hasta 3
+  while(prioridades.length < 3) prioridades.push({texto:''});
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;';
+
+  const TA = 'width:100%;border:0.5px solid var(--border2);border-radius:8px;padding:10px;font-size:12px;background:var(--bg);color:var(--text);resize:vertical;font-family:inherit;outline:none;line-height:1.5;box-sizing:border-box;min-height:55px;';
+
+  let html = '<div style="background:var(--bg2);border-radius:14px;max-width:550px;width:100%;max-height:90vh;overflow-y:auto;padding:1.25rem;">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">';
+  html += '<div><div style="font-size:14px;font-weight:800;">Prioridades del mes</div>';
+  html += '<div style="font-size:11px;color:#7C6FF0;font-weight:700;margin-top:2px;">'+nombreMes+'</div></div>';
+  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
+  html += '</div>';
+
+  html += '<div style="font-size:11px;color:var(--text2);margin-bottom:1rem;line-height:1.6;font-style:italic;">';
+  html += 'Define hasta 3 prioridades concretas para este mes. Mejor pocas y específicas que muchas y vagas.';
+  html += '</div>';
+
+  for(let i = 0; i < 3; i++) {
+    html += '<div style="margin-bottom:12px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+    html += '<div style="width:22px;height:22px;background:#7C6FF0;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">'+(i+1)+'</div>';
+    html += '<div style="font-size:11px;color:var(--text2);">Prioridad '+(i+1)+'</div>';
+    html += '</div>';
+    html += '<textarea id="prio-'+i+'" style="'+TA+'" placeholder="Ej: Mejorar disciplina posicional en bloque medio">'+(prioridades[i].texto||'')+'</textarea>';
+    html += '</div>';
+  }
+
+  html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">';
+  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:0.5px solid var(--border);color:var(--text);padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>';
+  html += '<button onclick="window.guardarPrioridadesMes(\''+jugId+'\')" style="background:#7C6FF0;border:none;color:#fff;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar</button>';
+  html += '</div>';
+
+  html += '</div>';
+  modal.innerHTML = html;
+  document.body.appendChild(modal);
+};
+
+window.guardarPrioridadesMes = async function(jugId) {
+  const hoy = new Date();
+  const mesActual = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0');
+
+  const textos = [];
+  for(let i = 0; i < 3; i++) {
+    const t = document.getElementById('prio-'+i).value.trim();
+    if(t) textos.push(t);
+  }
+
+  try {
+    // Borrar existentes del mes
+    await DB.from('prioridades_mes').delete().eq('jugador_id', jugId).eq('mes', mesActual);
+    // Insertar nuevos
+    if(textos.length > 0) {
+      const rows = textos.map((texto, idx) => ({
+        jugador_id: jugId, mes: mesActual, texto: texto, orden: idx + 1
+      }));
+      await DB.from('prioridades_mes').insert(rows);
+    }
+    showToast('✓ Prioridades guardadas');
+    document.querySelectorAll('div[style*="position:fixed"]').forEach(d => {
+      if(d.style.zIndex === '600') d.remove();
+    });
+    window.renderPrioridadesMesAnalista(jugId);
+  } catch(e) {
+    showToast('Error. ¿Has creado la tabla prioridades_mes en Supabase?');
+    console.error(e);
+  }
+};
+
+window.verHistoricoPrioridades = async function(jugId) {
+  let datos = [];
+  try {
+    const { data } = await DB.from('prioridades_mes').select('*')
+      .eq('jugador_id', jugId)
+      .order('mes', { ascending: false })
+      .order('orden');
+    if(data) datos = data;
+  } catch(e) {}
+
+  const porMes = {};
+  datos.forEach(d => {
+    if(!porMes[d.mes]) porMes[d.mes] = [];
+    porMes[d.mes].push(d);
+  });
+
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;';
+
+  let html = '<div style="background:var(--bg2);border-radius:14px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;padding:1.25rem;">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">';
+  html += '<div style="font-size:14px;font-weight:800;">📚 Histórico de prioridades</div>';
+  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
+  html += '</div>';
+
+  if(Object.keys(porMes).length === 0) {
+    html += '<div style="text-align:center;padding:2rem;color:var(--text3);font-size:12px;">Sin prioridades registradas aún.</div>';
+  } else {
+    Object.keys(porMes).forEach(mes => {
+      const [y, m] = mes.split('-');
+      const nombreMes = MESES[parseInt(m)-1] + ' ' + y;
+      html += '<div style="background:rgba(124,111,240,0.06);border-left:3px solid #7C6FF0;padding:10px 12px;margin-bottom:10px;border-radius:6px;">';
+      html += '<div style="font-size:11px;font-weight:800;color:#7C6FF0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">'+nombreMes+'</div>';
+      porMes[mes].forEach((p, i) => {
+        html += '<div style="display:flex;gap:8px;margin-bottom:5px;">';
+        html += '<div style="font-size:10px;color:#7C6FF0;font-weight:800;flex-shrink:0;">'+(i+1)+'.</div>';
+        html += '<div style="font-size:11px;color:var(--text);line-height:1.5;">'+p.texto+'</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+  }
+
+  html += '</div>';
+  modal.innerHTML = html;
+  document.body.appendChild(modal);
 };
