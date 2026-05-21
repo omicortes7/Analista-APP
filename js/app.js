@@ -8043,28 +8043,45 @@ window.guardarCardPlayer = async function(jugId) {
   const selfM = document.getElementById('cp-self-m').value.trim();
 
   try {
-    const { data: existing } = await DB.from('card_player').select('id').eq('jugador_id', jugId).maybeSingle();
+    // 1. Buscar si ya existe
+    const selectRes = await DB.from('card_player').select('id').eq('jugador_id', jugId).maybeSingle();
+    if(selectRes.error){
+      console.error('Error SELECT card_player:', selectRes.error);
+      alert('❌ Error al leer card_player:\n\n' + selectRes.error.message + '\n\nCódigo: ' + (selectRes.error.code||'?') + '\n\nVe a Supabase → SQL Editor y ejecuta el SQL que te pasé para crear la tabla card_player.');
+      return;
+    }
+    const existing = selectRes.data;
+
+    // 2. Update o Insert
+    let opRes;
     if(existing) {
-      await DB.from('card_player').update({
+      opRes = await DB.from('card_player').update({
         staff_fortalezas: staffF, staff_mejorar: staffM,
         self_fortalezas: selfF, self_mejorar: selfM,
         updated_at: new Date().toISOString()
       }).eq('id', existing.id);
     } else {
-      await DB.from('card_player').insert({
+      opRes = await DB.from('card_player').insert({
         jugador_id: jugId,
         staff_fortalezas: staffF, staff_mejorar: staffM,
         self_fortalezas: selfF, self_mejorar: selfM
       });
     }
+
+    if(opRes.error){
+      console.error('Error UPDATE/INSERT card_player:', opRes.error);
+      alert('❌ Error al guardar:\n\n' + opRes.error.message + '\n\nCódigo: ' + (opRes.error.code||'?') + '\n\nPosibles causas:\n• Tabla card_player no creada\n• Falta política RLS\n• Columnas diferentes');
+      return;
+    }
+
     showToast('✓ Card Player guardada');
     document.querySelectorAll('div[style*="position:fixed"]').forEach(d => {
       if(d.style.zIndex === '600') d.remove();
     });
     window.renderCardPlayerAnalista(jugId);
   } catch(e) {
-    showToast('Error al guardar. ¿Has creado la tabla card_player en Supabase?');
-    console.error(e);
+    console.error('Excepción guardarCardPlayer:', e);
+    alert('❌ Excepción JS:\n\n' + (e.message || e) + '\n\nMira la consola (F12) para más detalles.');
   }
 };
 
