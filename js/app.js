@@ -7925,6 +7925,12 @@ window.renderCardPlayerAnalista = async function(jugId) {
   const foto = j.foto_jugador || '';
   const edad = j.fecha_nacimiento ? Math.floor((Date.now() - new Date(j.fecha_nacimiento)) / (365.25*24*3600*1000)) : '';
 
+  // Helper: escapar HTML y convertir saltos de línea a <br>
+  const fmt = (s) => {
+    if(!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  };
+
   let html = '<div style="background:linear-gradient(135deg, rgba(212,175,55,0.08), rgba(255,255,255,0.02));border:0.5px solid rgba(212,175,55,0.3);border-radius:14px;padding:1rem;margin-bottom:1rem;">';
 
   // Encabezado: foto + datos
@@ -7956,18 +7962,18 @@ window.renderCardPlayerAnalista = async function(jugId) {
   html += '<div style="background:rgba(63,185,80,0.08);border:0.5px solid rgba(63,185,80,0.3);border-radius:8px;padding:10px;">';
   html += '<div style="font-size:9px;font-weight:800;color:#3fb950;letter-spacing:.08em;margin-bottom:6px;">STAFF ANALYSIS</div>';
   html += '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">✓ Fortalezas</div>';
-  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;margin-bottom:8px;min-height:30px;">'+(cardData.staff_fortalezas||'<span style=\'color:var(--text3);font-style:italic;\'>Sin definir</span>')+'</div>';
+  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;margin-bottom:8px;min-height:30px;">'+(cardData.staff_fortalezas ? fmt(cardData.staff_fortalezas) : '<span style="color:var(--text3);font-style:italic;">Sin definir</span>')+'</div>';
   html += '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">⚠ A mejorar</div>';
-  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;min-height:30px;">'+(cardData.staff_mejorar||'<span style=\'color:var(--text3);font-style:italic;\'>Sin definir</span>')+'</div>';
+  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;min-height:30px;">'+(cardData.staff_mejorar ? fmt(cardData.staff_mejorar) : '<span style="color:var(--text3);font-style:italic;">Sin definir</span>')+'</div>';
   html += '</div>';
 
   // SELF-ASSESSMENT (lo que él dijo en el cuestionario)
   html += '<div style="background:rgba(88,166,255,0.08);border:0.5px solid rgba(88,166,255,0.3);border-radius:8px;padding:10px;">';
   html += '<div style="font-size:9px;font-weight:800;color:#58a6ff;letter-spacing:.08em;margin-bottom:6px;">SELF-ASSESSMENT</div>';
   html += '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">✓ Fortalezas</div>';
-  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;margin-bottom:8px;min-height:30px;">'+(cardData.self_fortalezas||'<span style=\'color:var(--text3);font-style:italic;\'>Sin completar</span>')+'</div>';
+  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;margin-bottom:8px;min-height:30px;">'+(cardData.self_fortalezas ? fmt(cardData.self_fortalezas) : '<span style="color:var(--text3);font-style:italic;">Sin completar</span>')+'</div>';
   html += '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">⚠ A mejorar</div>';
-  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;min-height:30px;">'+(cardData.self_mejorar||'<span style=\'color:var(--text3);font-style:italic;\'>Sin completar</span>')+'</div>';
+  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;min-height:30px;">'+(cardData.self_mejorar ? fmt(cardData.self_mejorar) : '<span style="color:var(--text3);font-style:italic;">Sin completar</span>')+'</div>';
   html += '</div>';
 
   html += '</div>';
@@ -7986,6 +7992,10 @@ window.editarCardPlayer = async function(jugId) {
   const j = state.jugadores.find(x => x.id === jugId);
   if(!j) return;
 
+  // Cerrar si ya hay un modal abierto previo
+  const prev = document.getElementById('modal-cardplayer-edit');
+  if(prev) prev.remove();
+
   let cardData = { staff_fortalezas: '', staff_mejorar: '', self_fortalezas: '', self_mejorar: '' };
   try {
     const { data } = await DB.from('card_player').select('*').eq('jugador_id', jugId).maybeSingle();
@@ -7993,14 +8003,18 @@ window.editarCardPlayer = async function(jugId) {
   } catch(e) {}
 
   const modal = document.createElement('div');
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  modal.id = 'modal-cardplayer-edit';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;';
 
   const TA = 'width:100%;border:0.5px solid var(--border2);border-radius:8px;padding:10px;font-size:12px;background:var(--bg);color:var(--text);resize:vertical;font-family:inherit;outline:none;line-height:1.5;box-sizing:border-box;min-height:80px;';
+
+  // Escape HTML para meter contenido en textareas sin romper
+  const esc = (s) => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
   let html = '<div style="background:var(--bg2);border-radius:14px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;padding:1.25rem;">';
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">';
   html += '<div style="font-size:14px;font-weight:800;">Editar Card Player · '+j.nombre+'</div>';
-  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
+  html += '<button id="cp-btn-cerrar" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
   html += '</div>';
 
   html += '<div style="font-size:11px;color:var(--text2);margin-bottom:1rem;line-height:1.6;">';
@@ -8012,42 +8026,65 @@ window.editarCardPlayer = async function(jugId) {
   html += '<div style="background:rgba(63,185,80,0.05);border-left:3px solid #3fb950;padding:12px;margin-bottom:12px;border-radius:6px;">';
   html += '<div style="font-size:10px;font-weight:800;color:#3fb950;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">STAFF ANALYSIS</div>';
   html += '<div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Fortalezas (1 por línea)</div>';
-  html += '<textarea id="cp-staff-f" style="'+TA+'" placeholder="Visión de juego&#10;Pase corto preciso&#10;Cabeceo defensivo">'+(cardData.staff_fortalezas||'')+'</textarea>';
+  html += '<textarea id="cp-staff-f" style="'+TA+'" placeholder="Visión de juego&#10;Pase corto preciso&#10;Cabeceo defensivo">'+esc(cardData.staff_fortalezas)+'</textarea>';
   html += '<div style="font-size:11px;color:var(--text2);margin:8px 0 4px;">A mejorar (1 por línea)</div>';
-  html += '<textarea id="cp-staff-m" style="'+TA+'" placeholder="Disciplina posicional&#10;Selección de centros">'+(cardData.staff_mejorar||'')+'</textarea>';
+  html += '<textarea id="cp-staff-m" style="'+TA+'" placeholder="Disciplina posicional&#10;Selección de centros">'+esc(cardData.staff_mejorar)+'</textarea>';
   html += '</div>';
 
   // SELF
   html += '<div style="background:rgba(88,166,255,0.05);border-left:3px solid #58a6ff;padding:12px;margin-bottom:12px;border-radius:6px;">';
   html += '<div style="font-size:10px;font-weight:800;color:#58a6ff;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">SELF-ASSESSMENT</div>';
   html += '<div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Fortalezas que él dice (1 por línea)</div>';
-  html += '<textarea id="cp-self-f" style="'+TA+'" placeholder="1v1 atacante&#10;Finalización&#10;Velocidad">'+(cardData.self_fortalezas||'')+'</textarea>';
+  html += '<textarea id="cp-self-f" style="'+TA+'" placeholder="1v1 atacante&#10;Finalización&#10;Velocidad">'+esc(cardData.self_fortalezas)+'</textarea>';
   html += '<div style="font-size:11px;color:var(--text2);margin:8px 0 4px;">A mejorar que él dice (1 por línea)</div>';
-  html += '<textarea id="cp-self-m" style="'+TA+'" placeholder="Disciplina posicional&#10;Pase largo">'+(cardData.self_mejorar||'')+'</textarea>';
+  html += '<textarea id="cp-self-m" style="'+TA+'" placeholder="Disciplina posicional&#10;Pase largo">'+esc(cardData.self_mejorar)+'</textarea>';
   html += '</div>';
 
   html += '<div style="display:flex;gap:8px;justify-content:flex-end;">';
-  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:0.5px solid var(--border);color:var(--text);padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>';
-  html += '<button onclick="window.guardarCardPlayer(\''+jugId+'\')" style="background:#D4AF37;border:none;color:#000;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar</button>';
+  html += '<button id="cp-btn-cancelar" style="background:var(--bg3);border:0.5px solid var(--border);color:var(--text);padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>';
+  html += '<button id="cp-btn-guardar" style="background:#D4AF37;border:none;color:#000;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar</button>';
   html += '</div>';
 
   html += '</div>';
   modal.innerHTML = html;
   document.body.appendChild(modal);
+
+  // Event listeners directos (no onclick string)
+  const cerrar = () => { const m = document.getElementById('modal-cardplayer-edit'); if(m) m.remove(); };
+  document.getElementById('cp-btn-cerrar').addEventListener('click', cerrar);
+  document.getElementById('cp-btn-cancelar').addEventListener('click', cerrar);
+  document.getElementById('cp-btn-guardar').addEventListener('click', function(){
+    window.guardarCardPlayer(jugId);
+  });
 };
 
 window.guardarCardPlayer = async function(jugId) {
-  const staffF = document.getElementById('cp-staff-f').value.trim();
-  const staffM = document.getElementById('cp-staff-m').value.trim();
-  const selfF = document.getElementById('cp-self-f').value.trim();
-  const selfM = document.getElementById('cp-self-m').value.trim();
+  const elStaffF = document.getElementById('cp-staff-f');
+  const elStaffM = document.getElementById('cp-staff-m');
+  const elSelfF = document.getElementById('cp-self-f');
+  const elSelfM = document.getElementById('cp-self-m');
+
+  if(!elStaffF || !elStaffM || !elSelfF || !elSelfM) {
+    alert('❌ Error: no se encuentran los campos del formulario. Cierra el modal y vuelve a abrirlo.');
+    return;
+  }
+
+  const staffF = elStaffF.value.trim();
+  const staffM = elStaffM.value.trim();
+  const selfF = elSelfF.value.trim();
+  const selfM = elSelfM.value.trim();
+
+  // Indicador visual de guardando
+  const btnGuardar = document.getElementById('cp-btn-guardar');
+  if(btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = 'Guardando...'; }
 
   try {
     // 1. Buscar si ya existe
     const selectRes = await DB.from('card_player').select('id').eq('jugador_id', jugId).maybeSingle();
     if(selectRes.error){
       console.error('Error SELECT card_player:', selectRes.error);
-      alert('❌ Error al leer card_player:\n\n' + selectRes.error.message + '\n\nCódigo: ' + (selectRes.error.code||'?') + '\n\nVe a Supabase → SQL Editor y ejecuta el SQL que te pasé para crear la tabla card_player.');
+      if(btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = '💾 Guardar'; }
+      alert('❌ Error al leer card_player:\n\n' + selectRes.error.message + '\n\nCódigo: ' + (selectRes.error.code||'?') + '\n\nVe a Supabase → SQL Editor y ejecuta el SQL que te pasé.');
       return;
     }
     const existing = selectRes.data;
@@ -8070,17 +8107,20 @@ window.guardarCardPlayer = async function(jugId) {
 
     if(opRes.error){
       console.error('Error UPDATE/INSERT card_player:', opRes.error);
-      alert('❌ Error al guardar:\n\n' + opRes.error.message + '\n\nCódigo: ' + (opRes.error.code||'?') + '\n\nPosibles causas:\n• Tabla card_player no creada\n• Falta política RLS\n• Columnas diferentes');
+      if(btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = '💾 Guardar'; }
+      alert('❌ Error al guardar:\n\n' + opRes.error.message + '\n\nCódigo: ' + (opRes.error.code||'?'));
       return;
     }
 
-    showToast('✓ Card Player guardada');
-    document.querySelectorAll('div[style*="position:fixed"]').forEach(d => {
-      if(d.style.zIndex === '600') d.remove();
-    });
+    // ÉXITO: cerrar modal + refrescar card visible
+    const modal = document.getElementById('modal-cardplayer-edit');
+    if(modal) modal.remove();
+    if(typeof showToast === 'function') showToast('✓ Card Player guardada');
     window.renderCardPlayerAnalista(jugId);
+
   } catch(e) {
     console.error('Excepción guardarCardPlayer:', e);
+    if(btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = '💾 Guardar'; }
     alert('❌ Excepción JS:\n\n' + (e.message || e) + '\n\nMira la consola (F12) para más detalles.');
   }
 };
@@ -8138,6 +8178,10 @@ window.editarPrioridadesMes = async function(jugId) {
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const nombreMes = MESES[hoy.getMonth()] + ' ' + hoy.getFullYear();
 
+  // Cerrar modal previo si existe
+  const prev = document.getElementById('modal-prioridades-edit');
+  if(prev) prev.remove();
+
   let prioridades = [];
   try {
     const { data } = await DB.from('prioridades_mes').select('*')
@@ -8151,15 +8195,18 @@ window.editarPrioridadesMes = async function(jugId) {
   while(prioridades.length < 3) prioridades.push({texto:''});
 
   const modal = document.createElement('div');
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  modal.id = 'modal-prioridades-edit';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;';
 
   const TA = 'width:100%;border:0.5px solid var(--border2);border-radius:8px;padding:10px;font-size:12px;background:var(--bg);color:var(--text);resize:vertical;font-family:inherit;outline:none;line-height:1.5;box-sizing:border-box;min-height:55px;';
+
+  const esc = (s) => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
   let html = '<div style="background:var(--bg2);border-radius:14px;max-width:550px;width:100%;max-height:90vh;overflow-y:auto;padding:1.25rem;">';
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">';
   html += '<div><div style="font-size:14px;font-weight:800;">Prioridades del mes</div>';
   html += '<div style="font-size:11px;color:#7C6FF0;font-weight:700;margin-top:2px;">'+nombreMes+'</div></div>';
-  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
+  html += '<button id="pri-btn-cerrar" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
   html += '</div>';
 
   html += '<div style="font-size:11px;color:var(--text2);margin-bottom:1rem;line-height:1.6;font-style:italic;">';
@@ -8172,18 +8219,25 @@ window.editarPrioridadesMes = async function(jugId) {
     html += '<div style="width:22px;height:22px;background:#7C6FF0;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">'+(i+1)+'</div>';
     html += '<div style="font-size:11px;color:var(--text2);">Prioridad '+(i+1)+'</div>';
     html += '</div>';
-    html += '<textarea id="prio-'+i+'" style="'+TA+'" placeholder="Ej: Mejorar disciplina posicional en bloque medio">'+(prioridades[i].texto||'')+'</textarea>';
+    html += '<textarea id="prio-'+i+'" style="'+TA+'" placeholder="Ej: Mejorar disciplina posicional en bloque medio">'+esc(prioridades[i].texto)+'</textarea>';
     html += '</div>';
   }
 
   html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">';
-  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:0.5px solid var(--border);color:var(--text);padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>';
-  html += '<button onclick="window.guardarPrioridadesMes(\''+jugId+'\')" style="background:#7C6FF0;border:none;color:#fff;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar</button>';
+  html += '<button id="pri-btn-cancelar" style="background:var(--bg3);border:0.5px solid var(--border);color:var(--text);padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>';
+  html += '<button id="pri-btn-guardar" style="background:#7C6FF0;border:none;color:#fff;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar</button>';
   html += '</div>';
 
   html += '</div>';
   modal.innerHTML = html;
   document.body.appendChild(modal);
+
+  const cerrar = () => { const m = document.getElementById('modal-prioridades-edit'); if(m) m.remove(); };
+  document.getElementById('pri-btn-cerrar').addEventListener('click', cerrar);
+  document.getElementById('pri-btn-cancelar').addEventListener('click', cerrar);
+  document.getElementById('pri-btn-guardar').addEventListener('click', function(){
+    window.guardarPrioridadesMes(jugId);
+  });
 };
 
 window.guardarPrioridadesMes = async function(jugId) {
@@ -8192,32 +8246,53 @@ window.guardarPrioridadesMes = async function(jugId) {
 
   const textos = [];
   for(let i = 0; i < 3; i++) {
-    const t = document.getElementById('prio-'+i).value.trim();
-    if(t) textos.push(t);
+    const el = document.getElementById('prio-'+i);
+    if(el && el.value.trim()) textos.push(el.value.trim());
   }
+
+  const btnGuardar = document.getElementById('pri-btn-guardar');
+  if(btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = 'Guardando...'; }
 
   try {
     // Borrar existentes del mes
-    await DB.from('prioridades_mes').delete().eq('jugador_id', jugId).eq('mes', mesActual);
+    const delRes = await DB.from('prioridades_mes').delete().eq('jugador_id', jugId).eq('mes', mesActual);
+    if(delRes.error){
+      console.error('Error DELETE prioridades_mes:', delRes.error);
+      if(btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = '💾 Guardar'; }
+      alert('❌ Error al borrar previas:\n\n' + delRes.error.message + '\n\nCódigo: ' + (delRes.error.code||'?'));
+      return;
+    }
     // Insertar nuevos
     if(textos.length > 0) {
       const rows = textos.map((texto, idx) => ({
         jugador_id: jugId, mes: mesActual, texto: texto, orden: idx + 1
       }));
-      await DB.from('prioridades_mes').insert(rows);
+      const insRes = await DB.from('prioridades_mes').insert(rows);
+      if(insRes.error){
+        console.error('Error INSERT prioridades_mes:', insRes.error);
+        if(btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = '💾 Guardar'; }
+        alert('❌ Error al insertar:\n\n' + insRes.error.message + '\n\nCódigo: ' + (insRes.error.code||'?'));
+        return;
+      }
     }
-    showToast('✓ Prioridades guardadas');
-    document.querySelectorAll('div[style*="position:fixed"]').forEach(d => {
-      if(d.style.zIndex === '600') d.remove();
-    });
+
+    // ÉXITO
+    const modal = document.getElementById('modal-prioridades-edit');
+    if(modal) modal.remove();
+    if(typeof showToast === 'function') showToast('✓ Prioridades guardadas');
     window.renderPrioridadesMesAnalista(jugId);
+
   } catch(e) {
-    showToast('Error. ¿Has creado la tabla prioridades_mes en Supabase?');
-    console.error(e);
+    console.error('Excepción guardarPrioridadesMes:', e);
+    if(btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = '💾 Guardar'; }
+    alert('❌ Excepción JS:\n\n' + (e.message || e) + '\n\nMira la consola (F12).');
   }
 };
 
 window.verHistoricoPrioridades = async function(jugId) {
+  const prev = document.getElementById('modal-prioridades-historico');
+  if(prev) prev.remove();
+
   let datos = [];
   try {
     const { data } = await DB.from('prioridades_mes').select('*')
@@ -8236,12 +8311,13 @@ window.verHistoricoPrioridades = async function(jugId) {
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
   const modal = document.createElement('div');
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  modal.id = 'modal-prioridades-historico';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;';
 
   let html = '<div style="background:var(--bg2);border-radius:14px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;padding:1.25rem;">';
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">';
   html += '<div style="font-size:14px;font-weight:800;">📚 Histórico de prioridades</div>';
-  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
+  html += '<button id="hist-btn-cerrar" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
   html += '</div>';
 
   if(Object.keys(porMes).length === 0) {
@@ -8265,4 +8341,9 @@ window.verHistoricoPrioridades = async function(jugId) {
   html += '</div>';
   modal.innerHTML = html;
   document.body.appendChild(modal);
+
+  document.getElementById('hist-btn-cerrar').addEventListener('click', function(){
+    const m = document.getElementById('modal-prioridades-historico');
+    if(m) m.remove();
+  });
 };
