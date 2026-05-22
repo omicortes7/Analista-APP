@@ -983,6 +983,7 @@ body:has(#app-screen[style*="display:none"]) .logout-floating { display: none !i
       <!-- TAB INFORMES -->
       <div id="itab-content-partido">
         <div id="informes-content"><div class="loading">Cargando...</div></div>
+        <div id="resumen-stats-temporada" style="margin-top:1rem;"></div>
       </div>
       <!-- TAB ANÁLISIS SEMANAL -->
       <div id="itab-content-analisis" style="display:none;">
@@ -4113,10 +4114,14 @@ window.verInformeDetalle = function(el) {
     });
     h+='</div>';
   }
+  // Placeholder para stats (se carga async)
+  h+='<div id="stats-detalle-container" style="margin-top:.875rem;padding-top:.875rem;border-top:0.5px solid var(--border2);display:none;"></div>';
   h+='</div>';
   modal.innerHTML=h;
   document.body.appendChild(modal);
   modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
+  // Cargar stats si las hay
+  setTimeout(function(){ if(window._renderStatsDetalleJugador) window._renderStatsDetalleJugador(inf.id); }, 100);
 };
 
 // ─── DESCARGAR INFORME PDF (mismo diseño que app analista) ───
@@ -6426,6 +6431,261 @@ window._renderPrioridadesJugador = async function() {
     var t = e.target.closest('[onclick*="inicio"]');
     if(t) setTimeout(tryRender, 200);
   });
+})();
+
+// ════════════════════════════════════════════════════════════════════
+// MÓDULO STATS PARTIDO (Jugador · solo lectura + resumen agregado)
+// ════════════════════════════════════════════════════════════════════
+
+window._esPorteroJ = function(pos) {
+  if(!pos) return false;
+  var p = pos.toUpperCase();
+  return p.indexOf('POR') > -1 || p === 'GK' || p.indexOf('PORTERO') > -1;
+};
+
+// Schema espejo del analista (debe coincidir en keys/etiquetas)
+window._STATS_SCHEMA_J = {
+  general: { label:'🏃 GENERAL', color:'#9090a0', stats:[
+    {key:'minutos', label:'Minutos jugados'},
+    {key:'posicion_jugada', label:'Posición jugada', tipo:'text'},
+    {key:'marcador', label:'Marcador', tipo:'text'},
+    {key:'resultado', label:'Resultado', tipo:'text'}
+  ]},
+  atacar: { label:'⚽ ATACAR', color:'#D4AF37', soloCampo:true, stats:[
+    {key:'goles', label:'Goles'},
+    {key:'asistencias', label:'Asistencias'},
+    {key:'tiros_t', label:'Tiros tot.'},
+    {key:'tiros_p', label:'Tiros a puerta'},
+    {key:'ocasiones_creadas', label:'Ocasiones creadas'},
+    {key:'big_chances_falladas', label:'Big chances falladas'},
+    {key:'regates_t', label:'Regates int.'},
+    {key:'regates_e', label:'Regates exitosos'},
+    {key:'duelos_1v1_g', label:'1v1 ganados'},
+    {key:'penaltis_l', label:'Penaltis lanz.'},
+    {key:'penaltis_m', label:'Penaltis marcados'},
+    {key:'offsides', label:'Fueras de juego'}
+  ]},
+  pase: { label:'🎯 PASE', color:'#58a6ff', soloCampo:true, stats:[
+    {key:'pases_t', label:'Pases tot.'},
+    {key:'pases_a', label:'Pases acertados'},
+    {key:'pases_clave', label:'Pases clave'},
+    {key:'pase_largo_t', label:'P. largo tot.'},
+    {key:'pase_largo_a', label:'P. largo acert.'},
+    {key:'centros_t', label:'Centros tot.'},
+    {key:'centros_a', label:'Centros acert.'}
+  ]},
+  defender: { label:'🛡️ DEFENDER', color:'#3fb950', soloCampo:true, stats:[
+    {key:'entradas', label:'Entradas'},
+    {key:'intercepciones', label:'Intercepciones'},
+    {key:'recuperaciones', label:'Recuperaciones'},
+    {key:'despejes', label:'Despejes'},
+    {key:'bloqueos', label:'Bloqueos'},
+    {key:'duelos_t_t', label:'Duelos terr. tot.'},
+    {key:'duelos_t_g', label:'Duelos terr. gan.'},
+    {key:'duelos_a_t', label:'Duelos aéreos tot.'},
+    {key:'duelos_a_g', label:'Duelos aéreos gan.'},
+    {key:'faltas_com', label:'Faltas cometidas'},
+    {key:'faltas_rec', label:'Faltas recibidas'}
+  ]},
+  portero: { label:'🥅 PORTERO', color:'#f59e0b', soloPortero:true, stats:[
+    {key:'paradas', label:'Paradas'},
+    {key:'goles_encajados', label:'Goles encajados'},
+    {key:'clean_sheet', label:'Portería a 0', tipo:'check'},
+    {key:'penaltis_rec', label:'Penaltis recibidos'},
+    {key:'penaltis_par', label:'Penaltis parados'},
+    {key:'saques_largos_t', label:'Saques largos tot.'},
+    {key:'saques_largos_a', label:'Saques largos acert.'},
+    {key:'dist_corta_t', label:'Dist. corta tot.'},
+    {key:'dist_corta_a', label:'Dist. corta acert.'},
+    {key:'salidas_area', label:'Salidas área'}
+  ]},
+  disciplina: { label:'📋 DISCIPLINA', color:'#d29922', stats:[
+    {key:'amarillas', label:'Amarillas'},
+    {key:'rojas', label:'Rojas'},
+    {key:'penaltis_comet', label:'Penaltis cometidos'}
+  ]}
+};
+
+// Render stats dentro del modal detalle del informe (jugador)
+window._renderStatsDetalleJugador = async function(informeId) {
+  var cont = document.getElementById('stats-detalle-container');
+  if(!cont || !window.DB_REF) return;
+
+  var stats = null;
+  try {
+    var r = await window.DB_REF.from('stats_partido').select('stats').eq('informe_id', informeId).maybeSingle();
+    if(r.data && r.data.stats) {
+      stats = typeof r.data.stats === 'string' ? JSON.parse(r.data.stats) : r.data.stats;
+    }
+  } catch(e) {}
+
+  if(!stats || Object.keys(stats).length === 0) {
+    cont.style.display = 'none';
+    return;
+  }
+
+  var j = window._jugadorData || {};
+  var esPortero = window._esPorteroJ(j.posicion);
+
+  var html = '<div style="font-size:10px;font-weight:800;color:#D4AF37;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.75rem;">📊 Estadísticas del partido</div>';
+
+  Object.keys(window._STATS_SCHEMA_J).forEach(function(catKey){
+    var cat = window._STATS_SCHEMA_J[catKey];
+    if(cat.soloPortero && !esPortero) return;
+    if(cat.soloCampo && esPortero) return;
+
+    // Comprobar si hay stats con valor en esta categoría
+    var hayDatos = cat.stats.some(function(s){
+      var v = stats[s.key];
+      return v !== undefined && v !== null && v !== '' && v !== 0 && v !== false;
+    });
+    if(!hayDatos) return;
+
+    html += '<div style="background:rgba(255,255,255,0.03);border-left:3px solid '+cat.color+';border-radius:6px;padding:10px;margin-bottom:8px;">';
+    html += '<div style="font-size:10px;font-weight:800;color:'+cat.color+';letter-spacing:.06em;margin-bottom:8px;">'+cat.label+'</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">';
+
+    cat.stats.forEach(function(s){
+      var v = stats[s.key];
+      if(v === undefined || v === null || v === '' || v === 0 || v === false) return;
+      var displayV = s.tipo === 'check' ? '✓ Sí' : v;
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:rgba(0,0,0,0.18);border-radius:4px;">';
+      html += '<span style="font-size:10px;color:var(--text2);">'+s.label+'</span>';
+      html += '<span style="font-size:13px;font-weight:800;color:'+cat.color+';">'+displayV+'</span>';
+      html += '</div>';
+    });
+
+    // Si tiene par totales/acertados, calcular %
+    var pairs = [
+      ['pases_t','pases_a','% Pases'],
+      ['pase_largo_t','pase_largo_a','% Pase largo'],
+      ['centros_t','centros_a','% Centros'],
+      ['regates_t','regates_e','% Regates'],
+      ['duelos_t_t','duelos_t_g','% Duelos terr.'],
+      ['duelos_a_t','duelos_a_g','% Duelos aéreos'],
+      ['tiros_t','tiros_p','% Tiros a puerta'],
+      ['saques_largos_t','saques_largos_a','% Saques largos'],
+      ['dist_corta_t','dist_corta_a','% Dist. corta']
+    ];
+    pairs.forEach(function(p){
+      if(stats[p[0]] > 0 && stats[p[1]] !== undefined) {
+        var pct = Math.round((stats[p[1]] / stats[p[0]]) * 100);
+        html += '<div style="grid-column:span 2;display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:'+cat.color+'15;border:0.5px solid '+cat.color+'40;border-radius:4px;">';
+        html += '<span style="font-size:10px;color:'+cat.color+';font-weight:700;">'+p[2]+'</span>';
+        html += '<span style="font-size:13px;font-weight:800;color:'+cat.color+';">'+pct+'%</span>';
+        html += '</div>';
+      }
+    });
+
+    html += '</div></div>';
+  });
+
+  cont.innerHTML = html;
+  cont.style.display = 'block';
+};
+
+// Sección resumen agregado de temporada en pestaña Informes
+window._renderResumenStatsTemporada = async function() {
+  var cont = document.getElementById('resumen-stats-temporada');
+  if(!cont || !window._jugId || !window.DB_REF) return;
+
+  var datos = [];
+  try {
+    var r = await window.DB_REF.from('stats_partido').select('stats')
+      .eq('jugador_id', window._jugId);
+    if(r.data) datos = r.data;
+  } catch(e) {}
+
+  if(datos.length === 0) {
+    cont.innerHTML = '<div style="text-align:center;padding:1.25rem;color:var(--text3);font-size:11px;font-style:italic;">Aún no hay estadísticas registradas. Tu analista las irá añadiendo tras cada partido.</div>';
+    return;
+  }
+
+  // Acumular totales
+  var totales = {};
+  datos.forEach(function(d){
+    var stats = typeof d.stats === 'string' ? JSON.parse(d.stats) : d.stats;
+    if(!stats) return;
+    Object.keys(stats).forEach(function(k){
+      var v = stats[k];
+      if(typeof v === 'number') {
+        totales[k] = (totales[k] || 0) + v;
+      } else if(typeof v === 'boolean' && v) {
+        totales[k] = (totales[k] || 0) + 1;
+      }
+    });
+  });
+
+  var nPartidos = datos.length;
+  var j = window._jugadorData || {};
+  var esPortero = window._esPorteroJ(j.posicion);
+
+  var html = '<div style="background:linear-gradient(135deg, rgba(212,175,55,0.12), rgba(0,0,0,0.3));border:1px solid rgba(212,175,55,0.35);border-radius:14px;padding:1rem;">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);">';
+  html += '<div><div style="font-size:9px;font-weight:800;color:#D4AF37;letter-spacing:.1em;text-transform:uppercase;">📈 Resumen de temporada</div>';
+  html += '<div style="font-size:12px;color:#fff;margin-top:2px;">'+nPartidos+' partido'+(nPartidos>1?'s':'')+' con estadísticas</div></div>';
+  html += '</div>';
+
+  // Highlights destacados
+  var highlights = esPortero
+    ? [['paradas','Paradas','#f59e0b'],['goles_encajados','Encajados','#f85149'],['clean_sheet','Porterías a 0','#3fb950']]
+    : [['goles','Goles','#D4AF37'],['asistencias','Asistencias','#58a6ff'],['ocasiones_creadas','Ocasiones','#a371f7']];
+
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
+  highlights.forEach(function(h){
+    var t = totales[h[0]] || 0;
+    var avg = nPartidos > 0 ? (t / nPartidos).toFixed(1) : '0.0';
+    html += '<div style="text-align:center;background:rgba(0,0,0,0.25);border-radius:8px;padding:10px 4px;">';
+    html += '<div style="font-size:22px;font-weight:800;color:'+h[2]+';line-height:1;">'+t+'</div>';
+    html += '<div style="font-size:9px;color:var(--text2);margin-top:4px;text-transform:uppercase;letter-spacing:.04em;">'+h[1]+'</div>';
+    html += '<div style="font-size:9px;color:var(--text3);margin-top:2px;">'+avg+'/partido</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // Lista detallada por categorías
+  Object.keys(window._STATS_SCHEMA_J).forEach(function(catKey){
+    var cat = window._STATS_SCHEMA_J[catKey];
+    if(cat.soloPortero && !esPortero) return;
+    if(cat.soloCampo && esPortero) return;
+    if(catKey === 'general') return;
+
+    var hayDatos = cat.stats.some(function(s){ return totales[s.key] > 0; });
+    if(!hayDatos) return;
+
+    html += '<div style="background:rgba(255,255,255,0.03);border-left:3px solid '+cat.color+';border-radius:6px;padding:10px;margin-bottom:8px;">';
+    html += '<div style="font-size:10px;font-weight:800;color:'+cat.color+';letter-spacing:.06em;margin-bottom:8px;">'+cat.label+'</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">';
+    cat.stats.forEach(function(s){
+      var t = totales[s.key];
+      if(!t || t === 0) return;
+      var avg = nPartidos > 0 ? (t / nPartidos).toFixed(1) : '0';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 7px;background:rgba(0,0,0,0.18);border-radius:4px;">';
+      html += '<span style="font-size:9px;color:var(--text2);">'+s.label+'</span>';
+      html += '<span style="font-size:11px;font-weight:800;color:'+cat.color+';">'+t+' <span style="font-size:9px;color:var(--text3);font-weight:500;">('+avg+'/p)</span></span>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+  cont.innerHTML = html;
+};
+
+// Hook: cuando la pestaña informes se abre, renderizar resumen
+(function(){
+  var lastTab = null;
+  setInterval(function(){
+    var sec = document.getElementById('sec-informes');
+    if(!sec) return;
+    var visible = sec.classList.contains('active') || sec.style.display !== 'none';
+    if(visible && lastTab !== 'informes'){
+      lastTab = 'informes';
+      setTimeout(function(){ if(window._renderResumenStatsTemporada) window._renderResumenStatsTemporada(); }, 300);
+    } else if(!visible) {
+      lastTab = null;
+    }
+  }, 800);
 })();
 
 </script>
