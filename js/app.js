@@ -701,6 +701,7 @@ function renderDT(tab){
             <div style="display:flex;gap:5px;flex-wrap:wrap;">
               <button onclick="verInforme('${p.id}')" class="btn-outline" style="font-size:10px;height:26px;padding:0 8px;">Ver</button>
               <button onclick="abrirGestorClips('${p.id}','${id}')" style="background:rgba(124,111,240,.12);border:0.5px solid rgba(124,111,240,.3);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#7C6FF0;">▶${clips.length?' ('+clips.length+')':''}</button>
+              <button onclick="window.editarStatsPartido('${p.id}','${id}')" style="background:rgba(212,175,55,.12);border:0.5px solid rgba(212,175,55,.4);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#D4AF37;font-weight:700;">📊 Stats</button>
               <button onclick="exportarInformePDF('${p.id}')" style="background:rgba(29,158,117,.12);border:0.5px solid rgba(29,158,117,.3);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#1D9E75;">Ver PDF</button>
               <button onclick="exportarInformePDF('${p.id}');setTimeout(descargarUltimoPDF,2000)" style="background:rgba(29,158,117,.2);border:0.5px solid rgba(29,158,117,.4);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#1D9E75;font-weight:700;">⬇ PDF</button>
               <button onclick="deleteInforme('${p.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;">×</button>
@@ -8346,4 +8347,283 @@ window.verHistoricoPrioridades = async function(jugId) {
     const m = document.getElementById('modal-prioridades-historico');
     if(m) m.remove();
   });
+};
+
+// ════════════════════════════════════════════════════════════════════
+// MÓDULO STATS PARTIDO (Analista)
+// ════════════════════════════════════════════════════════════════════
+
+// Detector posición portero
+window._esPortero = function(pos) {
+  if(!pos) return false;
+  const p = pos.toUpperCase();
+  return p.includes('POR') || p === 'GK' || p.includes('PORTERO');
+};
+
+// Schema de stats: agrupado por categoría, cada stat es {key, label, tipo:'num'|'check'|'pct'}
+window._STATS_SCHEMA = {
+  general: {
+    label: '🏃 GENERAL',
+    color: '#9090a0',
+    stats: [
+      {key:'minutos', label:'Minutos jugados', tipo:'num'},
+      {key:'posicion_jugada', label:'Posición jugada', tipo:'text'},
+      {key:'marcador', label:'Marcador (ej: 2-1)', tipo:'text'},
+      {key:'resultado', label:'Resultado', tipo:'select', opts:['W','D','L']}
+    ]
+  },
+  atacar: {
+    label: '⚽ ATACAR',
+    color: '#D4AF37',
+    soloCampo: true,
+    stats: [
+      {key:'goles', label:'Goles', tipo:'num'},
+      {key:'asistencias', label:'Asistencias', tipo:'num'},
+      {key:'tiros_t', label:'Tiros totales', tipo:'num'},
+      {key:'tiros_p', label:'Tiros a puerta', tipo:'num'},
+      {key:'ocasiones_creadas', label:'Ocasiones creadas', tipo:'num'},
+      {key:'big_chances_falladas', label:'Big chances falladas', tipo:'num'},
+      {key:'regates_t', label:'Regates intentados', tipo:'num'},
+      {key:'regates_e', label:'Regates exitosos', tipo:'num'},
+      {key:'duelos_1v1_g', label:'1v1 ganados', tipo:'num'},
+      {key:'penaltis_l', label:'Penaltis lanzados', tipo:'num'},
+      {key:'penaltis_m', label:'Penaltis marcados', tipo:'num'},
+      {key:'offsides', label:'Fueras de juego', tipo:'num'}
+    ]
+  },
+  pase: {
+    label: '🎯 PASE',
+    color: '#58a6ff',
+    soloCampo: true,
+    stats: [
+      {key:'pases_t', label:'Pases totales', tipo:'num'},
+      {key:'pases_a', label:'Pases acertados', tipo:'num'},
+      {key:'pases_clave', label:'Pases clave', tipo:'num'},
+      {key:'pase_largo_t', label:'Pase largo totales', tipo:'num'},
+      {key:'pase_largo_a', label:'Pase largo acertados', tipo:'num'},
+      {key:'centros_t', label:'Centros totales', tipo:'num'},
+      {key:'centros_a', label:'Centros acertados', tipo:'num'}
+    ]
+  },
+  defender: {
+    label: '🛡️ DEFENDER',
+    color: '#3fb950',
+    soloCampo: true,
+    stats: [
+      {key:'entradas', label:'Entradas (tackles)', tipo:'num'},
+      {key:'intercepciones', label:'Intercepciones', tipo:'num'},
+      {key:'recuperaciones', label:'Recuperaciones', tipo:'num'},
+      {key:'despejes', label:'Despejes', tipo:'num'},
+      {key:'bloqueos', label:'Bloqueos', tipo:'num'},
+      {key:'duelos_t_t', label:'Duelos terrestres totales', tipo:'num'},
+      {key:'duelos_t_g', label:'Duelos terrestres ganados', tipo:'num'},
+      {key:'duelos_a_t', label:'Duelos aéreos totales', tipo:'num'},
+      {key:'duelos_a_g', label:'Duelos aéreos ganados', tipo:'num'},
+      {key:'faltas_com', label:'Faltas cometidas', tipo:'num'},
+      {key:'faltas_rec', label:'Faltas recibidas', tipo:'num'}
+    ]
+  },
+  portero: {
+    label: '🥅 PORTERO',
+    color: '#f59e0b',
+    soloPortero: true,
+    stats: [
+      {key:'paradas', label:'Paradas', tipo:'num'},
+      {key:'goles_encajados', label:'Goles encajados', tipo:'num'},
+      {key:'clean_sheet', label:'Portería a 0', tipo:'check'},
+      {key:'penaltis_rec', label:'Penaltis recibidos', tipo:'num'},
+      {key:'penaltis_par', label:'Penaltis parados', tipo:'num'},
+      {key:'saques_largos_t', label:'Saques largos totales', tipo:'num'},
+      {key:'saques_largos_a', label:'Saques largos acertados', tipo:'num'},
+      {key:'dist_corta_t', label:'Distribución corta totales', tipo:'num'},
+      {key:'dist_corta_a', label:'Distribución corta acertados', tipo:'num'},
+      {key:'salidas_area', label:'Salidas del área', tipo:'num'}
+    ]
+  },
+  disciplina: {
+    label: '📋 DISCIPLINA',
+    color: '#d29922',
+    stats: [
+      {key:'amarillas', label:'Amarillas', tipo:'num'},
+      {key:'rojas', label:'Rojas', tipo:'num'},
+      {key:'penaltis_comet', label:'Penaltis cometidos', tipo:'num'}
+    ]
+  }
+};
+
+// Modal de edición Stats partido
+window.editarStatsPartido = async function(informeId, jugId) {
+  const j = state.jugadores.find(x => x.id === jugId);
+  if(!j) return;
+  const informe = state.informesPartido.find(x => x.id === informeId);
+  if(!informe) return;
+
+  const prev = document.getElementById('modal-stats-edit');
+  if(prev) prev.remove();
+
+  const esPortero = window._esPortero(j.posicion);
+
+  // Cargar stats existentes
+  let stats = {};
+  try {
+    const { data } = await DB.from('stats_partido').select('*').eq('informe_id', informeId).maybeSingle();
+    if(data && data.stats) {
+      stats = typeof data.stats === 'string' ? JSON.parse(data.stats) : data.stats;
+    }
+  } catch(e) {}
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-stats-edit';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:10000;display:flex;align-items:center;justify-content:center;padding:.5rem;';
+
+  let html = '<div style="background:var(--bg2);border-radius:14px;max-width:680px;width:100%;max-height:94vh;overflow-y:auto;padding:1.25rem;">';
+
+  // Header
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:10px;border-bottom:0.5px solid var(--border);">';
+  html += '<div style="flex:1;min-width:0;">';
+  html += '<div style="font-size:9px;color:#D4AF37;font-weight:800;text-transform:uppercase;letter-spacing:.1em;">📊 Stats del partido</div>';
+  html += '<div style="font-size:14px;font-weight:800;color:#fff;margin-top:3px;">'+(informe.partido||'Partido')+'</div>';
+  html += '<div style="font-size:10px;color:var(--text2);margin-top:2px;">'+j.nombre+' · '+(j.posicion||'-')+(esPortero?' · 🥅 PORTERO':'')+(informe.rival?' · vs '+informe.rival:'')+'</div>';
+  html += '</div>';
+  html += '<button id="st-btn-cerrar" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">×</button>';
+  html += '</div>';
+
+  // Render cada categoría
+  Object.keys(window._STATS_SCHEMA).forEach(catKey => {
+    const cat = window._STATS_SCHEMA[catKey];
+    // Filtrar categorías según portero
+    if(cat.soloPortero && !esPortero) return;
+    if(cat.soloCampo && esPortero) return;
+
+    html += '<div style="background:rgba(255,255,255,0.02);border-left:3px solid '+cat.color+';border-radius:6px;padding:12px;margin-bottom:10px;">';
+    html += '<div style="font-size:11px;font-weight:800;color:'+cat.color+';letter-spacing:.08em;margin-bottom:10px;">'+cat.label+'</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+
+    cat.stats.forEach(stat => {
+      const valor = stats[stat.key] !== undefined ? stats[stat.key] : (stat.tipo === 'check' ? false : (stat.tipo === 'num' ? 0 : ''));
+
+      html += '<div style="background:rgba(0,0,0,0.2);border-radius:6px;padding:8px;">';
+      html += '<div style="font-size:10px;color:var(--text2);margin-bottom:6px;line-height:1.3;">'+stat.label+'</div>';
+
+      if(stat.tipo === 'num') {
+        html += '<div style="display:flex;align-items:center;gap:4px;">';
+        html += '<button type="button" data-stat="'+stat.key+'" data-delta="-1" class="stat-btn" style="width:26px;height:26px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border);color:var(--text);font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;">−</button>';
+        html += '<input type="number" id="stat-'+stat.key+'" value="'+valor+'" min="0" style="flex:1;min-width:0;background:var(--bg);border:0.5px solid var(--border);border-radius:4px;padding:4px 6px;color:#fff;font-size:13px;font-weight:700;text-align:center;font-family:inherit;">';
+        html += '<button type="button" data-stat="'+stat.key+'" data-delta="1" class="stat-btn" style="width:26px;height:26px;border-radius:50%;background:'+cat.color+'33;border:0.5px solid '+cat.color+';color:'+cat.color+';font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;">+</button>';
+        html += '</div>';
+      } else if(stat.tipo === 'check') {
+        html += '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#fff;">';
+        html += '<input type="checkbox" id="stat-'+stat.key+'" '+(valor?'checked':'')+' style="width:16px;height:16px;cursor:pointer;">';
+        html += '<span>Sí</span></label>';
+      } else if(stat.tipo === 'text') {
+        const valEsc = String(valor).replace(/"/g,'&quot;');
+        html += '<input type="text" id="stat-'+stat.key+'" value="'+valEsc+'" style="width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:4px;padding:5px 7px;color:#fff;font-size:12px;font-family:inherit;box-sizing:border-box;">';
+      } else if(stat.tipo === 'select') {
+        html += '<select id="stat-'+stat.key+'" style="width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:4px;padding:5px 7px;color:#fff;font-size:12px;font-family:inherit;box-sizing:border-box;">';
+        html += '<option value="">-</option>';
+        stat.opts.forEach(opt => {
+          html += '<option value="'+opt+'" '+(valor===opt?'selected':'')+'>'+opt+'</option>';
+        });
+        html += '</select>';
+      }
+      html += '</div>';
+    });
+
+    html += '</div></div>';
+  });
+
+  // Botones
+  html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;position:sticky;bottom:-1.25rem;background:var(--bg2);padding:.75rem 0 0;border-top:0.5px solid var(--border);">';
+  html += '<button id="st-btn-cancelar" style="background:var(--bg3);border:0.5px solid var(--border);color:var(--text);padding:9px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>';
+  html += '<button id="st-btn-guardar" style="background:#D4AF37;border:none;color:#000;padding:9px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar Stats</button>';
+  html += '</div>';
+
+  html += '</div>';
+  modal.innerHTML = html;
+  document.body.appendChild(modal);
+
+  // Event listeners
+  const cerrar = () => { const m = document.getElementById('modal-stats-edit'); if(m) m.remove(); };
+  document.getElementById('st-btn-cerrar').addEventListener('click', cerrar);
+  document.getElementById('st-btn-cancelar').addEventListener('click', cerrar);
+  document.getElementById('st-btn-guardar').addEventListener('click', function(){
+    window.guardarStatsPartido(informeId, jugId);
+  });
+
+  // Botones +/-
+  modal.querySelectorAll('.stat-btn').forEach(btn => {
+    btn.addEventListener('click', function(){
+      const k = btn.getAttribute('data-stat');
+      const delta = parseInt(btn.getAttribute('data-delta'), 10);
+      const inp = document.getElementById('stat-'+k);
+      if(inp) {
+        let v = parseInt(inp.value, 10) || 0;
+        v = Math.max(0, v + delta);
+        inp.value = v;
+      }
+    });
+  });
+};
+
+window.guardarStatsPartido = async function(informeId, jugId) {
+  const stats = {};
+
+  // Recoger todos los valores del formulario
+  Object.keys(window._STATS_SCHEMA).forEach(catKey => {
+    const cat = window._STATS_SCHEMA[catKey];
+    cat.stats.forEach(stat => {
+      const el = document.getElementById('stat-'+stat.key);
+      if(!el) return;
+      if(stat.tipo === 'num') {
+        stats[stat.key] = parseInt(el.value, 10) || 0;
+      } else if(stat.tipo === 'check') {
+        stats[stat.key] = !!el.checked;
+      } else {
+        stats[stat.key] = el.value || '';
+      }
+    });
+  });
+
+  const btn = document.getElementById('st-btn-guardar');
+  if(btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+
+  try {
+    const selRes = await DB.from('stats_partido').select('id').eq('informe_id', informeId).maybeSingle();
+    if(selRes.error){
+      console.error('Error SELECT stats_partido:', selRes.error);
+      if(btn) { btn.disabled = false; btn.textContent = '💾 Guardar Stats'; }
+      alert('❌ Error al leer stats_partido:\n\n' + selRes.error.message + '\n\nCódigo: ' + (selRes.error.code||'?') + '\n\nVe a Supabase → SQL Editor y ejecuta el SQL que te paso.');
+      return;
+    }
+
+    let opRes;
+    if(selRes.data) {
+      opRes = await DB.from('stats_partido').update({
+        stats: stats,
+        updated_at: new Date().toISOString()
+      }).eq('id', selRes.data.id);
+    } else {
+      opRes = await DB.from('stats_partido').insert({
+        informe_id: informeId,
+        jugador_id: jugId,
+        stats: stats
+      });
+    }
+
+    if(opRes.error){
+      console.error('Error UPDATE/INSERT stats_partido:', opRes.error);
+      if(btn) { btn.disabled = false; btn.textContent = '💾 Guardar Stats'; }
+      alert('❌ Error al guardar:\n\n' + opRes.error.message + '\n\nCódigo: ' + (opRes.error.code||'?'));
+      return;
+    }
+
+    const modal = document.getElementById('modal-stats-edit');
+    if(modal) modal.remove();
+    if(typeof showToast === 'function') showToast('✓ Stats guardadas');
+
+  } catch(e) {
+    console.error('Excepción guardarStatsPartido:', e);
+    if(btn) { btn.disabled = false; btn.textContent = '💾 Guardar Stats'; }
+    alert('❌ Excepción JS:\n\n' + (e.message || e));
+  }
 };
