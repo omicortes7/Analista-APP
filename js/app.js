@@ -933,6 +933,17 @@ function renderDT(tab){
         <div id="obs-bloques"></div>
         <button data-action="add-obs" style="width:100%;height:36px;background:rgba(88,166,255,0.1);border:0.5px solid rgba(88,166,255,0.3);border-radius:var(--radius-sm);color:#58a6ff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;">+ Añadir observación</button>
       </div>
+      <div style="${CARD}border:0.5px solid rgba(212,175,55,0.25);background:rgba(212,175,55,0.04);">
+        <div id="stats-header" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" data-action="toggle-stats-form">
+          <div style="${SEC_TITLE}color:#D4AF37;margin-bottom:0;">📊 Estadísticas del partido</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:10px;color:var(--text3);font-style:italic;">Opcional · clic para ${window._statsFormOpen?'ocultar':'añadir'}</span>
+            <span id="stats-toggle-icon" style="font-size:16px;color:#D4AF37;transition:transform .2s;transform:rotate(${window._statsFormOpen?'180':'0'}deg);">▼</span>
+          </div>
+        </div>
+        <div id="stats-form-body" style="display:${window._statsFormOpen?'block':'none'};margin-top:.875rem;"></div>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.5rem;">
         <button class="btn" style="height:44px;font-size:13px;" data-action="save-informe">Guardar informe</button>
         <button data-action="ver-informe" data-jug-id="${id}" style="height:44px;font-size:13px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-weight:600;letter-spacing:.02em;">📄 Generar informe PDF</button>
@@ -948,6 +959,7 @@ function renderDT(tab){
                 <button onclick="verInforme('${inf.id}')" class="btn-outline" style="font-size:10px;height:26px;padding:0 8px;">Ver</button>
                 <button onclick="generarInformeVisual('${id}','${inf.id}')" style="background:rgba(26,26,46,.8);color:#a0c4ff;border:0.5px solid rgba(160,196,255,.3);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;">📄 PDF</button>
                 <button onclick="abrirGestorClips('${inf.id}','${id}')" style="background:rgba(124,111,240,.12);border:0.5px solid rgba(124,111,240,.3);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#7C6FF0;">▶${clips.length?' ('+clips.length+')':''}</button>
+                <button onclick="window.editarStatsPartido('${inf.id}','${id}')" style="background:rgba(212,175,55,.15);border:0.5px solid rgba(212,175,55,.4);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#D4AF37;font-weight:700;">📊 Stats</button>
                 <button onclick="exportarInformePDF('${inf.id}')" style="background:rgba(29,158,117,.12);border:0.5px solid rgba(29,158,117,.3);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#1D9E75;">PDF</button>
                 <button onclick="deleteInforme('${inf.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;">×</button>
               </div>
@@ -1228,6 +1240,23 @@ document.addEventListener('click',function(e){
   if(e.target.closest('[data-action="ver-informe"]')){
     var jugId = e.target.closest('[data-jug-id]')?.getAttribute('data-jug-id');
     if(jugId) generarInformeVisual(jugId);
+    return;
+  }
+  // Toggle sección stats colapsable
+  if(e.target.closest('[data-action="toggle-stats-form"]')){
+    window._statsFormOpen = !window._statsFormOpen;
+    var body = document.getElementById('stats-form-body');
+    var ico = document.getElementById('stats-toggle-icon');
+    if(body && ico){
+      if(window._statsFormOpen){
+        body.style.display = 'block';
+        ico.style.transform = 'rotate(180deg)';
+        if(window._renderStatsFormInline) window._renderStatsFormInline();
+      } else {
+        body.style.display = 'none';
+        ico.style.transform = 'rotate(0deg)';
+      }
+    }
     return;
   }
   // Observaciones del informe
@@ -5533,6 +5562,14 @@ async function saveInforme() {
   // Añadir al estado local
   state.informesPartido.unshift(saved[0]);
 
+  // Si el panel de stats estaba abierto y con valores, guardarlas vinculadas a este informe
+  if(window._guardarStatsParaInforme && saved[0] && saved[0].id) {
+    try { await window._guardarStatsParaInforme(saved[0].id, jugId); } catch(e){ console.error(e); }
+  }
+  // Reset del estado stats inline
+  window._statsFormOpen = false;
+  window._statsFormCache = null;
+
   // Limpiar formulario
   window._stars = {};
   window._micTags = [];
@@ -8625,5 +8662,135 @@ window.guardarStatsPartido = async function(informeId, jugId) {
     console.error('Excepción guardarStatsPartido:', e);
     if(btn) { btn.disabled = false; btn.textContent = '💾 Guardar Stats'; }
     alert('❌ Excepción JS:\n\n' + (e.message || e));
+  }
+};
+
+// ════════════════════════════════════════════════════════════════════
+// STATS INLINE EN FORMULARIO DE INFORME (Analista)
+// ════════════════════════════════════════════════════════════════════
+
+// Renderiza los inputs de stats dentro de #stats-form-body
+window._renderStatsFormInline = function() {
+  var body = document.getElementById('stats-form-body');
+  if(!body || !window._STATS_SCHEMA) return;
+
+  // Detectar el jugador del modal abierto actual
+  var jugId = (window.state && window.state.currentJugador) ? window.state.currentJugador : null;
+  var j = (jugId && window.state && window.state.jugadores) ? window.state.jugadores.find(function(x){return x.id===jugId;}) : null;
+  var esPortero = j ? window._esPortero(j.posicion) : false;
+
+  // Stats ya guardados? cargarlos
+  var stats = window._statsFormCache || {};
+
+  var html = '<div style="font-size:11px;color:var(--text3);margin-bottom:.75rem;font-style:italic;line-height:1.5;">Detección automática: '+(esPortero?'🥅 Portero':'Jugador de campo')+'. Solo se guardan stats con valor > 0. Usa los botones +/- o escribe directamente.</div>';
+
+  Object.keys(window._STATS_SCHEMA).forEach(function(catKey){
+    var cat = window._STATS_SCHEMA[catKey];
+    if(cat.soloPortero && !esPortero) return;
+    if(cat.soloCampo && esPortero) return;
+
+    html += '<div style="background:rgba(255,255,255,0.02);border-left:3px solid '+cat.color+';border-radius:6px;padding:10px;margin-bottom:8px;">';
+    html += '<div style="font-size:10px;font-weight:800;color:'+cat.color+';letter-spacing:.08em;margin-bottom:8px;">'+cat.label+'</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">';
+
+    cat.stats.forEach(function(stat){
+      var valor = stats[stat.key] !== undefined ? stats[stat.key] : (stat.tipo === 'check' ? false : (stat.tipo === 'num' ? 0 : ''));
+
+      html += '<div style="background:rgba(0,0,0,0.18);border-radius:6px;padding:7px;">';
+      html += '<div style="font-size:9px;color:var(--text2);margin-bottom:4px;line-height:1.2;">'+stat.label+'</div>';
+
+      if(stat.tipo === 'num' || !stat.tipo) {
+        html += '<div style="display:flex;align-items:center;gap:3px;">';
+        html += '<button type="button" data-stat-inline="'+stat.key+'" data-delta="-1" class="stat-btn-inline" style="width:22px;height:22px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;padding:0;">−</button>';
+        html += '<input type="number" id="statinl-'+stat.key+'" value="'+valor+'" min="0" style="flex:1;min-width:0;background:var(--bg);border:0.5px solid var(--border);border-radius:4px;padding:3px 4px;color:#fff;font-size:12px;font-weight:700;text-align:center;font-family:inherit;">';
+        html += '<button type="button" data-stat-inline="'+stat.key+'" data-delta="1" class="stat-btn-inline" style="width:22px;height:22px;border-radius:50%;background:'+cat.color+'33;border:0.5px solid '+cat.color+';color:'+cat.color+';font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;padding:0;">+</button>';
+        html += '</div>';
+      } else if(stat.tipo === 'check') {
+        html += '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:#fff;">';
+        html += '<input type="checkbox" id="statinl-'+stat.key+'" '+(valor?'checked':'')+' style="width:14px;height:14px;cursor:pointer;">';
+        html += '<span>Sí</span></label>';
+      } else if(stat.tipo === 'text') {
+        var valEsc = String(valor).replace(/"/g,'&quot;');
+        html += '<input type="text" id="statinl-'+stat.key+'" value="'+valEsc+'" style="width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:4px;padding:4px 6px;color:#fff;font-size:11px;font-family:inherit;box-sizing:border-box;">';
+      } else if(stat.tipo === 'select') {
+        html += '<select id="statinl-'+stat.key+'" style="width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:4px;padding:4px 6px;color:#fff;font-size:11px;font-family:inherit;box-sizing:border-box;">';
+        html += '<option value="">-</option>';
+        stat.opts.forEach(function(opt){
+          html += '<option value="'+opt+'" '+(valor===opt?'selected':'')+'>'+opt+'</option>';
+        });
+        html += '</select>';
+      }
+      html += '</div>';
+    });
+
+    html += '</div></div>';
+  });
+
+  body.innerHTML = html;
+
+  // Listeners +/-
+  body.querySelectorAll('.stat-btn-inline').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var k = btn.getAttribute('data-stat-inline');
+      var delta = parseInt(btn.getAttribute('data-delta'), 10);
+      var inp = document.getElementById('statinl-'+k);
+      if(inp) {
+        var v = parseInt(inp.value, 10) || 0;
+        v = Math.max(0, v + delta);
+        inp.value = v;
+      }
+    });
+  });
+};
+
+// Helper para recoger los valores actuales de los inputs inline
+window._recogerStatsInline = function() {
+  if(!window._STATS_SCHEMA) return null;
+  var stats = {};
+  var algunValor = false;
+  Object.keys(window._STATS_SCHEMA).forEach(function(catKey){
+    window._STATS_SCHEMA[catKey].stats.forEach(function(stat){
+      var el = document.getElementById('statinl-'+stat.key);
+      if(!el) return;
+      if(stat.tipo === 'num' || !stat.tipo) {
+        var n = parseInt(el.value, 10) || 0;
+        if(n > 0) { stats[stat.key] = n; algunValor = true; }
+      } else if(stat.tipo === 'check') {
+        if(el.checked) { stats[stat.key] = true; algunValor = true; }
+      } else {
+        if(el.value && el.value.trim()) { stats[stat.key] = el.value.trim(); algunValor = true; }
+      }
+    });
+  });
+  return algunValor ? stats : null;
+};
+
+// Helper para guardar stats vinculadas a un informe (lo llama saveInforme)
+window._guardarStatsParaInforme = async function(informeId, jugId) {
+  if(!informeId || !jugId) return;
+  if(!window._statsFormOpen) return; // Si nunca abrió el panel, no toca stats
+  var stats = window._recogerStatsInline();
+  if(!stats) return; // Sin valores que guardar
+
+  try {
+    var selRes = await DB.from('stats_partido').select('id').eq('informe_id', informeId).maybeSingle();
+    if(selRes.error) {
+      console.error('Error SELECT stats inline:', selRes.error);
+      return;
+    }
+    if(selRes.data) {
+      await DB.from('stats_partido').update({
+        stats: stats,
+        updated_at: new Date().toISOString()
+      }).eq('id', selRes.data.id);
+    } else {
+      await DB.from('stats_partido').insert({
+        informe_id: informeId,
+        jugador_id: jugId,
+        stats: stats
+      });
+    }
+  } catch(e) {
+    console.error('Excepción guardarStatsParaInforme:', e);
   }
 };
