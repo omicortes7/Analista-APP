@@ -558,70 +558,7 @@ function renderDT(tab){
   // ─── TAB OBJETIVOS ───
   if(tab==='obj'){
     const objs=getObjJugador(id).filter(o=>!o.superado);
-    const objsSuperados = getObjJugador(id).filter(o=>o.superado);
     const FASE_CFG={OF:{dot:'#1D9E75',bg:'#E1F5EE',color:'#085041',cls:'badge-of'},DE:{dot:'#378ADD',bg:'#E6F1FB',color:'#0C447C',cls:'badge-de'},TO:{dot:'#E07B00',bg:'#FAEEDA',color:'#633806',cls:'badge-to'},TD:{dot:'#D85A30',bg:'#FAECE7',color:'#993C1D',cls:'badge-td'},GEN:{dot:'#7C6FF0',bg:'#EEEDFE',color:'#3C3489',cls:''}};
-
-    // ─── CARD PLAYER + PRIORIDADES DEL MES (inyectado por funciones async) ───
-    const cardPlayerHtml = '<div id="card-player-container" style="margin-bottom:1rem;"><div style="text-align:center;padding:1rem;color:var(--text3);font-size:11px;">Cargando Card Player...</div></div>';
-    const prioridadesHtml = '<div id="prioridades-mes-container" style="margin-bottom:1rem;"><div style="text-align:center;padding:1rem;color:var(--text3);font-size:11px;">Cargando prioridades...</div></div>';
-    setTimeout(function(){
-      if(window.renderCardPlayerAnalista) window.renderCardPlayerAnalista(id);
-      if(window.renderPrioridadesMesAnalista) window.renderPrioridadesMesAnalista(id);
-    }, 50);
-
-    // ─── BLOQUE DE EVOLUCIÓN DE OBJETIVOS ───
-    let evoHtml = '';
-    const totalObjs = objs.length + objsSuperados.length;
-    if(totalObjs > 0) {
-      const tasaSup = totalObjs > 0 ? Math.round((objsSuperados.length / totalObjs) * 100) : 0;
-      const tasaColor = tasaSup >= 60 ? '#1D9E75' : tasaSup >= 30 ? '#D4AF37' : '#9ca3af';
-
-      // Por fase: superados/total
-      const porFase = {};
-      ['OF','DE','TO','TD','GEN'].forEach(f => { porFase[f] = {sup:0, tot:0}; });
-      objs.forEach(o => { if(porFase[o.fase]) porFase[o.fase].tot++; });
-      objsSuperados.forEach(o => { if(porFase[o.fase]) { porFase[o.fase].tot++; porFase[o.fase].sup++; }});
-
-      evoHtml += '<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:1rem;">';
-      evoHtml += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:12px;">🎯 Evolución de objetivos</div>';
-
-      // KPIs en 3 columnas
-      evoHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
-      evoHtml += '<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:9px;color:var(--text3);">Total</div><div style="font-size:20px;font-weight:700;color:#fff;">'+totalObjs+'</div></div>';
-      evoHtml += '<div style="background:rgba(29,158,117,.08);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:9px;color:var(--text3);">Superados</div><div style="font-size:20px;font-weight:700;color:#1D9E75;">'+objsSuperados.length+'</div></div>';
-      evoHtml += '<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:9px;color:var(--text3);">Tasa</div><div style="font-size:20px;font-weight:700;color:'+tasaColor+';">'+tasaSup+'%</div></div>';
-      evoHtml += '</div>';
-
-      // Barra de progreso
-      evoHtml += '<div style="height:6px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;margin-bottom:14px;">';
-      evoHtml += '<div style="height:100%;width:'+tasaSup+'%;background:linear-gradient(90deg,#1D9E75,#3fb950);border-radius:99px;transition:width .4s;"></div>';
-      evoHtml += '</div>';
-
-      // Distribución por fase
-      const fasesOrden = [{k:'OF',l:'Ofensiva',c:'#1D9E75'},{k:'DE',l:'Defensiva',c:'#378ADD'},{k:'TO',l:'T. Of',c:'#E07B00'},{k:'TD',l:'T. De',c:'#D85A30'},{k:'GEN',l:'General',c:'#7C6FF0'}];
-      const fasesConDatos = fasesOrden.filter(f => porFase[f.k].tot > 0);
-      if(fasesConDatos.length) {
-        evoHtml += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px;">Por fase</div>';
-        fasesConDatos.forEach(f => {
-          const d = porFase[f.k];
-          const pct = d.tot ? Math.round((d.sup/d.tot)*100) : 0;
-          evoHtml += '<div style="margin-bottom:8px;">';
-          evoHtml += '<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);font-weight:600;">'+f.l+'</span><span style="color:'+f.c+';font-weight:700;">'+d.sup+'/'+d.tot+' · '+pct+'%</span></div>';
-          evoHtml += '<div style="height:4px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:'+f.c+';border-radius:99px;"></div></div>';
-          evoHtml += '</div>';
-        });
-      }
-
-      // Gráfica de objetivos superados a lo largo del tiempo (si hay >=2 superados con fecha)
-      const supConFecha = objsSuperados.filter(o => o.fecha_superado).sort((a,b)=>(a.fecha_superado||'').localeCompare(b.fecha_superado||''));
-      if(supConFecha.length >= 2) {
-        evoHtml += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:12px 0 8px;">Ritmo de superación</div>';
-        evoHtml += '<div style="position:relative;height:120px;"><canvas id="chart-evo-objs-'+id+'"></canvas></div>';
-        window._evoDataObjetivos = { supConFecha, jugId: id };
-      }
-      evoHtml += '</div>';
-    }
-
     const objsHtml = objs.length ? objs.map(o=>{
       const fc=FASE_CFG[o.fase]||FASE_CFG.GEN;
       return '<div style="background:var(--bg);border:0.5px solid '+fc.dot+'30;border-left:3px solid '+fc.dot+';border-radius:var(--radius-sm);padding:.875rem;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;">'+
@@ -635,7 +572,7 @@ function renderDT(tab){
 
     const objsCountHtml = objs.length ? '<div style="'+SEC_TITLE+'margin-top:.5rem;">'+objs.length+' objetivo'+(objs.length!==1?'s':'')+' activos</div>' : '';
 
-    body.innerHTML = cardPlayerHtml + prioridadesHtml + evoHtml + '<div style="'+CARD+'">'+
+    body.innerHTML = '<div style="'+CARD+'">'+
       '<div style="'+SEC_TITLE+'">Selecciona microconcepto a mejorar</div>'+
       '<div style="font-size:11px;color:var(--text2);margin-bottom:.75rem;">Toca el microconcepto para añadirlo como objetivo</div>'+
       '<div id="micro-obj-selector" style="max-height:200px;overflow-y:auto;margin-bottom:.875rem;padding-right:4px;">Cargando...</div>'+
@@ -653,10 +590,6 @@ function renderDT(tab){
       '<button class="btn" style="width:100%;" onclick="addObj()">+ Añadir objetivo</button>'+
     '</div>'+objsCountHtml+objsHtml;
     setTimeout(()=>renderObjMicroSelector(id), 50);
-    // Renderizar gráfica de objetivos si aplica
-    if(window._evoDataObjetivos && typeof window.Chart !== 'undefined') {
-      setTimeout(() => _pintarGraficaEvolucionObjetivos(), 60);
-    }
   }
 
   // ─── TAB PARTIDOS ───
@@ -701,7 +634,6 @@ function renderDT(tab){
             <div style="display:flex;gap:5px;flex-wrap:wrap;">
               <button onclick="verInforme('${p.id}')" class="btn-outline" style="font-size:10px;height:26px;padding:0 8px;">Ver</button>
               <button onclick="abrirGestorClips('${p.id}','${id}')" style="background:rgba(124,111,240,.12);border:0.5px solid rgba(124,111,240,.3);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#7C6FF0;">▶${clips.length?' ('+clips.length+')':''}</button>
-              <button onclick="window.editarStatsPartido('${p.id}','${id}')" style="background:rgba(212,175,55,.12);border:0.5px solid rgba(212,175,55,.4);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#D4AF37;font-weight:700;">📊 Stats</button>
               <button onclick="exportarInformePDF('${p.id}')" style="background:rgba(29,158,117,.12);border:0.5px solid rgba(29,158,117,.3);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#1D9E75;">Ver PDF</button>
               <button onclick="exportarInformePDF('${p.id}');setTimeout(descargarUltimoPDF,2000)" style="background:rgba(29,158,117,.2);border:0.5px solid rgba(29,158,117,.4);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#1D9E75;font-weight:700;">⬇ PDF</button>
               <button onclick="deleteInforme('${p.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;">×</button>
@@ -933,17 +865,6 @@ function renderDT(tab){
         <div id="obs-bloques"></div>
         <button data-action="add-obs" style="width:100%;height:36px;background:rgba(88,166,255,0.1);border:0.5px solid rgba(88,166,255,0.3);border-radius:var(--radius-sm);color:#58a6ff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;">+ Añadir observación</button>
       </div>
-      <div style="${CARD}border:0.5px solid rgba(212,175,55,0.25);background:rgba(212,175,55,0.04);">
-        <div id="stats-header" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" data-action="toggle-stats-form">
-          <div style="${SEC_TITLE}color:#D4AF37;margin-bottom:0;">📊 Estadísticas del partido</div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:10px;color:var(--text3);font-style:italic;">Opcional · clic para ${window._statsFormOpen?'ocultar':'añadir'}</span>
-            <span id="stats-toggle-icon" style="font-size:16px;color:#D4AF37;transition:transform .2s;transform:rotate(${window._statsFormOpen?'180':'0'}deg);">▼</span>
-          </div>
-        </div>
-        <div id="stats-form-body" style="display:${window._statsFormOpen?'block':'none'};margin-top:.875rem;"></div>
-      </div>
-
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.5rem;">
         <button class="btn" style="height:44px;font-size:13px;" data-action="save-informe">Guardar informe</button>
         <button data-action="ver-informe" data-jug-id="${id}" style="height:44px;font-size:13px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-weight:600;letter-spacing:.02em;">📄 Generar informe PDF</button>
@@ -959,7 +880,6 @@ function renderDT(tab){
                 <button onclick="verInforme('${inf.id}')" class="btn-outline" style="font-size:10px;height:26px;padding:0 8px;">Ver</button>
                 <button onclick="generarInformeVisual('${id}','${inf.id}')" style="background:rgba(26,26,46,.8);color:#a0c4ff;border:0.5px solid rgba(160,196,255,.3);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;">📄 PDF</button>
                 <button onclick="abrirGestorClips('${inf.id}','${id}')" style="background:rgba(124,111,240,.12);border:0.5px solid rgba(124,111,240,.3);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#7C6FF0;">▶${clips.length?' ('+clips.length+')':''}</button>
-                <button onclick="window.editarStatsPartido('${inf.id}','${id}')" style="background:rgba(212,175,55,.15);border:0.5px solid rgba(212,175,55,.4);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#D4AF37;font-weight:700;">📊 Stats</button>
                 <button onclick="exportarInformePDF('${inf.id}')" style="background:rgba(29,158,117,.12);border:0.5px solid rgba(29,158,117,.3);border-radius:var(--radius-sm);padding:0 8px;height:26px;font-size:10px;cursor:pointer;color:#1D9E75;">PDF</button>
                 <button onclick="deleteInforme('${inf.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;">×</button>
               </div>
@@ -985,69 +905,6 @@ function renderDT(tab){
     let html = '';
 
     if(informes.length) {
-      // ─── BLOQUE EVOLUCIÓN (Chart.js) ───
-      // Informes ordenados cronológicamente (antiguo→reciente) para la gráfica
-      const infOrdenados = informes.slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
-      const notas = infOrdenados.map(i => parseFloat(i.nota_decimal) || null);
-      const validas = notas.filter(n => n !== null);
-      const mejorNota = validas.length ? Math.max(...validas) : 0;
-      const peorNota = validas.length ? Math.min(...validas) : 0;
-      const mediaNota = validas.length ? (validas.reduce((a,b)=>a+b,0)/validas.length) : 0;
-      // Tendencia: comparar últimos 3 vs 3 anteriores
-      let tendencia = null, tendenciaPct = 0;
-      if(validas.length >= 4) {
-        const half = Math.min(3, Math.floor(validas.length/2));
-        const recientes = validas.slice(-half);
-        const previos = validas.slice(-half*2, -half);
-        const avgR = recientes.reduce((a,b)=>a+b,0)/recientes.length;
-        const avgP = previos.reduce((a,b)=>a+b,0)/previos.length;
-        const diff = avgR - avgP;
-        tendencia = diff > 0.15 ? 'up' : diff < -0.15 ? 'down' : 'flat';
-        tendenciaPct = Math.abs(diff).toFixed(1);
-      }
-
-      html += '<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:1rem;">';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">';
-      html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);">📈 Evolución de la nota</div>';
-      if(tendencia){
-        const tCol = tendencia==='up'?'#1D9E75':(tendencia==='down'?'#f85149':'#9ca3af');
-        const tIco = tendencia==='up'?'↗':(tendencia==='down'?'↘':'→');
-        html += '<div style="font-size:11px;color:'+tCol+';font-weight:600;">'+tIco+' '+tendenciaPct+' pts</div>';
-      }
-      html += '</div>';
-
-      // KPIs en 3 columnas
-      html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
-      html += '<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--text3);">Media</div><div style="font-size:18px;font-weight:700;color:#fff;">'+mediaNota.toFixed(1)+'</div></div>';
-      html += '<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--text3);">Mejor</div><div style="font-size:18px;font-weight:700;color:#1D9E75;">'+mejorNota.toFixed(1)+'</div></div>';
-      html += '<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--text3);">Peor</div><div style="font-size:18px;font-weight:700;color:#f85149;">'+peorNota.toFixed(1)+'</div></div>';
-      html += '</div>';
-
-      // Canvas para la gráfica principal
-      if(validas.length >= 2) {
-        html += '<div style="position:relative;height:180px;margin-bottom:14px;"><canvas id="chart-evo-nota-'+id+'"></canvas></div>';
-      } else {
-        html += '<div style="text-align:center;color:var(--text3);font-size:11px;font-style:italic;padding:1rem;">Necesitas al menos 2 informes para ver la evolución (tienes '+validas.length+')</div>';
-      }
-
-      // Mini-gráficas por fase
-      if(validas.length >= 2) {
-        const fases = [{k:'MCB',l:'Con balón',c:'#1D9E75'},{k:'MSB',l:'Sin balón',c:'#378ADD'},{k:'TDA',l:'Trans. D→A',c:'#E07B00'},{k:'TAD',l:'Trans. A→D',c:'#D85A30'}];
-        html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:10px 0 8px;">Por fase</div>';
-        html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">';
-        fases.forEach(f => {
-          html += '<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:8px;">';
-          html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span style="font-size:10px;color:var(--text2);font-weight:600;">'+f.k+'</span><span style="font-size:9px;color:var(--text3);">'+f.l+'</span></div>';
-          html += '<div style="position:relative;height:60px;"><canvas id="chart-evo-'+f.k+'-'+id+'"></canvas></div>';
-          html += '</div>';
-        });
-        html += '</div>';
-      }
-      html += '</div>'; // end bloque evolución
-
-      // Guardar datos para renderizar gráficas después de insertar el HTML
-      window._evoDataInformes = { infOrdenados, notas, jugId: id };
-
       html += '<div style="'+SEC_TITLE+'margin-bottom:1rem;">'+informes.length+' Informe'+(informes.length!==1?'s':'')+' guardado'+(informes.length!==1?'s':'')+'</div>';
       informes.forEach(inf => {
         const nota = parseFloat(inf.nota_decimal) || 0;
@@ -1109,10 +966,6 @@ function renderDT(tab){
     }
 
     body.innerHTML = html;
-    // Renderizar gráficas Chart.js (si las hay)
-    if(window._evoDataInformes && typeof window.Chart !== 'undefined') {
-      setTimeout(() => _pintarGraficasEvolucionInformes(), 30);
-    }
     return;
   }
 
@@ -1175,6 +1028,12 @@ function renderDT(tab){
 
   if(tab==='material'){
     renderMaterialAnalista(id);
+    return;
+  }
+
+  if(tab==='perfil'){
+    body.innerHTML = '<div id="perfil-container" style="padding:.5rem 0;"><div style="text-align:center;padding:2rem;color:var(--text3);font-size:12px;">Cargando perfil...</div></div>';
+    setTimeout(function(){ if(window.renderPerfilJugador) window.renderPerfilJugador(id); }, 50);
     return;
   }
 }
@@ -1240,23 +1099,6 @@ document.addEventListener('click',function(e){
   if(e.target.closest('[data-action="ver-informe"]')){
     var jugId = e.target.closest('[data-jug-id]')?.getAttribute('data-jug-id');
     if(jugId) generarInformeVisual(jugId);
-    return;
-  }
-  // Toggle sección stats colapsable
-  if(e.target.closest('[data-action="toggle-stats-form"]')){
-    window._statsFormOpen = !window._statsFormOpen;
-    var body = document.getElementById('stats-form-body');
-    var ico = document.getElementById('stats-toggle-icon');
-    if(body && ico){
-      if(window._statsFormOpen){
-        body.style.display = 'block';
-        ico.style.transform = 'rotate(180deg)';
-        if(window._renderStatsFormInline) window._renderStatsFormInline();
-      } else {
-        body.style.display = 'none';
-        ico.style.transform = 'rotate(0deg)';
-      }
-    }
     return;
   }
   // Observaciones del informe
@@ -5562,14 +5404,6 @@ async function saveInforme() {
   // Añadir al estado local
   state.informesPartido.unshift(saved[0]);
 
-  // Si el panel de stats estaba abierto y con valores, guardarlas vinculadas a este informe
-  if(window._guardarStatsParaInforme && saved[0] && saved[0].id) {
-    try { await window._guardarStatsParaInforme(saved[0].id, jugId); } catch(e){ console.error(e); }
-  }
-  // Reset del estado stats inline
-  window._statsFormOpen = false;
-  window._statsFormCache = null;
-
   // Limpiar formulario
   window._stars = {};
   window._micTags = [];
@@ -6222,29 +6056,6 @@ function renderCalendarioSection() {
       const porFecha = {};
       eventos.forEach(e => { porFecha[e.fecha] = e; });
 
-      // ─── CALCULAR MD-X ───
-      const mdxPorFecha = {};
-      Object.keys(porFecha).forEach(fp => {
-        const e = porFecha[fp];
-        if(e.tipo !== 'partido') return;
-        mdxPorFecha[fp] = 'MD';
-        const partidoDate = new Date(fp + 'T12:00:00');
-        for(let off = -4; off <= 2; off++) {
-          if(off === 0) continue;
-          const dd = new Date(partidoDate);
-          dd.setDate(dd.getDate() + off);
-          const fs = dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
-          if(porFecha[fs] && porFecha[fs].tipo === 'partido') continue;
-          if(mdxPorFecha[fs]) {
-            const prevDist = parseInt(mdxPorFecha[fs].replace(/[^0-9]/g,''), 10) || 0;
-            if(prevDist <= Math.abs(off)) continue;
-          }
-          mdxPorFecha[fs] = (off < 0 ? 'MD' + off : 'MD+' + off);
-        }
-      });
-      const mdxColor = (mdx) => mdx === 'MD' ? '#58a6ff' : (mdx.indexOf('+') > -1 ? '#a371f7' : '#d29922');
-
-
       let html = `
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.875rem;">
           Semana del ${lunes.toLocaleDateString('es-ES',{day:'numeric',month:'short'})} al ${dias[6].toLocaleDateString('es-ES',{day:'numeric',month:'short'})}
@@ -6256,10 +6067,7 @@ function renderCalendarioSection() {
         const ev = porFecha[fecha];
         const tc = ev ? (TIPOS[ev.tipo]||TIPOS.entreno) : null;
         const esHoy = fecha === hoy.toISOString().slice(0,10);
-        const mdx = mdxPorFecha[fecha];
-        const mdxBadge = mdx ? `<div style="position:absolute;top:2px;right:3px;font-size:8px;font-weight:800;color:${mdxColor(mdx)};letter-spacing:.02em;line-height:1;">${mdx}</div>` : '';
-        html += `<div onclick="abrirDiaCalendario('${fecha}','${id}')" style="position:relative;cursor:pointer;border-radius:8px;padding:6px 4px;text-align:center;border:0.5px solid ${esHoy?'rgba(255,255,255,0.25)':ev?tc.color+'40':'var(--border)'};background:${ev?tc.bg:'var(--bg)'};transition:all .15s;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='${esHoy?'rgba(255,255,255,0.25)':ev?tc.color+'40':'var(--border)'}'">
-          ${mdxBadge}
+        html += `<div onclick="abrirDiaCalendario('${fecha}','${id}')" style="cursor:pointer;border-radius:8px;padding:6px 4px;text-align:center;border:0.5px solid ${esHoy?'rgba(255,255,255,0.25)':ev?tc.color+'40':'var(--border)'};background:${ev?tc.bg:'var(--bg)'};transition:all .15s;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='${esHoy?'rgba(255,255,255,0.25)':ev?tc.color+'40':'var(--border)'}'">
           <div style="font-size:9px;color:var(--text3);margin-bottom:2px;">${NOMBRES[i]}</div>
           <div style="font-size:13px;font-weight:${esHoy?'800':'600'};color:${esHoy?'#fff':'var(--text)'};">${d.getDate()}</div>
           ${ev ? `<div style="width:6px;height:6px;border-radius:50%;background:${tc.color};margin:3px auto 0;"></div>` : '<div style="height:9px;"></div>'}
@@ -6274,13 +6082,10 @@ function renderCalendarioSection() {
         const ev = porFecha[fecha];
         if(!ev) return;
         const tc = TIPOS[ev.tipo]||TIPOS.entreno;
-        const mdx = mdxPorFecha[fecha];
-        const mdxTag = mdx ? `<span style="font-size:8px;font-weight:800;color:#fff;background:${mdxColor(mdx)};padding:2px 7px;border-radius:99px;margin-left:6px;letter-spacing:.02em;">${mdx}</span>` : '';
         html += `<div style="background:var(--bg);border:0.5px solid ${tc.color}40;border-left:3px solid ${tc.color};border-radius:var(--radius-sm);padding:.875rem;margin-bottom:8px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${ev.foco||ev.notas?'8px':'0'};">
             <div>
               <span style="font-size:9px;padding:2px 7px;border-radius:99px;background:${tc.bg};color:${tc.color};font-weight:700;">${tc.label}</span>
-              ${mdxTag}
               <span style="font-size:12px;font-weight:600;margin-left:8px;">${NOMBRES[i]} ${d.getDate()}</span>
               ${ev.hora?`<span style="font-size:10px;color:var(--text2);margin-left:6px;">⏰ ${ev.hora}</span>`:''}
               ${ev.rival?`<span style="font-size:11px;color:${tc.color};margin-left:6px;">vs ${ev.rival}</span>`:''}
@@ -6592,172 +6397,8 @@ async function renderSeguimientoSection() {
     html = '<div style="text-align:center;padding:3rem 1rem;color:var(--text3);"><div style="font-size:40px;margin-bottom:12px;">📊</div><div style="font-size:14px;font-weight:600;margin-bottom:6px;">Sin datos todavía</div><div style="font-size:12px;line-height:1.6;">El jugador debe rellenar la nutrición<br>y el bienestar diario desde su app.</div></div>';
   }
 
-  // ═══════════════════════════════════════════════════
-  // BLOQUE: NUTRICIÓN v2 (diario + plan + screenshots)
-  // ═══════════════════════════════════════════════════
-  const GOLD = '#D4AF37';
-  const nutV2Logs = nutLogs.filter(r => (r.texto||'').indexOf('[NUTv2]') === 0);
-
-  // Parser del texto guardado por la app jugador
-  function parseNutV2(texto){
-    return {
-      cumplimiento: (texto.match(/CUMPLIMIENTO:\s*(\w+)/)||[])[1] || null,
-      tipoDia:      (texto.match(/TIPO_DIA:\s*(\w+)/)||[])[1] || null,
-      modo:         (texto.match(/MODO:\s*(\w+)/)||[])[1] || null,
-      agua:    parseInt((texto.match(/AGUA:\s*(\d+)/)||[])[1] || '0', 10),
-      pre:          /PRE:\s*OK/.test(texto),
-      post:         /POST:\s*OK/.test(texto),
-      nota:         (texto.match(/NOTA:\s*(.+?)$/)||[])[1] || ''
-    };
-  }
-
-  // KPIs nutrición
-  const totalDiasV2 = nutV2Logs.length;
-  let pctCompleto = 0, mediaAgua = 0;
-  let modoMasUsado = '—';
-  if(totalDiasV2 > 0) {
-    let completos = 0, sumAgua = 0;
-    const modoCount = {};
-    nutV2Logs.forEach(r => {
-      const p = parseNutV2(r.texto);
-      if(p.cumplimiento === 'completo') completos++;
-      else if(p.cumplimiento === 'mitad') completos += 0.5;
-      sumAgua += (p.agua || 0);
-      if(p.modo) modoCount[p.modo] = (modoCount[p.modo]||0) + 1;
-    });
-    pctCompleto = Math.round((completos / totalDiasV2) * 100);
-    mediaAgua = (sumAgua / totalDiasV2).toFixed(1);
-    const modoEntries = Object.entries(modoCount).sort((a,b)=>b[1]-a[1]);
-    if(modoEntries.length) modoMasUsado = modoEntries[0][0] === 'funcional' ? '🦁 Funcional' : '⚽ Estándar';
-  }
-
-  let nutHtml = '';
-  if(totalDiasV2 > 0) {
-    const pctColor = pctCompleto >= 75 ? '#1D9E75' : pctCompleto >= 50 ? GOLD : '#f85149';
-
-    nutHtml += '<div style="'+CARD+'border-left:3px solid '+GOLD+';">';
-    nutHtml += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">';
-    nutHtml += '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:'+GOLD+';">🥗 Nutrición · Últimas 2 semanas</div>';
-    nutHtml += '<div style="font-size:10px;color:var(--text3);">'+totalDiasV2+' día'+(totalDiasV2!==1?'s':'')+' registrado'+(totalDiasV2!==1?'s':'')+'</div>';
-    nutHtml += '</div>';
-
-    // KPIs
-    nutHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">';
-    nutHtml += '<div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center;border:0.5px solid var(--border);"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Cumplimiento</div><div style="font-size:22px;font-weight:800;color:'+pctColor+';margin-top:3px;">'+pctCompleto+'%</div></div>';
-    nutHtml += '<div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center;border:0.5px solid var(--border);"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Hidratación</div><div style="font-size:22px;font-weight:800;color:#58a6ff;margin-top:3px;">'+mediaAgua+'/8</div></div>';
-    nutHtml += '<div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center;border:0.5px solid var(--border);"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Modo</div><div style="font-size:13px;font-weight:700;color:var(--text);margin-top:8px;">'+modoMasUsado+'</div></div>';
-    nutHtml += '</div>';
-
-    // Barra de progreso
-    nutHtml += '<div style="height:6px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;margin-bottom:1rem;">';
-    nutHtml += '<div style="height:100%;width:'+pctCompleto+'%;background:'+pctColor+';"></div>';
-    nutHtml += '</div>';
-
-    // Diario reciente (últimos 7)
-    nutHtml += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px;">📋 Diario reciente</div>';
-    nutV2Logs.slice(0, 7).forEach(r => {
-      const p = parseNutV2(r.texto);
-      const icon = p.cumplimiento === 'completo' ? '😄' : p.cumplimiento === 'mitad' ? '😐' : '😞';
-      const col  = p.cumplimiento === 'completo' ? '#1D9E75' : p.cumplimiento === 'mitad' ? GOLD : '#f85149';
-      const fecha = new Date(r.fecha + 'T12:00:00').toLocaleDateString('es-ES', { weekday:'short', day:'2-digit', month:'short' });
-      const diaIco = p.tipoDia === 'partido' ? '⚽' : p.tipoDia === 'descanso' ? '🛌' : '💪';
-      const modoIco = p.modo === 'funcional' ? '🦁' : '⚽';
-      nutHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg);border:0.5px solid var(--border);border-left:2px solid '+col+';border-radius:6px;margin-bottom:6px;">';
-      nutHtml += '<div style="font-size:18px;flex-shrink:0;">'+icon+'</div>';
-      nutHtml += '<div style="flex:1;min-width:0;">';
-      nutHtml += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:3px;">';
-      nutHtml += '<span style="font-size:11px;font-weight:700;color:var(--text);">'+fecha+'</span>';
-      nutHtml += '<span style="font-size:10px;color:var(--text3);">'+diaIco+' '+(p.tipoDia||'-')+' · '+modoIco+' '+(p.modo||'-')+' · 💧'+p.agua+'/8</span>';
-      nutHtml += '</div>';
-      if((p.tipoDia === 'entreno' || p.tipoDia === 'partido') && (p.pre || p.post)) {
-        nutHtml += '<div style="font-size:10px;color:var(--text3);margin-bottom:3px;">';
-        if(p.pre)  nutHtml += '<span style="color:#1D9E75;">⚡ Pre OK</span> ';
-        if(p.post) nutHtml += '<span style="color:#1D9E75;">🥤 Post OK</span>';
-        nutHtml += '</div>';
-      }
-      if(p.nota) nutHtml += '<div style="font-size:11px;color:var(--text2);font-style:italic;line-height:1.4;">"'+p.nota+'"</div>';
-      nutHtml += '</div></div>';
-    });
-
-    // Plan del jugador (read-only) — se carga asíncrono más abajo
-    nutHtml += '<div id="seg-nut-plan-wrap" style="margin-top:1rem;"></div>';
-
-    // Galería de capturas — se carga asíncrona más abajo
-    nutHtml += '<div id="seg-nut-screenshots-wrap" style="margin-top:1rem;"></div>';
-
-    nutHtml += '</div>'; // /CARD
-  }
-
-  // Insertar el bloque de nutrición justo después de la cabecera (o después del mensaje "Sin datos")
-  if(nutHtml) {
-    // Si hay HTML principal, lo prepongo. Si solo había "Sin datos", lo sobrescribo
-    if(!nutLogs.length && !psicoDiario.length && !psicoPartido.length) {
-      html = nutHtml; // si todo estaba vacío pero hay v2 esto no debería pasar; safety
-    } else {
-      html = nutHtml + html;
-    }
-  }
-
   body.innerHTML = html;
-
-  // Carga asíncrona del plan del jugador y screenshots (no bloqueamos el render principal)
-  if(totalDiasV2 > 0) {
-    cargarPlanJugadorSeg(id);
-    cargarScreenshotsSeg(id);
-  }
 }
-
-// ─── Plan calculado del jugador (read-only) ───
-async function cargarPlanJugadorSeg(jugId) {
-  const wrap = document.getElementById('seg-nut-plan-wrap');
-  if(!wrap) return;
-  // El perfil del jugador se guarda en localStorage SUYO, no en BD.
-  // Como analista no podemos leerlo. Solución: nada que mostrar aquí salvo aviso.
-  // ALTERNATIVA: leer la última fila NUTv2 y extraer modo + tipo de día, ya disponible arriba.
-  // Por simplicidad, hacemos un mini-resumen con info de los últimos días.
-  wrap.innerHTML = '<div style="background:rgba(212,175,55,0.06);border:0.5px solid rgba(212,175,55,0.2);border-radius:8px;padding:10px;font-size:11px;color:var(--text3);line-height:1.5;">ℹ️ El plan de macros calculado por el jugador se guarda en su dispositivo. Para verlo, pídeselo por chat o invítale a compartir captura.</div>';
-}
-
-// ─── Galería de capturas (Supabase) ───
-async function cargarScreenshotsSeg(jugId) {
-  const wrap = document.getElementById('seg-nut-screenshots-wrap');
-  if(!wrap) return;
-  try {
-    const res = await DB.from('nutricion_screenshots').select('id,fecha,imagen_b64,created_at').eq('jugador_id', jugId).order('created_at', { ascending: false }).limit(12);
-    if(res.error) {
-      wrap.innerHTML = ''; // tabla no existe todavía, no mostramos nada
-      return;
-    }
-    const rows = res.data || [];
-    if(!rows.length) {
-      wrap.innerHTML = ''; // no mostramos sección si no hay capturas
-      return;
-    }
-    let html = '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:0 0 8px;">📸 Capturas del jugador ('+rows.length+')</div>';
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));gap:6px;">';
-    rows.forEach(r => {
-      const f = new Date(r.created_at).toLocaleDateString('es-ES', { day:'2-digit', month:'short' });
-      html += '<div style="position:relative;border-radius:8px;overflow:hidden;border:0.5px solid var(--border);cursor:pointer;" onclick="ampliarScreenshot(\''+r.imagen_b64+'\')">';
-      html += '<img src="'+r.imagen_b64+'" style="width:100%;height:100px;object-fit:cover;display:block;">';
-      html += '<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.8));padding:14px 6px 4px;font-size:9px;color:#fff;">'+f+'</div>';
-      html += '</div>';
-    });
-    html += '</div>';
-    wrap.innerHTML = html;
-  } catch(e) {
-    console.warn('No screenshots', e);
-    wrap.innerHTML = '';
-  }
-}
-
-// ─── Lightbox simple para ampliar captura ───
-window.ampliarScreenshot = function(b64) {
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:20px;';
-  overlay.innerHTML = '<img src="'+b64+'" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;">';
-  overlay.onclick = () => overlay.remove();
-  document.body.appendChild(overlay);
-};
 
 
 // ═══════════════════════════════════════════════════
@@ -7532,92 +7173,6 @@ window._cogAnaDelGoal = function(goalId, jugId){
   });
 };
 
-// ═══════════════════════════════════════════════════════
-// MATERIAL DEL JUGADOR
-// ═══════════════════════════════════════════════════════
-const MATERIAL_LISTA = [
-  {
-    id: 'cuerda_brock',
-    icon: '🧵',
-    nombre: 'Cuerda de Brock',
-    precio: '~3€',
-    descripcion: 'Cuerda blanca de 2m con 3 bolas de colores (roja, amarilla, verde). Entrena vergencia binocular y enfoque rápido entre distancias.',
-    donde: 'https://www.amazon.es/s?k=cuerda+de+brock',
-    activa: ['lun'],
-    actividades_extra: [
-      'Cambios rápidos de enfoque cada 2 segundos (3 min)',
-      'Cierra ojos 5s, abre y enfoca la bola que te indiquen'
-    ]
-  },
-  {
-    id: 'conos_colores',
-    icon: '🚧',
-    nombre: '4 Conos de colores',
-    precio: '~8€',
-    descripcion: 'Set de conos con colores distintos (rojo, azul, verde, amarillo). Imprescindibles para los ejercicios de reacción y Stroop motor.',
-    donde: 'https://www.amazon.es/s?k=conos+entrenamiento+colores',
-    activa: ['mie', 'jue'],
-    actividades_extra: [
-      'Toca el color dictado (30 reps, 4 conos en círculo)',
-      'Stroop motor cruzado: dice rojo, tocas azul (20 reps)',
-      'Memoria de dos colores: tocar el segundo primero (15 reps)'
-    ]
-  },
-  {
-    id: 'disco_equilibrio',
-    icon: '⚪',
-    nombre: 'Disco de equilibrio',
-    precio: '~12€',
-    descripcion: 'Cojín hinchable para entrenar propiocepción y equilibrio. Suma carga propioceptiva a los ejercicios cognitivos.',
-    donde: 'https://www.amazon.es/s?k=disco+equilibrio+propiocepcion',
-    activa: ['mie'],
-    actividades_extra: [
-      'Bote de balón a pierna no dominante de pie sobre el disco',
-      'Doble tarea sobre superficie inestable (suma exigencia)'
-    ]
-  },
-  {
-    id: 'pelota_reaccion',
-    icon: '⚾',
-    nombre: 'Pelota de reacción hexagonal',
-    precio: '~15€',
-    descripcion: 'Pelota con caras irregulares para botes impredecibles. Reflejos visuales-motores en alto nivel.',
-    donde: 'https://www.amazon.es/s?k=pelota+reaccion+hexagonal',
-    activa: ['mie', 'jue'],
-    actividades_extra: [
-      'Lanzar contra pared y atrapar tras bote irregular',
-      'Trabajo de reacción con balón impredecible (60s)'
-    ]
-  },
-  {
-    id: 'palo_reaccion',
-    icon: '🪄',
-    nombre: 'Palo de reacción',
-    precio: '~10€',
-    descripcion: 'Palo de 50cm que se deja caer para atraparlo. Mide reacción visual-motora.',
-    donde: 'https://www.amazon.es/s?k=palo+reaccion+tiempo',
-    activa: ['jue'],
-    actividades_extra: [
-      'Test de reacción: medir cm hasta atrapar (10 reps)',
-      'Versión con consigna: solo coger si dice "sí"'
-    ]
-  },
-  {
-    id: 'antifaces_strobo',
-    icon: '🥽',
-    nombre: 'Antifaces estroboscópicos',
-    precio: '80-150€',
-    descripcion: 'Gafas con parpadeo programable. Entrenan procesamiento visual fragmentado, predicción y memoria.',
-    donde: 'https://www.amazon.es/s?k=strobe+training+glasses',
-    activa: ['lun', 'mar', 'mie', 'jue', 'vie'],
-    actividades_extra: [
-      'Schulte con estrobo (procesar bajo carga visual)',
-      'Reacción con conos en modo estroboscópico',
-      'Bote + cálculo mental con visión fragmentada'
-    ]
-  }
-];
-
 async function renderMaterialAnalista(jugId) {
   const body = document.getElementById('djbody');
   body.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text3);font-size:12px;">Cargando material...</div>';
@@ -7710,1087 +7265,472 @@ window._toggleMaterial = async function(jugId, itemId) {
   renderMaterialAnalista(jugId);
 };
 
-// ═══════════════════════════════════════════════════════
-// EVOLUCIÓN INFORMES (Chart.js)
-// ═══════════════════════════════════════════════════════
-window._evoCharts = window._evoCharts || {};
+// ════════════════════════════════════════════════════════════════════
+// MÓDULO PERFIL DEL JUGADOR (Radar + Score global + Evolución)
+// ════════════════════════════════════════════════════════════════════
 
-function _pintarGraficasEvolucionInformes() {
-  const data = window._evoDataInformes;
-  if(!data) return;
-  const { infOrdenados, notas, jugId } = data;
-
-  // Helper: destruir chart previo si existe
-  const destruir = (key) => { try { if(window._evoCharts[key]) window._evoCharts[key].destroy(); } catch(e){} };
-
-  const labels = infOrdenados.map(i => {
-    const f = new Date(i.fecha + 'T12:00:00');
-    return f.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
-  });
-
-  // ─── GRÁFICA PRINCIPAL: evolución de nota ───
-  const canvasNota = document.getElementById('chart-evo-nota-' + jugId);
-  if(canvasNota) {
-    const keyNota = 'nota-' + jugId;
-    destruir(keyNota);
-    const validIdx = notas.map((n,i)=>n!==null?i:-1).filter(i=>i>=0);
-    const recordVal = validIdx.length ? Math.max.apply(null, validIdx.map(i=>notas[i])) : 0;
-    const colors = notas.map(n => n === recordVal ? '#D4AF37' : '#58a6ff');
-    const radii  = notas.map(n => n === recordVal ? 5 : 3);
-    try {
-      window._evoCharts[keyNota] = new window.Chart(canvasNota, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Nota',
-            data: notas,
-            borderColor: 'rgba(88,166,255,0.85)',
-            backgroundColor: 'rgba(88,166,255,0.1)',
-            tension: 0.3,
-            fill: true,
-            pointRadius: radii,
-            pointBackgroundColor: colors,
-            pointBorderColor: '#0f1729',
-            pointBorderWidth: 1.5,
-            spanGaps: true
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                title: function(items) {
-                  const inf = infOrdenados[items[0].dataIndex];
-                  return inf.partido + (inf.rival ? ' vs ' + inf.rival : '');
-                },
-                label: function(item) { return 'Nota: ' + item.parsed.y + '/10'; },
-                afterBody: function(items) {
-                  const inf = infOrdenados[items[0].dataIndex];
-                  return inf.resultado ? '\n' + inf.resultado : '';
-                }
-              }
-            }
-          },
-          scales: {
-            x: { ticks:{color:'rgba(255,255,255,0.55)',font:{size:9}}, grid:{color:'rgba(255,255,255,0.04)'} },
-            y: { min: 0, max: 10, ticks:{color:'rgba(255,255,255,0.55)',font:{size:9}, stepSize:2}, grid:{color:'rgba(255,255,255,0.04)'} }
-          }
-        }
-      });
-    } catch(e) { console.warn('chart evo nota err', e); }
+// Schema completo de 52 parámetros agrupados en 5 dimensiones
+window._PERFIL_SCHEMA = {
+  atleticas: {
+    label: '🏃 ATLÉTICAS',
+    color: '#3fb950',
+    params: [
+      {key:'fuerza', label:'Fuerza'},
+      {key:'resist_aerobica', label:'Resistencia aeróbica'},
+      {key:'resist_anaerobica', label:'Resistencia anaeróbica'},
+      {key:'velocidad', label:'Velocidad'},
+      {key:'sprint', label:'Sprint'},
+      {key:'aceleracion', label:'Aceleración'},
+      {key:'agilidad', label:'Agilidad'},
+      {key:'cambio_direccion', label:'Cambio de dirección'},
+      {key:'coordinacion', label:'Coordinación'},
+      {key:'salto', label:'Salto'},
+      {key:'equilibrio', label:'Equilibrio'}
+    ]
+  },
+  tecnicas: {
+    label: '⚙️ TÉCNICAS',
+    color: '#58a6ff',
+    params: [
+      {key:'pie_pred', label:'Pie predominante'},
+      {key:'pie_no_pred', label:'Pie no predominante'},
+      {key:'pase_corto', label:'Pase corto'},
+      {key:'pase_largo', label:'Pase largo'},
+      {key:'pase_cruzado', label:'Pase cruzado'},
+      {key:'primera_intencion', label:'Primera intención'},
+      {key:'control_orientado', label:'Control orientado'},
+      {key:'recepcion', label:'Recepción'},
+      {key:'conduccion', label:'Conducción'},
+      {key:'regate', label:'Regate'},
+      {key:'tiro', label:'Tiro'},
+      {key:'juego_aereo', label:'Juego aéreo'}
+    ]
+  },
+  ofensivas: {
+    label: '⚔️ OFENSIVAS',
+    color: '#D4AF37',
+    params: [
+      {key:'desmarque_ruptura', label:'Desmarque de ruptura'},
+      {key:'desmarque_apoyo', label:'Desmarque de apoyo'},
+      {key:'cobertura_balon', label:'Cobertura del balón'},
+      {key:'vision_juego', label:'Visión de juego'},
+      {key:'asociacion', label:'Asociación / juego en corto'},
+      {key:'llegada_area', label:'Llegada al área'},
+      {key:'finalizacion', label:'Finalización'},
+      {key:'cap_goleadora', label:'Capacidad goleadora'},
+      {key:'creacion_espacios', label:'Creación de espacios'},
+      {key:'transicion_ofensiva', label:'Transición ofensiva'}
+    ]
+  },
+  defensivas: {
+    label: '🛡️ DEFENSIVAS',
+    color: '#D85A30',
+    params: [
+      {key:'posicionamiento', label:'Posicionamiento'},
+      {key:'marcajes', label:'Marcajes'},
+      {key:'def_1v1', label:'1×1 defensivo'},
+      {key:'anticipacion', label:'Anticipación táctica'},
+      {key:'lectura_lineas', label:'Lectura de líneas'},
+      {key:'presion_tras_perdida', label:'Presión tras pérdida'},
+      {key:'cobertura_compa', label:'Cobertura del compañero'},
+      {key:'def_aerea', label:'Defensa aérea'},
+      {key:'transicion_defensiva', label:'Transición defensiva'}
+    ]
+  },
+  psicologicas: {
+    label: '🧠 PSICOLÓGICAS',
+    color: '#a371f7',
+    params: [
+      {key:'liderazgo', label:'Liderazgo'},
+      {key:'sacrificio', label:'Sacrificio'},
+      {key:'fair_play', label:'Fair play'},
+      {key:'coraje', label:'Coraje'},
+      {key:'esp_equipo', label:'Espíritu de equipo'},
+      {key:'personalidad', label:'Personalidad'},
+      {key:'decision_presion', label:'Toma de decisiones bajo presión'},
+      {key:'resiliencia', label:'Resiliencia / gestión del error'},
+      {key:'concentracion', label:'Concentración'},
+      {key:'autoexigencia', label:'Autoexigencia'}
+    ]
   }
-
-  // ─── MINI-GRÁFICAS POR FASE ───
-  const fases = [{k:'MCB',c:'#1D9E75'},{k:'MSB',c:'#378ADD'},{k:'TDA',c:'#E07B00'},{k:'TAD',c:'#D85A30'}];
-  fases.forEach(f => {
-    const canvas = document.getElementById('chart-evo-'+f.k+'-'+jugId);
-    if(!canvas) return;
-    const key = f.k + '-' + jugId;
-    destruir(key);
-
-    // Calcular media por informe para esta fase
-    const valores = infOrdenados.map(inf => {
-      let stars = {};
-      try { stars = inf.estrellas_json ? JSON.parse(inf.estrellas_json) : {}; } catch(e){}
-      const arr = (stars[f.k] || []).filter(x => x > 0);
-      return arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length) : null;
-    });
-
-    try {
-      window._evoCharts[key] = new window.Chart(canvas, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            data: valores,
-            borderColor: f.c,
-            backgroundColor: f.c + '20',
-            tension: 0.35,
-            fill: true,
-            pointRadius: 2,
-            pointBackgroundColor: f.c,
-            spanGaps: true
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend:{display:false}, tooltip:{enabled:true,callbacks:{label:function(item){return item.parsed.y!==null?item.parsed.y.toFixed(1)+'/5':'—';}}} },
-          scales: {
-            x: { display: false },
-            y: { min: 0, max: 5, display: false }
-          }
-        }
-      });
-    } catch(e) { console.warn('chart evo '+f.k+' err', e); }
-  });
-}
-
-// ═══════════════════════════════════════════════════════
-// EVOLUCIÓN OBJETIVOS (Chart.js)
-// ═══════════════════════════════════════════════════════
-function _pintarGraficaEvolucionObjetivos() {
-  const data = window._evoDataObjetivos;
-  if(!data) return;
-  const { supConFecha, jugId } = data;
-  const canvas = document.getElementById('chart-evo-objs-' + jugId);
-  if(!canvas) return;
-  const key = 'objs-' + jugId;
-  try { if(window._evoCharts[key]) window._evoCharts[key].destroy(); } catch(e){}
-
-  // Acumulado por fecha
-  const labels = supConFecha.map(o => {
-    const f = new Date(o.fecha_superado + 'T12:00:00');
-    return f.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
-  });
-  const valores = supConFecha.map((_, i) => i + 1); // acumulado: 1, 2, 3, ...
-
-  try {
-    window._evoCharts[key] = new window.Chart(canvas, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Objetivos superados',
-          data: valores,
-          borderColor: '#1D9E75',
-          backgroundColor: 'rgba(29,158,117,0.15)',
-          tension: 0.2,
-          fill: true,
-          pointRadius: 3,
-          pointBackgroundColor: '#1D9E75',
-          stepped: false
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              title: function(items) { return labels[items[0].dataIndex]; },
-              label: function(item) {
-                const obj = supConFecha[item.dataIndex];
-                return obj.texto.substring(0, 50) + (obj.texto.length>50?'...':'');
-              },
-              afterBody: function(items) {
-                return '\nTotal acumulado: ' + items[0].parsed.y;
-              }
-            }
-          }
-        },
-        scales: {
-          x: { ticks:{color:'rgba(255,255,255,0.55)',font:{size:9}}, grid:{color:'rgba(255,255,255,0.04)'} },
-          y: { beginAtZero:true, ticks:{color:'rgba(255,255,255,0.55)',font:{size:9}, stepSize:1, precision:0}, grid:{color:'rgba(255,255,255,0.04)'} }
-        }
-      }
-    });
-  } catch(e) { console.warn('chart evo objs err', e); }
-}
-
-// ═══════════════════════════════════════════════════════
-// EXPORTAR INFORME PROFESIONAL (HTML — abrir y guardar como PDF desde Chrome)
-// ═══════════════════════════════════════════════════════
-window.exportarInformeProfesionalPDF = function() {
-  // El modal del informe profesional es #modal-inf-profesional
-  var modal = document.getElementById('modal-inf-profesional');
-  if(!modal){ alert('Modal del informe no encontrado.'); return; }
-
-  // Obtener el contenido del informe (sin header del modal)
-  var contenido = modal.querySelector('#inf-profesional-body') || modal.querySelector('.modal-body') || modal;
-  var titulo = (document.getElementById('inf-profesional-title') || {}).textContent || 'Informe profesional';
-
-  // Construir HTML standalone con estilos básicos para impresión limpia
-  var fecha = new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' });
-  var html = '<!DOCTYPE html><html><head><meta charset="utf-8">'+
-    '<title>'+titulo+'</title>'+
-    '<style>'+
-    'body{font-family:-apple-system,BlinkMacSystemFont,Inter,sans-serif;max-width:780px;margin:32px auto;padding:24px;color:#222;line-height:1.6;}'+
-    'h1{font-size:22px;border-bottom:2px solid #D4AF37;padding-bottom:10px;margin-bottom:6px;}'+
-    'h2{font-size:16px;color:#444;margin-top:24px;margin-bottom:8px;border-left:3px solid #D4AF37;padding-left:10px;}'+
-    'h3{font-size:14px;color:#555;margin-top:14px;}'+
-    '.meta{font-size:11px;color:#888;margin-bottom:20px;}'+
-    'p{margin:6px 0;}'+
-    'ul,ol{margin:6px 0 12px 22px;}'+
-    'li{margin:3px 0;}'+
-    'button,.btn,.close-btn{display:none !important;}'+
-    '@media print { body { margin:0; padding:14px; } }'+
-    '</style></head><body>'+
-    '<h1>'+titulo+'</h1>'+
-    '<div class="meta">Generado por IA · Omar Cortés Ferrero · Areté Academy · '+fecha+'</div>'+
-    contenido.innerHTML+
-    '</body></html>';
-
-  // Descargar como HTML (que el usuario abre y hace Ctrl+P → Guardar como PDF)
-  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  var nombre = titulo.replace(/[^a-zA-Z0-9_\-]/g, '_') || 'Informe';
-  a.href = url;
-  a.download = nombre + '.html';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(function(){
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 100);
-
-  if(typeof showToast === 'function') showToast('✓ Descargado. Ábrelo y usa Ctrl+P → "Guardar como PDF"');
 };
 
-// ════════════════════════════════════════════════════════════════════
-// ENTREGA B · CARD PLAYER + PRIORIDADES DEL MES (Analista)
-// ════════════════════════════════════════════════════════════════════
+// Calcular media por dimensión
+window._mediaDimension = function(parametros, dimKey) {
+  const dim = window._PERFIL_SCHEMA[dimKey];
+  if(!dim) return 0;
+  let suma = 0, count = 0;
+  dim.params.forEach(p => {
+    const v = parametros[p.key];
+    if(typeof v === 'number' && v >= 1 && v <= 5) {
+      suma += v;
+      count++;
+    }
+  });
+  return count > 0 ? +(suma / count).toFixed(2) : 0;
+};
 
-// ─── CARD PLAYER ANALISTA ───
-window.renderCardPlayerAnalista = async function(jugId) {
-  const cont = document.getElementById('card-player-container');
+// Calcular score global (media de las 5 dimensiones × 20 = escala /100)
+window._scoreGlobal = function(parametros) {
+  const dims = Object.keys(window._PERFIL_SCHEMA);
+  let suma = 0, count = 0;
+  dims.forEach(d => {
+    const m = window._mediaDimension(parametros, d);
+    if(m > 0) { suma += m; count++; }
+  });
+  if(count === 0) return 0;
+  return Math.round((suma / count) * 20);
+};
+
+// Render principal del tab Perfil
+window.renderPerfilJugador = async function(jugId) {
+  const cont = document.getElementById('perfil-container');
   if(!cont) return;
   const j = state.jugadores.find(x => x.id === jugId);
   if(!j) { cont.innerHTML = ''; return; }
 
-  // Cargar card_player de Supabase
-  let cardData = { staff_fortalezas: '', staff_mejorar: '', self_fortalezas: '', self_mejorar: '' };
+  // Cargar evaluaciones (todas las del jugador, ordenadas por fecha desc)
+  let evals = [];
   try {
-    const { data } = await DB.from('card_player').select('*').eq('jugador_id', jugId).maybeSingle();
-    if(data) cardData = data;
-  } catch(e) { /* tabla puede no existir aún */ }
+    const { data, error } = await DB.from('perfil_jugador').select('*')
+      .eq('jugador_id', jugId)
+      .order('fecha_evaluacion', { ascending: false });
+    if(error) {
+      if(error.message && error.message.includes('does not exist')){
+        cont.innerHTML = '<div style="background:rgba(216,90,48,.1);border:0.5px solid #D85A30;border-radius:8px;padding:1rem;color:#D85A30;font-size:12px;line-height:1.6;">⚠ Tabla <code>perfil_jugador</code> no existe en Supabase. Ejecuta el SQL que te paso al final del mensaje y vuelve a abrir esta pestaña.</div>';
+        return;
+      }
+      console.error(error);
+    }
+    if(data) evals = data;
+  } catch(e) { console.error(e); }
 
-  const av = AV_COLORS[j.posicion] || {bg:'#1a2040', color:'#8090d0'};
-  const iniciales = (j.nombre || '?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  const foto = j.foto_jugador || '';
-  const edad = j.fecha_nacimiento ? Math.floor((Date.now() - new Date(j.fecha_nacimiento)) / (365.25*24*3600*1000)) : '';
+  // Última evaluación
+  const ultima = evals.length > 0 ? evals[0] : null;
+  const params = ultima ? (typeof ultima.parametros === 'string' ? JSON.parse(ultima.parametros) : ultima.parametros) : {};
+  const scoreActual = window._scoreGlobal(params);
 
-  // Helper: escapar HTML y convertir saltos de línea a <br>
-  const fmt = (s) => {
-    if(!s) return '';
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-  };
-
-  let html = '<div style="background:linear-gradient(135deg, rgba(212,175,55,0.08), rgba(255,255,255,0.02));border:0.5px solid rgba(212,175,55,0.3);border-radius:14px;padding:1rem;margin-bottom:1rem;">';
-
-  // Encabezado: foto + datos
-  html += '<div style="display:flex;gap:14px;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:0.5px solid var(--border);">';
-  // Avatar/Foto
-  if(foto) {
-    html += '<img src="'+foto+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #D4AF37;flex-shrink:0;">';
-  } else {
-    html += '<div style="width:64px;height:64px;border-radius:50%;background:'+av.bg+';color:'+av.color+';display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;border:2px solid #D4AF37;flex-shrink:0;">'+iniciales+'</div>';
+  // Mes anterior para comparar (si hay)
+  let scoreAnterior = null;
+  if(evals.length >= 2) {
+    const prev = typeof evals[1].parametros === 'string' ? JSON.parse(evals[1].parametros) : evals[1].parametros;
+    scoreAnterior = window._scoreGlobal(prev);
   }
-  // Datos
-  html += '<div style="flex:1;min-width:0;">';
-  html += '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:3px;">'+(j.nombre||'-')+'</div>';
-  html += '<div style="font-size:10px;color:#D4AF37;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">CARD PLAYER · '+(j.posicion||'Sin posición')+'</div>';
-  let metaParts = [];
-  if(j.pie) metaParts.push('Pie: '+j.pie);
-  if(j.altura) metaParts.push(j.altura+'cm');
-  if(j.peso) metaParts.push(j.peso+'kg');
-  if(edad) metaParts.push(edad+' años');
-  if(j.club) metaParts.push(j.club);
-  if(metaParts.length) html += '<div style="font-size:10px;color:var(--text2);">'+metaParts.join(' · ')+'</div>';
+  const delta = scoreAnterior !== null ? scoreActual - scoreAnterior : null;
+
+  let html = '';
+
+  // Card score global
+  html += '<div style="background:linear-gradient(135deg, rgba(212,175,55,0.08), rgba(255,255,255,0.02));border:0.5px solid rgba(212,175,55,0.3);border-radius:14px;padding:1.25rem;margin-bottom:1rem;">';
+  html += '<div style="display:flex;align-items:center;gap:1rem;">';
+  html += '<div style="flex:1;">';
+  html += '<div style="font-size:10px;color:#D4AF37;font-weight:800;text-transform:uppercase;letter-spacing:.1em;">📊 Perfil del jugador</div>';
+  html += '<div style="font-size:13px;color:#fff;margin-top:2px;">'+(j.nombre||'-')+' · '+(j.posicion||'-')+'</div>';
+  html += '<div style="font-size:10px;color:var(--text3);margin-top:4px;">'+evals.length+' evaluacion'+(evals.length===1?'':'es')+' · '+(ultima?'última: '+ultima.fecha_evaluacion:'sin evaluaciones aún')+'</div>';
   html += '</div>';
-  html += '</div>';
+  // Score grande
+  html += '<div style="text-align:right;">';
+  html += '<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">Score global</div>';
+  html += '<div style="font-size:42px;font-weight:800;color:#D4AF37;line-height:1;letter-spacing:-.02em;">'+(scoreActual||'—')+'</div>';
+  if(delta !== null && delta !== 0) {
+    const dColor = delta > 0 ? '#3fb950' : '#D85A30';
+    const dArrow = delta > 0 ? '↗' : '↘';
+    html += '<div style="font-size:10px;color:'+dColor+';font-weight:700;margin-top:2px;">'+dArrow+' '+(delta>0?'+':'')+delta+' vs anterior</div>';
+  }
+  html += '</div></div></div>';
 
-  // 2 columnas: Staff vs Self
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
-
-  // STAFF ANALYSIS (lo que el analista ve)
-  html += '<div style="background:rgba(63,185,80,0.08);border:0.5px solid rgba(63,185,80,0.3);border-radius:8px;padding:10px;">';
-  html += '<div style="font-size:9px;font-weight:800;color:#3fb950;letter-spacing:.08em;margin-bottom:6px;">STAFF ANALYSIS</div>';
-  html += '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">✓ Fortalezas</div>';
-  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;margin-bottom:8px;min-height:30px;">'+(cardData.staff_fortalezas ? fmt(cardData.staff_fortalezas) : '<span style="color:var(--text3);font-style:italic;">Sin definir</span>')+'</div>';
-  html += '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">⚠ A mejorar</div>';
-  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;min-height:30px;">'+(cardData.staff_mejorar ? fmt(cardData.staff_mejorar) : '<span style="color:var(--text3);font-style:italic;">Sin definir</span>')+'</div>';
-  html += '</div>';
-
-  // SELF-ASSESSMENT (lo que él dijo en el cuestionario)
-  html += '<div style="background:rgba(88,166,255,0.08);border:0.5px solid rgba(88,166,255,0.3);border-radius:8px;padding:10px;">';
-  html += '<div style="font-size:9px;font-weight:800;color:#58a6ff;letter-spacing:.08em;margin-bottom:6px;">SELF-ASSESSMENT</div>';
-  html += '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">✓ Fortalezas</div>';
-  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;margin-bottom:8px;min-height:30px;">'+(cardData.self_fortalezas ? fmt(cardData.self_fortalezas) : '<span style="color:var(--text3);font-style:italic;">Sin completar</span>')+'</div>';
-  html += '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">⚠ A mejorar</div>';
-  html += '<div style="font-size:11px;color:var(--text);line-height:1.5;min-height:30px;">'+(cardData.self_mejorar ? fmt(cardData.self_mejorar) : '<span style="color:var(--text3);font-style:italic;">Sin completar</span>')+'</div>';
-  html += '</div>';
-
-  html += '</div>';
-
-  // Botón editar
-  html += '<div style="text-align:right;margin-top:10px;">';
-  html += '<button onclick="window.editarCardPlayer(\''+jugId+'\')" style="background:rgba(212,175,55,0.15);border:0.5px solid #D4AF37;color:#D4AF37;padding:5px 12px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:.04em;cursor:pointer;font-family:inherit;text-transform:uppercase;">✏ Editar Card Player</button>';
-  html += '</div>';
-
-  html += '</div>';
-  cont.innerHTML = html;
-};
-
-// Modal de edición Card Player
-window.editarCardPlayer = async function(jugId) {
-  const j = state.jugadores.find(x => x.id === jugId);
-  if(!j) return;
-
-  // Cerrar si ya hay un modal abierto previo
-  const prev = document.getElementById('modal-cardplayer-edit');
-  if(prev) prev.remove();
-
-  let cardData = { staff_fortalezas: '', staff_mejorar: '', self_fortalezas: '', self_mejorar: '' };
-  try {
-    const { data } = await DB.from('card_player').select('*').eq('jugador_id', jugId).maybeSingle();
-    if(data) cardData = data;
-  } catch(e) {}
-
-  const modal = document.createElement('div');
-  modal.id = 'modal-cardplayer-edit';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;';
-
-  const TA = 'width:100%;border:0.5px solid var(--border2);border-radius:8px;padding:10px;font-size:12px;background:var(--bg);color:var(--text);resize:vertical;font-family:inherit;outline:none;line-height:1.5;box-sizing:border-box;min-height:80px;';
-
-  // Escape HTML para meter contenido en textareas sin romper
-  const esc = (s) => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-
-  let html = '<div style="background:var(--bg2);border-radius:14px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;padding:1.25rem;">';
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">';
-  html += '<div style="font-size:14px;font-weight:800;">Editar Card Player · '+j.nombre+'</div>';
-  html += '<button id="cp-btn-cerrar" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
-  html += '</div>';
-
-  html += '<div style="font-size:11px;color:var(--text2);margin-bottom:1rem;line-height:1.6;">';
-  html += '<strong style="color:#3fb950;">STAFF</strong>: tu análisis del jugador (lo que tú ves).<br>';
-  html += '<strong style="color:#58a6ff;">SELF</strong>: lo que el jugador puso en su cuestionario inicial (copia-pega de lo que te mandó).';
-  html += '</div>';
-
-  // STAFF
-  html += '<div style="background:rgba(63,185,80,0.05);border-left:3px solid #3fb950;padding:12px;margin-bottom:12px;border-radius:6px;">';
-  html += '<div style="font-size:10px;font-weight:800;color:#3fb950;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">STAFF ANALYSIS</div>';
-  html += '<div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Fortalezas (1 por línea)</div>';
-  html += '<textarea id="cp-staff-f" style="'+TA+'" placeholder="Visión de juego&#10;Pase corto preciso&#10;Cabeceo defensivo">'+esc(cardData.staff_fortalezas)+'</textarea>';
-  html += '<div style="font-size:11px;color:var(--text2);margin:8px 0 4px;">A mejorar (1 por línea)</div>';
-  html += '<textarea id="cp-staff-m" style="'+TA+'" placeholder="Disciplina posicional&#10;Selección de centros">'+esc(cardData.staff_mejorar)+'</textarea>';
-  html += '</div>';
-
-  // SELF
-  html += '<div style="background:rgba(88,166,255,0.05);border-left:3px solid #58a6ff;padding:12px;margin-bottom:12px;border-radius:6px;">';
-  html += '<div style="font-size:10px;font-weight:800;color:#58a6ff;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">SELF-ASSESSMENT</div>';
-  html += '<div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Fortalezas que él dice (1 por línea)</div>';
-  html += '<textarea id="cp-self-f" style="'+TA+'" placeholder="1v1 atacante&#10;Finalización&#10;Velocidad">'+esc(cardData.self_fortalezas)+'</textarea>';
-  html += '<div style="font-size:11px;color:var(--text2);margin:8px 0 4px;">A mejorar que él dice (1 por línea)</div>';
-  html += '<textarea id="cp-self-m" style="'+TA+'" placeholder="Disciplina posicional&#10;Pase largo">'+esc(cardData.self_mejorar)+'</textarea>';
-  html += '</div>';
-
-  html += '<div style="display:flex;gap:8px;justify-content:flex-end;">';
-  html += '<button id="cp-btn-cancelar" style="background:var(--bg3);border:0.5px solid var(--border);color:var(--text);padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>';
-  html += '<button id="cp-btn-guardar" style="background:#D4AF37;border:none;color:#000;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar</button>';
-  html += '</div>';
-
-  html += '</div>';
-  modal.innerHTML = html;
-  document.body.appendChild(modal);
-
-  // Event listeners directos (no onclick string)
-  const cerrar = () => { const m = document.getElementById('modal-cardplayer-edit'); if(m) m.remove(); };
-  document.getElementById('cp-btn-cerrar').addEventListener('click', cerrar);
-  document.getElementById('cp-btn-cancelar').addEventListener('click', cerrar);
-  document.getElementById('cp-btn-guardar').addEventListener('click', function(){
-    window.guardarCardPlayer(jugId);
-  });
-};
-
-window.guardarCardPlayer = async function(jugId) {
-  const elStaffF = document.getElementById('cp-staff-f');
-  const elStaffM = document.getElementById('cp-staff-m');
-  const elSelfF = document.getElementById('cp-self-f');
-  const elSelfM = document.getElementById('cp-self-m');
-
-  if(!elStaffF || !elStaffM || !elSelfF || !elSelfM) {
-    alert('❌ Error: no se encuentran los campos del formulario. Cierra el modal y vuelve a abrirlo.');
+  // Si no hay evaluaciones, CTA grande
+  if(evals.length === 0) {
+    html += '<div style="background:rgba(212,175,55,0.04);border:1px dashed rgba(212,175,55,0.4);border-radius:14px;padding:2rem 1.25rem;text-align:center;">';
+    html += '<div style="font-size:42px;margin-bottom:.5rem;">📊</div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:.5rem;">Crea la primera evaluación</div>';
+    html += '<div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:1.25rem;max-width:380px;margin-left:auto;margin-right:auto;">52 parámetros profesionales organizados en 5 dimensiones. Cada uno del 1 al 5. La primera evaluación es tu punto de partida.</div>';
+    html += '<button onclick="window.evaluarPerfilJugador(\''+jugId+'\')" style="background:#D4AF37;border:none;color:#000;padding:10px 22px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.04em;">+ NUEVA EVALUACIÓN</button>';
+    html += '</div>';
+    cont.innerHTML = html;
     return;
   }
 
-  const staffF = elStaffF.value.trim();
-  const staffM = elStaffM.value.trim();
-  const selfF = elSelfF.value.trim();
-  const selfM = elSelfM.value.trim();
+  // Radar pentágono (Chart.js)
+  html += '<div style="background:var(--card);border:0.5px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:1rem;">';
+  html += '<div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;">Radar por dimensión</div>';
+  html += '<div style="position:relative;height:300px;"><canvas id="perfil-radar-canvas"></canvas></div>';
+  // Tabla medias por dimensión
+  html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:.75rem;">';
+  Object.keys(window._PERFIL_SCHEMA).forEach(function(dimKey){
+    const dim = window._PERFIL_SCHEMA[dimKey];
+    const m = window._mediaDimension(params, dimKey);
+    html += '<div style="text-align:center;background:rgba(0,0,0,0.2);border-radius:6px;padding:6px 2px;border-top:2px solid '+dim.color+';">';
+    html += '<div style="font-size:14px;font-weight:800;color:'+dim.color+';line-height:1;">'+(m||'—')+'</div>';
+    html += '<div style="font-size:8px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:.04em;line-height:1.2;">'+dim.label.replace(/^[^ ]+ /,'')+'</div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
 
-  // Indicador visual de guardando
-  const btnGuardar = document.getElementById('cp-btn-guardar');
-  if(btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = 'Guardando...'; }
-
-  try {
-    // 1. Buscar si ya existe
-    const selectRes = await DB.from('card_player').select('id').eq('jugador_id', jugId).maybeSingle();
-    if(selectRes.error){
-      console.error('Error SELECT card_player:', selectRes.error);
-      if(btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = '💾 Guardar'; }
-      alert('❌ Error al leer card_player:\n\n' + selectRes.error.message + '\n\nCódigo: ' + (selectRes.error.code||'?') + '\n\nVe a Supabase → SQL Editor y ejecuta el SQL que te pasé.');
-      return;
-    }
-    const existing = selectRes.data;
-
-    // 2. Update o Insert
-    let opRes;
-    if(existing) {
-      opRes = await DB.from('card_player').update({
-        staff_fortalezas: staffF, staff_mejorar: staffM,
-        self_fortalezas: selfF, self_mejorar: selfM,
-        updated_at: new Date().toISOString()
-      }).eq('id', existing.id);
-    } else {
-      opRes = await DB.from('card_player').insert({
-        jugador_id: jugId,
-        staff_fortalezas: staffF, staff_mejorar: staffM,
-        self_fortalezas: selfF, self_mejorar: selfM
-      });
-    }
-
-    if(opRes.error){
-      console.error('Error UPDATE/INSERT card_player:', opRes.error);
-      if(btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = '💾 Guardar'; }
-      alert('❌ Error al guardar:\n\n' + opRes.error.message + '\n\nCódigo: ' + (opRes.error.code||'?'));
-      return;
-    }
-
-    // ÉXITO: cerrar modal + refrescar card visible
-    const modal = document.getElementById('modal-cardplayer-edit');
-    if(modal) modal.remove();
-    if(typeof showToast === 'function') showToast('✓ Card Player guardada');
-    window.renderCardPlayerAnalista(jugId);
-
-  } catch(e) {
-    console.error('Excepción guardarCardPlayer:', e);
-    if(btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = '💾 Guardar'; }
-    alert('❌ Excepción JS:\n\n' + (e.message || e) + '\n\nMira la consola (F12) para más detalles.');
+  // Evolución del score (si hay 2+ evaluaciones)
+  if(evals.length >= 2) {
+    html += '<div style="background:var(--card);border:0.5px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:1rem;">';
+    html += '<div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;">Evolución del score global</div>';
+    html += '<div style="position:relative;height:140px;"><canvas id="perfil-evol-canvas"></canvas></div>';
+    html += '</div>';
   }
-};
 
-// ─── PRIORIDADES DEL MES ANALISTA ───
-window.renderPrioridadesMesAnalista = async function(jugId) {
-  const cont = document.getElementById('prioridades-mes-container');
-  if(!cont) return;
-
-  const hoy = new Date();
-  const mesActual = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0');
-  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const nombreMes = MESES[hoy.getMonth()] + ' ' + hoy.getFullYear();
-
-  let prioridades = [];
-  try {
-    const { data } = await DB.from('prioridades_mes').select('*')
-      .eq('jugador_id', jugId)
-      .eq('mes', mesActual)
-      .order('orden');
-    if(data) prioridades = data;
-  } catch(e) {}
-
-  let html = '<div style="background:linear-gradient(135deg, rgba(124,111,240,0.08), rgba(255,255,255,0.02));border:0.5px solid rgba(124,111,240,0.3);border-radius:14px;padding:1rem;margin-bottom:1rem;">';
-
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid var(--border);">';
-  html += '<div>';
-  html += '<div style="font-size:9px;font-weight:800;color:#7C6FF0;letter-spacing:.1em;text-transform:uppercase;">🎖️ Prioridades del mes</div>';
-  html += '<div style="font-size:13px;font-weight:800;color:#fff;margin-top:2px;">'+nombreMes+'</div>';
-  html += '</div>';
-  html += '<div style="display:flex;gap:6px;">';
-  html += '<button onclick="window.verHistoricoPrioridades(\''+jugId+'\')" style="background:rgba(255,255,255,0.05);border:0.5px solid var(--border);color:var(--text2);padding:5px 10px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">📚 Histórico</button>';
-  html += '<button onclick="window.editarPrioridadesMes(\''+jugId+'\')" style="background:rgba(124,111,240,0.15);border:0.5px solid #7C6FF0;color:#7C6FF0;padding:5px 12px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;">✏ Editar</button>';
-  html += '</div>';
-  html += '</div>';
-
-  if(prioridades.length === 0) {
-    html += '<div style="text-align:center;padding:1rem;color:var(--text3);font-size:11px;font-style:italic;">Sin prioridades definidas para este mes. Pulsa Editar para añadir hasta 3.</div>';
-  } else {
-    prioridades.forEach((p, i) => {
-      html += '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px;">';
-      html += '<div style="width:24px;height:24px;background:#7C6FF0;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">'+(i+1)+'</div>';
-      html += '<div style="flex:1;font-size:12px;color:var(--text);line-height:1.5;">'+p.texto+'</div>';
+  // Desglose completo colapsable
+  html += '<details style="background:var(--card);border:0.5px solid var(--border);border-radius:14px;padding:.875rem 1rem;margin-bottom:1rem;">';
+  html += '<summary style="cursor:pointer;font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;list-style:none;">📋 Ver desglose completo de los 52 parámetros</summary>';
+  html += '<div style="margin-top:1rem;display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+  Object.keys(window._PERFIL_SCHEMA).forEach(function(dimKey){
+    const dim = window._PERFIL_SCHEMA[dimKey];
+    html += '<div style="background:rgba(0,0,0,0.18);border-left:3px solid '+dim.color+';border-radius:6px;padding:8px 10px;">';
+    html += '<div style="font-size:9px;font-weight:800;color:'+dim.color+';letter-spacing:.06em;margin-bottom:6px;">'+dim.label+'</div>';
+    dim.params.forEach(function(p){
+      const v = params[p.key];
+      const vDisplay = (typeof v === 'number' && v >= 1) ? v : '—';
+      const vColor = vDisplay === '—' ? 'var(--text3)' : dim.color;
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:10px;">';
+      html += '<span style="color:var(--text2);">'+p.label+'</span>';
+      html += '<span style="font-weight:800;color:'+vColor+';">'+vDisplay+'</span>';
       html += '</div>';
     });
-  }
+    html += '</div>';
+  });
+  html += '</div></details>';
 
+  // Botón nueva evaluación
+  html += '<div style="text-align:center;margin-top:1rem;">';
+  html += '<button onclick="window.evaluarPerfilJugador(\''+jugId+'\')" style="background:#D4AF37;border:none;color:#000;padding:10px 22px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.04em;">+ NUEVA EVALUACIÓN</button>';
   html += '</div>';
+
   cont.innerHTML = html;
-};
 
-window.editarPrioridadesMes = async function(jugId) {
-  const hoy = new Date();
-  const mesActual = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0');
-  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const nombreMes = MESES[hoy.getMonth()] + ' ' + hoy.getFullYear();
-
-  // Cerrar modal previo si existe
-  const prev = document.getElementById('modal-prioridades-edit');
-  if(prev) prev.remove();
-
-  let prioridades = [];
-  try {
-    const { data } = await DB.from('prioridades_mes').select('*')
-      .eq('jugador_id', jugId)
-      .eq('mes', mesActual)
-      .order('orden');
-    if(data) prioridades = data;
-  } catch(e) {}
-
-  // Rellenar con vacíos hasta 3
-  while(prioridades.length < 3) prioridades.push({texto:''});
-
-  const modal = document.createElement('div');
-  modal.id = 'modal-prioridades-edit';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;';
-
-  const TA = 'width:100%;border:0.5px solid var(--border2);border-radius:8px;padding:10px;font-size:12px;background:var(--bg);color:var(--text);resize:vertical;font-family:inherit;outline:none;line-height:1.5;box-sizing:border-box;min-height:55px;';
-
-  const esc = (s) => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-
-  let html = '<div style="background:var(--bg2);border-radius:14px;max-width:550px;width:100%;max-height:90vh;overflow-y:auto;padding:1.25rem;">';
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">';
-  html += '<div><div style="font-size:14px;font-weight:800;">Prioridades del mes</div>';
-  html += '<div style="font-size:11px;color:#7C6FF0;font-weight:700;margin-top:2px;">'+nombreMes+'</div></div>';
-  html += '<button id="pri-btn-cerrar" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
-  html += '</div>';
-
-  html += '<div style="font-size:11px;color:var(--text2);margin-bottom:1rem;line-height:1.6;font-style:italic;">';
-  html += 'Define hasta 3 prioridades concretas para este mes. Mejor pocas y específicas que muchas y vagas.';
-  html += '</div>';
-
-  for(let i = 0; i < 3; i++) {
-    html += '<div style="margin-bottom:12px;">';
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
-    html += '<div style="width:22px;height:22px;background:#7C6FF0;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">'+(i+1)+'</div>';
-    html += '<div style="font-size:11px;color:var(--text2);">Prioridad '+(i+1)+'</div>';
-    html += '</div>';
-    html += '<textarea id="prio-'+i+'" style="'+TA+'" placeholder="Ej: Mejorar disciplina posicional en bloque medio">'+esc(prioridades[i].texto)+'</textarea>';
-    html += '</div>';
-  }
-
-  html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">';
-  html += '<button id="pri-btn-cancelar" style="background:var(--bg3);border:0.5px solid var(--border);color:var(--text);padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>';
-  html += '<button id="pri-btn-guardar" style="background:#7C6FF0;border:none;color:#fff;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar</button>';
-  html += '</div>';
-
-  html += '</div>';
-  modal.innerHTML = html;
-  document.body.appendChild(modal);
-
-  const cerrar = () => { const m = document.getElementById('modal-prioridades-edit'); if(m) m.remove(); };
-  document.getElementById('pri-btn-cerrar').addEventListener('click', cerrar);
-  document.getElementById('pri-btn-cancelar').addEventListener('click', cerrar);
-  document.getElementById('pri-btn-guardar').addEventListener('click', function(){
-    window.guardarPrioridadesMes(jugId);
-  });
-};
-
-window.guardarPrioridadesMes = async function(jugId) {
-  const hoy = new Date();
-  const mesActual = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0');
-
-  const textos = [];
-  for(let i = 0; i < 3; i++) {
-    const el = document.getElementById('prio-'+i);
-    if(el && el.value.trim()) textos.push(el.value.trim());
-  }
-
-  const btnGuardar = document.getElementById('pri-btn-guardar');
-  if(btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = 'Guardando...'; }
-
-  try {
-    // Borrar existentes del mes
-    const delRes = await DB.from('prioridades_mes').delete().eq('jugador_id', jugId).eq('mes', mesActual);
-    if(delRes.error){
-      console.error('Error DELETE prioridades_mes:', delRes.error);
-      if(btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = '💾 Guardar'; }
-      alert('❌ Error al borrar previas:\n\n' + delRes.error.message + '\n\nCódigo: ' + (delRes.error.code||'?'));
-      return;
-    }
-    // Insertar nuevos
-    if(textos.length > 0) {
-      const rows = textos.map((texto, idx) => ({
-        jugador_id: jugId, mes: mesActual, texto: texto, orden: idx + 1
-      }));
-      const insRes = await DB.from('prioridades_mes').insert(rows);
-      if(insRes.error){
-        console.error('Error INSERT prioridades_mes:', insRes.error);
-        if(btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = '💾 Guardar'; }
-        alert('❌ Error al insertar:\n\n' + insRes.error.message + '\n\nCódigo: ' + (insRes.error.code||'?'));
-        return;
-      }
+  // Renderizar charts después de pintar el HTML
+  setTimeout(function(){
+    // RADAR
+    const canvasR = document.getElementById('perfil-radar-canvas');
+    if(canvasR && typeof Chart !== 'undefined') {
+      const labels = Object.keys(window._PERFIL_SCHEMA).map(function(d){ return window._PERFIL_SCHEMA[d].label.replace(/^[^ ]+ /,''); });
+      const data = Object.keys(window._PERFIL_SCHEMA).map(function(d){ return window._mediaDimension(params, d); });
+      try {
+        new Chart(canvasR.getContext('2d'), {
+          type: 'radar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: j.nombre,
+              data: data,
+              backgroundColor: 'rgba(212,175,55,0.15)',
+              borderColor: '#D4AF37',
+              borderWidth: 2,
+              pointBackgroundColor: '#D4AF37',
+              pointBorderColor: '#fff',
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              r: {
+                min: 0, max: 5,
+                ticks: { stepSize: 1, color: 'rgba(255,255,255,0.5)', backdropColor: 'transparent', font:{size:9} },
+                grid: { color: 'rgba(255,255,255,0.1)' },
+                angleLines: { color: 'rgba(255,255,255,0.15)' },
+                pointLabels: { color: '#fff', font: { size: 11, weight: '700' } }
+              }
+            }
+          }
+        });
+      } catch(e) { console.error('Error radar:', e); }
     }
 
-    // ÉXITO
-    const modal = document.getElementById('modal-prioridades-edit');
-    if(modal) modal.remove();
-    if(typeof showToast === 'function') showToast('✓ Prioridades guardadas');
-    window.renderPrioridadesMesAnalista(jugId);
-
-  } catch(e) {
-    console.error('Excepción guardarPrioridadesMes:', e);
-    if(btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = '💾 Guardar'; }
-    alert('❌ Excepción JS:\n\n' + (e.message || e) + '\n\nMira la consola (F12).');
-  }
-};
-
-window.verHistoricoPrioridades = async function(jugId) {
-  const prev = document.getElementById('modal-prioridades-historico');
-  if(prev) prev.remove();
-
-  let datos = [];
-  try {
-    const { data } = await DB.from('prioridades_mes').select('*')
-      .eq('jugador_id', jugId)
-      .order('mes', { ascending: false })
-      .order('orden');
-    if(data) datos = data;
-  } catch(e) {}
-
-  const porMes = {};
-  datos.forEach(d => {
-    if(!porMes[d.mes]) porMes[d.mes] = [];
-    porMes[d.mes].push(d);
-  });
-
-  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
-  const modal = document.createElement('div');
-  modal.id = 'modal-prioridades-historico';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;';
-
-  let html = '<div style="background:var(--bg2);border-radius:14px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;padding:1.25rem;">';
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">';
-  html += '<div style="font-size:14px;font-weight:800;">📚 Histórico de prioridades</div>';
-  html += '<button id="hist-btn-cerrar" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">×</button>';
-  html += '</div>';
-
-  if(Object.keys(porMes).length === 0) {
-    html += '<div style="text-align:center;padding:2rem;color:var(--text3);font-size:12px;">Sin prioridades registradas aún.</div>';
-  } else {
-    Object.keys(porMes).forEach(mes => {
-      const [y, m] = mes.split('-');
-      const nombreMes = MESES[parseInt(m)-1] + ' ' + y;
-      html += '<div style="background:rgba(124,111,240,0.06);border-left:3px solid #7C6FF0;padding:10px 12px;margin-bottom:10px;border-radius:6px;">';
-      html += '<div style="font-size:11px;font-weight:800;color:#7C6FF0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">'+nombreMes+'</div>';
-      porMes[mes].forEach((p, i) => {
-        html += '<div style="display:flex;gap:8px;margin-bottom:5px;">';
-        html += '<div style="font-size:10px;color:#7C6FF0;font-weight:800;flex-shrink:0;">'+(i+1)+'.</div>';
-        html += '<div style="font-size:11px;color:var(--text);line-height:1.5;">'+p.texto+'</div>';
-        html += '</div>';
+    // EVOLUCIÓN SCORE
+    const canvasE = document.getElementById('perfil-evol-canvas');
+    if(canvasE && evals.length >= 2 && typeof Chart !== 'undefined') {
+      const ordenadas = [...evals].reverse(); // ascendente para gráfico
+      const labels = ordenadas.map(function(e){
+        const f = new Date(e.fecha_evaluacion);
+        return ('0'+f.getDate()).slice(-2)+'/'+('0'+(f.getMonth()+1)).slice(-2);
       });
-      html += '</div>';
-    });
-  }
-
-  html += '</div>';
-  modal.innerHTML = html;
-  document.body.appendChild(modal);
-
-  document.getElementById('hist-btn-cerrar').addEventListener('click', function(){
-    const m = document.getElementById('modal-prioridades-historico');
-    if(m) m.remove();
-  });
+      const data = ordenadas.map(function(e){
+        const p = typeof e.parametros === 'string' ? JSON.parse(e.parametros) : e.parametros;
+        return window._scoreGlobal(p);
+      });
+      try {
+        new Chart(canvasE.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: data,
+              borderColor: '#D4AF37',
+              backgroundColor: 'rgba(212,175,55,0.1)',
+              borderWidth: 2,
+              tension: 0.35,
+              fill: true,
+              pointBackgroundColor: '#D4AF37',
+              pointRadius: 4
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: false, min: 40, max: 100, ticks:{color:'rgba(255,255,255,0.5)',font:{size:9}}, grid:{color:'rgba(255,255,255,0.08)'} },
+              x: { ticks:{color:'rgba(255,255,255,0.5)',font:{size:9}}, grid:{display:false} }
+            }
+          }
+        });
+      } catch(e) { console.error('Error evol:', e); }
+    }
+  }, 60);
 };
 
-// ════════════════════════════════════════════════════════════════════
-// MÓDULO STATS PARTIDO (Analista)
-// ════════════════════════════════════════════════════════════════════
-
-// Detector posición portero
-window._esPortero = function(pos) {
-  if(!pos) return false;
-  const p = pos.toUpperCase();
-  return p.includes('POR') || p === 'GK' || p.includes('PORTERO');
-};
-
-// Schema de stats: agrupado por categoría, cada stat es {key, label, tipo:'num'|'check'|'pct'}
-window._STATS_SCHEMA = {
-  general: {
-    label: '🏃 GENERAL',
-    color: '#9090a0',
-    stats: [
-      {key:'minutos', label:'Minutos jugados', tipo:'num'},
-      {key:'posicion_jugada', label:'Posición jugada', tipo:'text'},
-      {key:'marcador', label:'Marcador (ej: 2-1)', tipo:'text'},
-      {key:'resultado', label:'Resultado', tipo:'select', opts:['W','D','L']}
-    ]
-  },
-  atacar: {
-    label: '⚽ ATACAR',
-    color: '#D4AF37',
-    soloCampo: true,
-    stats: [
-      {key:'goles', label:'Goles', tipo:'num'},
-      {key:'asistencias', label:'Asistencias', tipo:'num'},
-      {key:'tiros_t', label:'Tiros totales', tipo:'num'},
-      {key:'tiros_p', label:'Tiros a puerta', tipo:'num'},
-      {key:'ocasiones_creadas', label:'Ocasiones creadas', tipo:'num'},
-      {key:'big_chances_falladas', label:'Big chances falladas', tipo:'num'},
-      {key:'regates_t', label:'Regates intentados', tipo:'num'},
-      {key:'regates_e', label:'Regates exitosos', tipo:'num'},
-      {key:'duelos_1v1_g', label:'1v1 ganados', tipo:'num'},
-      {key:'penaltis_l', label:'Penaltis lanzados', tipo:'num'},
-      {key:'penaltis_m', label:'Penaltis marcados', tipo:'num'},
-      {key:'offsides', label:'Fueras de juego', tipo:'num'}
-    ]
-  },
-  pase: {
-    label: '🎯 PASE',
-    color: '#58a6ff',
-    soloCampo: true,
-    stats: [
-      {key:'pases_t', label:'Pases totales', tipo:'num'},
-      {key:'pases_a', label:'Pases acertados', tipo:'num'},
-      {key:'pases_clave', label:'Pases clave', tipo:'num'},
-      {key:'pase_largo_t', label:'Pase largo totales', tipo:'num'},
-      {key:'pase_largo_a', label:'Pase largo acertados', tipo:'num'},
-      {key:'centros_t', label:'Centros totales', tipo:'num'},
-      {key:'centros_a', label:'Centros acertados', tipo:'num'}
-    ]
-  },
-  defender: {
-    label: '🛡️ DEFENDER',
-    color: '#3fb950',
-    soloCampo: true,
-    stats: [
-      {key:'entradas', label:'Entradas (tackles)', tipo:'num'},
-      {key:'intercepciones', label:'Intercepciones', tipo:'num'},
-      {key:'recuperaciones', label:'Recuperaciones', tipo:'num'},
-      {key:'despejes', label:'Despejes', tipo:'num'},
-      {key:'bloqueos', label:'Bloqueos', tipo:'num'},
-      {key:'duelos_t_t', label:'Duelos terrestres totales', tipo:'num'},
-      {key:'duelos_t_g', label:'Duelos terrestres ganados', tipo:'num'},
-      {key:'duelos_a_t', label:'Duelos aéreos totales', tipo:'num'},
-      {key:'duelos_a_g', label:'Duelos aéreos ganados', tipo:'num'},
-      {key:'faltas_com', label:'Faltas cometidas', tipo:'num'},
-      {key:'faltas_rec', label:'Faltas recibidas', tipo:'num'}
-    ]
-  },
-  portero: {
-    label: '🥅 PORTERO',
-    color: '#f59e0b',
-    soloPortero: true,
-    stats: [
-      {key:'paradas', label:'Paradas', tipo:'num'},
-      {key:'goles_encajados', label:'Goles encajados', tipo:'num'},
-      {key:'clean_sheet', label:'Portería a 0', tipo:'check'},
-      {key:'penaltis_rec', label:'Penaltis recibidos', tipo:'num'},
-      {key:'penaltis_par', label:'Penaltis parados', tipo:'num'},
-      {key:'saques_largos_t', label:'Saques largos totales', tipo:'num'},
-      {key:'saques_largos_a', label:'Saques largos acertados', tipo:'num'},
-      {key:'dist_corta_t', label:'Distribución corta totales', tipo:'num'},
-      {key:'dist_corta_a', label:'Distribución corta acertados', tipo:'num'},
-      {key:'salidas_area', label:'Salidas del área', tipo:'num'}
-    ]
-  },
-  disciplina: {
-    label: '📋 DISCIPLINA',
-    color: '#d29922',
-    stats: [
-      {key:'amarillas', label:'Amarillas', tipo:'num'},
-      {key:'rojas', label:'Rojas', tipo:'num'},
-      {key:'penaltis_comet', label:'Penaltis cometidos', tipo:'num'}
-    ]
-  }
-};
-
-// Modal de edición Stats partido
-window.editarStatsPartido = async function(informeId, jugId) {
+// Modal de evaluación
+window.evaluarPerfilJugador = async function(jugId) {
   const j = state.jugadores.find(x => x.id === jugId);
   if(!j) return;
-  const informe = state.informesPartido.find(x => x.id === informeId);
-  if(!informe) return;
 
-  const prev = document.getElementById('modal-stats-edit');
+  const prev = document.getElementById('modal-perfil-edit');
   if(prev) prev.remove();
 
-  const esPortero = window._esPortero(j.posicion);
-
-  // Cargar stats existentes
-  let stats = {};
+  // Cargar última evaluación para pre-rellenar
+  let params = {};
   try {
-    const { data } = await DB.from('stats_partido').select('*').eq('informe_id', informeId).maybeSingle();
-    if(data && data.stats) {
-      stats = typeof data.stats === 'string' ? JSON.parse(data.stats) : data.stats;
+    const { data } = await DB.from('perfil_jugador').select('parametros')
+      .eq('jugador_id', jugId)
+      .order('fecha_evaluacion', { ascending: false })
+      .limit(1).maybeSingle();
+    if(data && data.parametros) {
+      params = typeof data.parametros === 'string' ? JSON.parse(data.parametros) : data.parametros;
     }
   } catch(e) {}
 
   const modal = document.createElement('div');
-  modal.id = 'modal-stats-edit';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:10000;display:flex;align-items:center;justify-content:center;padding:.5rem;';
+  modal.id = 'modal-perfil-edit';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto;';
 
-  let html = '<div style="background:var(--bg2);border-radius:14px;max-width:680px;width:100%;max-height:94vh;overflow-y:auto;padding:1.25rem;">';
+  let html = '<div style="background:var(--bg2);border-radius:14px;max-width:780px;width:100%;max-height:none;margin-bottom:2rem;padding:1.25rem;">';
 
   // Header
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:10px;border-bottom:0.5px solid var(--border);">';
-  html += '<div style="flex:1;min-width:0;">';
-  html += '<div style="font-size:9px;color:#D4AF37;font-weight:800;text-transform:uppercase;letter-spacing:.1em;">📊 Stats del partido</div>';
-  html += '<div style="font-size:14px;font-weight:800;color:#fff;margin-top:3px;">'+(informe.partido||'Partido')+'</div>';
-  html += '<div style="font-size:10px;color:var(--text2);margin-top:2px;">'+j.nombre+' · '+(j.posicion||'-')+(esPortero?' · 🥅 PORTERO':'')+(informe.rival?' · vs '+informe.rival:'')+'</div>';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:10px;border-bottom:0.5px solid var(--border);position:sticky;top:-1.25rem;background:var(--bg2);padding-top:.5rem;z-index:2;">';
+  html += '<div>';
+  html += '<div style="font-size:9px;color:#D4AF37;font-weight:800;text-transform:uppercase;letter-spacing:.1em;">📊 Nueva evaluación de perfil</div>';
+  html += '<div style="font-size:14px;font-weight:800;color:#fff;margin-top:2px;">'+j.nombre+' · '+(j.posicion||'-')+'</div>';
+  html += '<div style="font-size:10px;color:var(--text3);margin-top:2px;">Fecha: '+new Date().toLocaleDateString('es-ES')+' · Escala 1-5 (1=Muy bajo, 3=Medio, 5=Excelente)</div>';
   html += '</div>';
-  html += '<button id="st-btn-cerrar" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">×</button>';
+  html += '<button id="pf-btn-cerrar" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">×</button>';
   html += '</div>';
 
-  // Render cada categoría
-  Object.keys(window._STATS_SCHEMA).forEach(catKey => {
-    const cat = window._STATS_SCHEMA[catKey];
-    // Filtrar categorías según portero
-    if(cat.soloPortero && !esPortero) return;
-    if(cat.soloCampo && esPortero) return;
+  // Render cada dimensión
+  Object.keys(window._PERFIL_SCHEMA).forEach(function(dimKey){
+    const dim = window._PERFIL_SCHEMA[dimKey];
+    html += '<div style="background:rgba(255,255,255,0.02);border-left:3px solid '+dim.color+';border-radius:6px;padding:12px;margin-bottom:10px;">';
+    html += '<div style="font-size:11px;font-weight:800;color:'+dim.color+';letter-spacing:.08em;margin-bottom:10px;">'+dim.label+'</div>';
 
-    html += '<div style="background:rgba(255,255,255,0.02);border-left:3px solid '+cat.color+';border-radius:6px;padding:12px;margin-bottom:10px;">';
-    html += '<div style="font-size:11px;font-weight:800;color:'+cat.color+';letter-spacing:.08em;margin-bottom:10px;">'+cat.label+'</div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
-
-    cat.stats.forEach(stat => {
-      const valor = stats[stat.key] !== undefined ? stats[stat.key] : (stat.tipo === 'check' ? false : (stat.tipo === 'num' ? 0 : ''));
-
-      html += '<div style="background:rgba(0,0,0,0.2);border-radius:6px;padding:8px;">';
-      html += '<div style="font-size:10px;color:var(--text2);margin-bottom:6px;line-height:1.3;">'+stat.label+'</div>';
-
-      if(stat.tipo === 'num') {
-        html += '<div style="display:flex;align-items:center;gap:4px;">';
-        html += '<button type="button" data-stat="'+stat.key+'" data-delta="-1" class="stat-btn" style="width:26px;height:26px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border);color:var(--text);font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;">−</button>';
-        html += '<input type="number" id="stat-'+stat.key+'" value="'+valor+'" min="0" style="flex:1;min-width:0;background:var(--bg);border:0.5px solid var(--border);border-radius:4px;padding:4px 6px;color:#fff;font-size:13px;font-weight:700;text-align:center;font-family:inherit;">';
-        html += '<button type="button" data-stat="'+stat.key+'" data-delta="1" class="stat-btn" style="width:26px;height:26px;border-radius:50%;background:'+cat.color+'33;border:0.5px solid '+cat.color+';color:'+cat.color+';font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;">+</button>';
-        html += '</div>';
-      } else if(stat.tipo === 'check') {
-        html += '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#fff;">';
-        html += '<input type="checkbox" id="stat-'+stat.key+'" '+(valor?'checked':'')+' style="width:16px;height:16px;cursor:pointer;">';
-        html += '<span>Sí</span></label>';
-      } else if(stat.tipo === 'text') {
-        const valEsc = String(valor).replace(/"/g,'&quot;');
-        html += '<input type="text" id="stat-'+stat.key+'" value="'+valEsc+'" style="width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:4px;padding:5px 7px;color:#fff;font-size:12px;font-family:inherit;box-sizing:border-box;">';
-      } else if(stat.tipo === 'select') {
-        html += '<select id="stat-'+stat.key+'" style="width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:4px;padding:5px 7px;color:#fff;font-size:12px;font-family:inherit;box-sizing:border-box;">';
-        html += '<option value="">-</option>';
-        stat.opts.forEach(opt => {
-          html += '<option value="'+opt+'" '+(valor===opt?'selected':'')+'>'+opt+'</option>';
-        });
-        html += '</select>';
+    dim.params.forEach(function(p){
+      const valor = params[p.key] || 0;
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid rgba(255,255,255,.03);">';
+      html += '<div style="flex:1;font-size:11px;color:var(--text);">'+p.label+'</div>';
+      html += '<div style="display:flex;gap:3px;">';
+      for(let v = 1; v <= 5; v++) {
+        const activo = valor === v;
+        html += '<button type="button" data-key="'+p.key+'" data-val="'+v+'" class="pf-star-btn" style="width:26px;height:26px;border-radius:50%;border:1px solid '+(activo?dim.color:'var(--border)')+';background:'+(activo?dim.color:'transparent')+';color:'+(activo?'#fff':'var(--text3)')+';font-size:11px;font-weight:700;cursor:pointer;padding:0;font-family:inherit;">'+v+'</button>';
       }
+      html += '</div>';
       html += '</div>';
     });
 
-    html += '</div></div>';
+    html += '</div>';
   });
 
+  // Notas
+  html += '<div style="background:rgba(255,255,255,0.02);border-left:3px solid var(--text3);border-radius:6px;padding:12px;margin-bottom:10px;">';
+  html += '<div style="font-size:11px;font-weight:800;color:var(--text2);letter-spacing:.06em;margin-bottom:8px;">📝 NOTAS DE ESTA EVALUACIÓN (opcional)</div>';
+  html += '<textarea id="pf-notas" placeholder="Contexto, observaciones generales, qué destaca, qué hay que trabajar..." style="width:100%;min-height:60px;border:0.5px solid var(--border2);border-radius:6px;padding:8px;font-size:12px;background:var(--bg);color:var(--text);resize:vertical;font-family:inherit;outline:none;line-height:1.5;box-sizing:border-box;"></textarea>';
+  html += '</div>';
+
   // Botones
-  html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;position:sticky;bottom:-1.25rem;background:var(--bg2);padding:.75rem 0 0;border-top:0.5px solid var(--border);">';
-  html += '<button id="st-btn-cancelar" style="background:var(--bg3);border:0.5px solid var(--border);color:var(--text);padding:9px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>';
-  html += '<button id="st-btn-guardar" style="background:#D4AF37;border:none;color:#000;padding:9px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar Stats</button>';
+  html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;position:sticky;bottom:-1.25rem;background:var(--bg2);padding:.75rem 0 .5rem;border-top:0.5px solid var(--border);">';
+  html += '<button id="pf-btn-cancelar" style="background:var(--bg3);border:0.5px solid var(--border);color:var(--text);padding:9px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>';
+  html += '<button id="pf-btn-guardar" style="background:#D4AF37;border:none;color:#000;padding:9px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar evaluación</button>';
   html += '</div>';
 
   html += '</div>';
   modal.innerHTML = html;
   document.body.appendChild(modal);
 
+  // Estado local
+  const valoresActuales = Object.assign({}, params);
+
   // Event listeners
-  const cerrar = () => { const m = document.getElementById('modal-stats-edit'); if(m) m.remove(); };
-  document.getElementById('st-btn-cerrar').addEventListener('click', cerrar);
-  document.getElementById('st-btn-cancelar').addEventListener('click', cerrar);
-  document.getElementById('st-btn-guardar').addEventListener('click', function(){
-    window.guardarStatsPartido(informeId, jugId);
-  });
+  const cerrar = () => { const m = document.getElementById('modal-perfil-edit'); if(m) m.remove(); };
+  document.getElementById('pf-btn-cerrar').addEventListener('click', cerrar);
+  document.getElementById('pf-btn-cancelar').addEventListener('click', cerrar);
 
-  // Botones +/-
-  modal.querySelectorAll('.stat-btn').forEach(btn => {
+  // Botones estrellas
+  modal.querySelectorAll('.pf-star-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
-      const k = btn.getAttribute('data-stat');
-      const delta = parseInt(btn.getAttribute('data-delta'), 10);
-      const inp = document.getElementById('stat-'+k);
-      if(inp) {
-        let v = parseInt(inp.value, 10) || 0;
-        v = Math.max(0, v + delta);
-        inp.value = v;
-      }
-    });
-  });
-};
+      const k = btn.getAttribute('data-key');
+      const v = parseInt(btn.getAttribute('data-val'), 10);
+      valoresActuales[k] = v;
 
-window.guardarStatsPartido = async function(informeId, jugId) {
-  const stats = {};
-
-  // Recoger todos los valores del formulario
-  Object.keys(window._STATS_SCHEMA).forEach(catKey => {
-    const cat = window._STATS_SCHEMA[catKey];
-    cat.stats.forEach(stat => {
-      const el = document.getElementById('stat-'+stat.key);
-      if(!el) return;
-      if(stat.tipo === 'num') {
-        stats[stat.key] = parseInt(el.value, 10) || 0;
-      } else if(stat.tipo === 'check') {
-        stats[stat.key] = !!el.checked;
-      } else {
-        stats[stat.key] = el.value || '';
-      }
-    });
-  });
-
-  const btn = document.getElementById('st-btn-guardar');
-  if(btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
-
-  try {
-    const selRes = await DB.from('stats_partido').select('id').eq('informe_id', informeId).maybeSingle();
-    if(selRes.error){
-      console.error('Error SELECT stats_partido:', selRes.error);
-      if(btn) { btn.disabled = false; btn.textContent = '💾 Guardar Stats'; }
-      alert('❌ Error al leer stats_partido:\n\n' + selRes.error.message + '\n\nCódigo: ' + (selRes.error.code||'?') + '\n\nVe a Supabase → SQL Editor y ejecuta el SQL que te paso.');
-      return;
-    }
-
-    let opRes;
-    if(selRes.data) {
-      opRes = await DB.from('stats_partido').update({
-        stats: stats,
-        updated_at: new Date().toISOString()
-      }).eq('id', selRes.data.id);
-    } else {
-      opRes = await DB.from('stats_partido').insert({
-        informe_id: informeId,
-        jugador_id: jugId,
-        stats: stats
+      // Actualizar visuales: encontrar todos los botones del mismo data-key y resetearlos
+      const dimColor = btn.style.backgroundColor; // recordar color de este botón si está activo
+      modal.querySelectorAll('.pf-star-btn[data-key="'+k+'"]').forEach(function(b){
+        const bv = parseInt(b.getAttribute('data-val'), 10);
+        const activo = bv === v;
+        // Buscar color de la dimensión del padre
+        const parent = b.closest('[style*="border-left:3px solid"]');
+        let color = '#D4AF37';
+        if(parent) {
+          const m = parent.getAttribute('style').match(/border-left:3px solid (#[0-9A-Fa-f]+|rgba?\([^)]+\))/);
+          if(m) color = m[1];
+        }
+        b.style.background = activo ? color : 'transparent';
+        b.style.color = activo ? '#fff' : 'var(--text3)';
+        b.style.borderColor = activo ? color : 'var(--border)';
       });
-    }
+    });
+  });
 
-    if(opRes.error){
-      console.error('Error UPDATE/INSERT stats_partido:', opRes.error);
-      if(btn) { btn.disabled = false; btn.textContent = '💾 Guardar Stats'; }
-      alert('❌ Error al guardar:\n\n' + opRes.error.message + '\n\nCódigo: ' + (opRes.error.code||'?'));
+  // Guardar
+  document.getElementById('pf-btn-guardar').addEventListener('click', async function(){
+    const btn = document.getElementById('pf-btn-guardar');
+    btn.disabled = true; btn.textContent = 'Guardando...';
+
+    // Verificar que hay al menos 5 parámetros valorados
+    const keysCon = Object.keys(valoresActuales).filter(function(k){ return typeof valoresActuales[k] === 'number' && valoresActuales[k] >= 1; });
+    if(keysCon.length === 0) {
+      btn.disabled = false; btn.textContent = '💾 Guardar evaluación';
+      alert('Valora al menos un parámetro antes de guardar.');
       return;
     }
 
-    const modal = document.getElementById('modal-stats-edit');
-    if(modal) modal.remove();
-    if(typeof showToast === 'function') showToast('✓ Stats guardadas');
+    const notas = (document.getElementById('pf-notas').value || '').trim();
+    const fecha = new Date().toISOString().slice(0,10);
 
-  } catch(e) {
-    console.error('Excepción guardarStatsPartido:', e);
-    if(btn) { btn.disabled = false; btn.textContent = '💾 Guardar Stats'; }
-    alert('❌ Excepción JS:\n\n' + (e.message || e));
-  }
-};
-
-// ════════════════════════════════════════════════════════════════════
-// STATS INLINE EN FORMULARIO DE INFORME (Analista)
-// ════════════════════════════════════════════════════════════════════
-
-// Renderiza los inputs de stats dentro de #stats-form-body
-window._renderStatsFormInline = function() {
-  var body = document.getElementById('stats-form-body');
-  if(!body || !window._STATS_SCHEMA) return;
-
-  // Detectar el jugador del modal abierto actual
-  var jugId = (window.state && window.state.currentJugador) ? window.state.currentJugador : null;
-  var j = (jugId && window.state && window.state.jugadores) ? window.state.jugadores.find(function(x){return x.id===jugId;}) : null;
-  var esPortero = j ? window._esPortero(j.posicion) : false;
-
-  // Stats ya guardados? cargarlos
-  var stats = window._statsFormCache || {};
-
-  var html = '<div style="font-size:11px;color:var(--text3);margin-bottom:.75rem;font-style:italic;line-height:1.5;">Detección automática: '+(esPortero?'🥅 Portero':'Jugador de campo')+'. Solo se guardan stats con valor > 0. Usa los botones +/- o escribe directamente.</div>';
-
-  Object.keys(window._STATS_SCHEMA).forEach(function(catKey){
-    var cat = window._STATS_SCHEMA[catKey];
-    if(cat.soloPortero && !esPortero) return;
-    if(cat.soloCampo && esPortero) return;
-
-    html += '<div style="background:rgba(255,255,255,0.02);border-left:3px solid '+cat.color+';border-radius:6px;padding:10px;margin-bottom:8px;">';
-    html += '<div style="font-size:10px;font-weight:800;color:'+cat.color+';letter-spacing:.08em;margin-bottom:8px;">'+cat.label+'</div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">';
-
-    cat.stats.forEach(function(stat){
-      var valor = stats[stat.key] !== undefined ? stats[stat.key] : (stat.tipo === 'check' ? false : (stat.tipo === 'num' ? 0 : ''));
-
-      html += '<div style="background:rgba(0,0,0,0.18);border-radius:6px;padding:7px;">';
-      html += '<div style="font-size:9px;color:var(--text2);margin-bottom:4px;line-height:1.2;">'+stat.label+'</div>';
-
-      if(stat.tipo === 'num' || !stat.tipo) {
-        html += '<div style="display:flex;align-items:center;gap:3px;">';
-        html += '<button type="button" data-stat-inline="'+stat.key+'" data-delta="-1" class="stat-btn-inline" style="width:22px;height:22px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;padding:0;">−</button>';
-        html += '<input type="number" id="statinl-'+stat.key+'" value="'+valor+'" min="0" style="flex:1;min-width:0;background:var(--bg);border:0.5px solid var(--border);border-radius:4px;padding:3px 4px;color:#fff;font-size:12px;font-weight:700;text-align:center;font-family:inherit;">';
-        html += '<button type="button" data-stat-inline="'+stat.key+'" data-delta="1" class="stat-btn-inline" style="width:22px;height:22px;border-radius:50%;background:'+cat.color+'33;border:0.5px solid '+cat.color+';color:'+cat.color+';font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;padding:0;">+</button>';
-        html += '</div>';
-      } else if(stat.tipo === 'check') {
-        html += '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:#fff;">';
-        html += '<input type="checkbox" id="statinl-'+stat.key+'" '+(valor?'checked':'')+' style="width:14px;height:14px;cursor:pointer;">';
-        html += '<span>Sí</span></label>';
-      } else if(stat.tipo === 'text') {
-        var valEsc = String(valor).replace(/"/g,'&quot;');
-        html += '<input type="text" id="statinl-'+stat.key+'" value="'+valEsc+'" style="width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:4px;padding:4px 6px;color:#fff;font-size:11px;font-family:inherit;box-sizing:border-box;">';
-      } else if(stat.tipo === 'select') {
-        html += '<select id="statinl-'+stat.key+'" style="width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:4px;padding:4px 6px;color:#fff;font-size:11px;font-family:inherit;box-sizing:border-box;">';
-        html += '<option value="">-</option>';
-        stat.opts.forEach(function(opt){
-          html += '<option value="'+opt+'" '+(valor===opt?'selected':'')+'>'+opt+'</option>';
-        });
-        html += '</select>';
-      }
-      html += '</div>';
-    });
-
-    html += '</div></div>';
-  });
-
-  body.innerHTML = html;
-
-  // Listeners +/-
-  body.querySelectorAll('.stat-btn-inline').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var k = btn.getAttribute('data-stat-inline');
-      var delta = parseInt(btn.getAttribute('data-delta'), 10);
-      var inp = document.getElementById('statinl-'+k);
-      if(inp) {
-        var v = parseInt(inp.value, 10) || 0;
-        v = Math.max(0, v + delta);
-        inp.value = v;
-      }
-    });
-  });
-};
-
-// Helper para recoger los valores actuales de los inputs inline
-window._recogerStatsInline = function() {
-  if(!window._STATS_SCHEMA) return null;
-  var stats = {};
-  var algunValor = false;
-  Object.keys(window._STATS_SCHEMA).forEach(function(catKey){
-    window._STATS_SCHEMA[catKey].stats.forEach(function(stat){
-      var el = document.getElementById('statinl-'+stat.key);
-      if(!el) return;
-      if(stat.tipo === 'num' || !stat.tipo) {
-        var n = parseInt(el.value, 10) || 0;
-        if(n > 0) { stats[stat.key] = n; algunValor = true; }
-      } else if(stat.tipo === 'check') {
-        if(el.checked) { stats[stat.key] = true; algunValor = true; }
-      } else {
-        if(el.value && el.value.trim()) { stats[stat.key] = el.value.trim(); algunValor = true; }
-      }
-    });
-  });
-  return algunValor ? stats : null;
-};
-
-// Helper para guardar stats vinculadas a un informe (lo llama saveInforme)
-window._guardarStatsParaInforme = async function(informeId, jugId) {
-  if(!informeId || !jugId) return;
-  if(!window._statsFormOpen) return; // Si nunca abrió el panel, no toca stats
-  var stats = window._recogerStatsInline();
-  if(!stats) return; // Sin valores que guardar
-
-  try {
-    var selRes = await DB.from('stats_partido').select('id').eq('informe_id', informeId).maybeSingle();
-    if(selRes.error) {
-      console.error('Error SELECT stats inline:', selRes.error);
-      return;
-    }
-    if(selRes.data) {
-      await DB.from('stats_partido').update({
-        stats: stats,
-        updated_at: new Date().toISOString()
-      }).eq('id', selRes.data.id);
-    } else {
-      await DB.from('stats_partido').insert({
-        informe_id: informeId,
+    try {
+      const res = await DB.from('perfil_jugador').insert({
         jugador_id: jugId,
-        stats: stats
+        fecha_evaluacion: fecha,
+        tipo: 'staff',
+        parametros: valoresActuales,
+        notas: notas
       });
+      if(res.error){
+        console.error(res.error);
+        btn.disabled = false; btn.textContent = '💾 Guardar evaluación';
+        alert('❌ Error al guardar:\n\n' + res.error.message + '\n\nCódigo: ' + (res.error.code||'?') + '\n\n¿Has creado la tabla perfil_jugador en Supabase?');
+        return;
+      }
+      cerrar();
+      if(typeof showToast === 'function') showToast('✓ Evaluación guardada');
+      window.renderPerfilJugador(jugId);
+    } catch(e) {
+      console.error(e);
+      btn.disabled = false; btn.textContent = '💾 Guardar evaluación';
+      alert('❌ Excepción: ' + (e.message || e));
     }
-  } catch(e) {
-    console.error('Excepción guardarStatsParaInforme:', e);
-  }
+  });
 };
