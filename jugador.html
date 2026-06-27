@@ -6234,6 +6234,15 @@ if(typeof window.state === 'undefined'){
   window.state = { jugadores:[], informesPartido:[], currentJugador:null, objetivos:[] };
 }
 if(typeof window._micTags === 'undefined'){ window._micTags = []; }
+if(typeof window.FASES === 'undefined'){
+  window.FASES = [
+    {id:'OF', label:'Fase ofensiva',        cls:'badge-of', dot:'#1D9E75'},
+    {id:'DE', label:'Fase defensiva',       cls:'badge-de', dot:'#378ADD'},
+    {id:'TO', label:'Transición ofensiva',  cls:'badge-to', dot:'#E07B00'},
+    {id:'TD', label:'Transición defensiva', cls:'badge-td', dot:'#D85A30'}
+  ];
+}
+var FASES = window.FASES; // exponer como variable de scope para el render
 
 // HELPERS · CONCLUSIÓN ESQUEMATIZADA DEL PARTIDO
 // (usados por ambos templates de informe)
