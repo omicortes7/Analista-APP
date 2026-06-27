@@ -4405,6 +4405,10 @@ function generarInformeVisual(jugId, infId) {
       microconceptos_obs: (window._micTags || []).join(', '),
       objetivos_trabajados: '',
       notas: document.getElementById('inf-notas')?.value.trim() || '',
+      conclusion: document.getElementById('inf-conclusion')?.value.trim() || '',
+      positivos: document.getElementById('inf-positivos')?.value.trim() || '',
+      mejoras: document.getElementById('inf-mejoras')?.value.trim() || '',
+      obs_imagenes: JSON.stringify(window.getObsData ? window.getObsData() : []),
     };
   }
 
