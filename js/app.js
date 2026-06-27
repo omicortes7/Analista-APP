@@ -3072,6 +3072,31 @@ function _abrirPDF(inf, jug, clubColor) {
             '</div>' +
           '</div>' +
         '</section>';
+
+    } else if(inf.conclusion && String(inf.conclusion).trim()) {
+      // Fallback: si el texto no tiene formato markdown (## ### -), mostrarlo como párrafo simple
+      const _esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      const _plainText = _esc(inf.conclusion).replace(/\n/g, '<br>');
+      conclHtml =
+        '<section class="concl-section">' +
+          '<div class="concl-eyebrow">Conclusión del partido</div>' +
+          '<h2 class="concl-title">Conclusión<span class="amp">.</span></h2>' +
+          '<div class="concl-kicker">Acciones prioritarias a entrenar</div>' +
+          '<svg class="concl-rule" width="170" height="14" viewBox="0 0 170 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+            '<line x1="0" y1="7" x2="74" y2="7" stroke="#8A6E2F" stroke-width="0.8"/>' +
+            '<circle cx="85" cy="7" r="3" stroke="#8A6E2F" stroke-width="0.8" fill="none"/>' +
+            '<circle cx="85" cy="7" r="1" fill="#8A6E2F"/>' +
+            '<line x1="96" y1="7" x2="170" y2="7" stroke="#8A6E2F" stroke-width="0.8"/>' +
+          '</svg>' +
+          '<div style="font-family:Georgia,serif;font-size:14px;line-height:1.75;color:#3a3a3a;padding:10px 4px;text-align:left;max-width:780px;margin:0 auto;">' + _plainText + '</div>' +
+          '<div class="concl-foot">' +
+            '<div class="concl-foot-left"><strong>Areté Academy</strong><br><span class="sub">Análisis individual · ' + _esc(jug.nombre||'') + '</span></div>' +
+            '<div class="concl-foot-sig">' +
+              '<span class="hand">Omar Cortés</span>' +
+              '<span class="role">Analista Individual</span>' +
+            '</div>' +
+          '</div>' +
+        '</section>';
     }
   } catch(e) { console.error('Conclusión render error (_abrirPDF):', e); }
 
@@ -4519,6 +4544,31 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
         obsHtml += '</div>';
       });
       obsHtml += '</section>';
+
+    } else if(inf.conclusion && String(inf.conclusion).trim()) {
+      // Fallback: si el texto no tiene formato markdown (## ### -), mostrarlo como párrafo simple
+      const _esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      const _plainText = _esc(inf.conclusion).replace(/\n/g, '<br>');
+      conclHtml =
+        '<section class="concl-section">' +
+          '<div class="concl-eyebrow">Conclusión del partido</div>' +
+          '<h2 class="concl-title">Conclusión<span class="amp">.</span></h2>' +
+          '<div class="concl-kicker">Acciones prioritarias a entrenar</div>' +
+          '<svg class="concl-rule" width="170" height="14" viewBox="0 0 170 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+            '<line x1="0" y1="7" x2="74" y2="7" stroke="#8A6E2F" stroke-width="0.8"/>' +
+            '<circle cx="85" cy="7" r="3" stroke="#8A6E2F" stroke-width="0.8" fill="none"/>' +
+            '<circle cx="85" cy="7" r="1" fill="#8A6E2F"/>' +
+            '<line x1="96" y1="7" x2="170" y2="7" stroke="#8A6E2F" stroke-width="0.8"/>' +
+          '</svg>' +
+          '<div style="font-family:Georgia,serif;font-size:14px;line-height:1.75;color:#3a3a3a;padding:10px 4px;text-align:left;max-width:780px;margin:0 auto;">' + _plainText + '</div>' +
+          '<div class="concl-foot">' +
+            '<div class="concl-foot-left"><strong>Areté Academy</strong><br><span class="sub">Análisis individual · ' + _esc(jug.nombre||'') + '</span></div>' +
+            '<div class="concl-foot-sig">' +
+              '<span class="hand">Omar Cortés</span>' +
+              '<span class="role">Analista Individual</span>' +
+            '</div>' +
+          '</div>' +
+        '</section>';
     }
   } catch(e) {}
 
