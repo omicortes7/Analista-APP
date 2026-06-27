@@ -462,11 +462,88 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
 </style>
   
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// cerrarSesion() — cierra la sesión de Supabase de forma robusta.
+// FIX: hace signOut + limpia localStorage (auth-token) + recarga a URL base.
+function cerrarSesion() {
+  var _finish = function(){
+    try {
+      Object.keys(localStorage).forEach(function(k){
+        if(k.indexOf('sb-')===0 || k.indexOf('supabase')!==-1 || k.indexOf('auth-token')!==-1) localStorage.removeItem(k);
+      });
+      sessionStorage.clear();
+    } catch(e){}
+    location.replace(location.pathname);
+  };
+  try {
+    var client = window.DB || window.db || window.supabaseClient;
+    if(client && client.auth && typeof client.auth.signOut === 'function'){
+      var p = client.auth.signOut();
+      if(p && typeof p.then === 'function'){
+        p.then(_finish).catch(_finish);
+        setTimeout(_finish, 1500);
+      } else { _finish(); }
+    } else { _finish(); }
+  } catch(e) { _finish(); }
+}
+</script>
 </head>
 <body>
 
+<!-- LOGIN SCREEN PREMIUM -->
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+.ls-bg{position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,#1a1408 0%,transparent 55%),radial-gradient(ellipse 90% 70% at 50% 100%,#0a0e1a 0%,#04060d 60%),linear-gradient(180deg,#04060d 0%,#070a14 50%,#04060d 100%);}
+.ls-bg::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.45;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='280' height='280' filter='url(%23n)'/%3E%3C/svg%3E");background-size:280px;}
+.ls-orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:1;animation:ls-float 14s ease-in-out infinite;}
+.ls-orb-a{width:55vw;height:55vw;max-width:720px;max-height:720px;top:-22%;left:-10%;background:radial-gradient(circle,rgba(244,197,66,.18) 0%,transparent 65%);}
+.ls-orb-b{width:48vw;height:48vw;max-width:640px;max-height:640px;bottom:-18%;right:-12%;background:radial-gradient(circle,rgba(244,197,66,.11) 0%,transparent 65%);animation-delay:-5s;}
+@keyframes ls-float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,-30px) scale(1.06)}66%{transform:translate(-30px,30px) scale(.96)}}
+.ls-vignette{position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse 70% 80% at 50% 50%,transparent 40%,rgba(0,0,0,.85) 100%);}
+.ls-scanlines{position:fixed;inset:0;z-index:3;pointer-events:none;opacity:.35;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,.01) 2px,rgba(255,255,255,.01) 3px);}
+.ls-grid{position:fixed;inset:0;z-index:1;background-image:linear-gradient(rgba(244,197,66,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(244,197,66,.018) 1px,transparent 1px);background-size:55px 55px;pointer-events:none;}
+.ls-stage{position:fixed;inset:0;z-index:10;display:grid;grid-template-columns:1fr 1fr;font-family:'Almarai',sans-serif;font-weight:300;color:#f4ecd8;}
+.ls-brand{display:flex;flex-direction:column;justify-content:space-between;padding:52px 56px;border-right:1px solid rgba(244,197,66,.08);}
+.ls-brand-top{display:flex;align-items:center;gap:14px;}
+.ls-logo-circle{width:52px;height:52px;border-radius:50%;border:1px solid rgba(244,197,66,.3);background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px rgba(244,197,66,.1);flex-shrink:0;}
+.ls-logo-circle img{width:40px;height:40px;object-fit:contain;}
+.ls-brand-name{font-size:18px;font-weight:700;color:#f4ecd8;line-height:1;}
+.ls-brand-name small{display:block;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,197,66,.5);font-weight:300;margin-top:4px;}
+.ls-center{flex:1;display:flex;flex-direction:column;justify-content:center;padding:40px 0;}
+.ls-eyebrow{font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:rgba(244,197,66,.55);margin-bottom:20px;}
+.ls-hero{font-size:52px;font-weight:800;line-height:.92;letter-spacing:-.02em;margin-bottom:20px;}
+.ls-hero em{font-family:'Instrument Serif',serif;font-style:italic;color:#f4c542;font-weight:400;}
+.ls-sub{font-size:15px;line-height:1.65;color:rgba(244,236,216,.5);font-weight:300;max-width:420px;}
+.ls-sub em{font-style:italic;color:rgba(244,236,216,.7);}
+.ls-bottom{font-size:11px;letter-spacing:.1em;color:rgba(244,236,216,.25);}
+.ls-form-panel{display:flex;align-items:center;justify-content:center;padding:40px 52px;}
+.ls-card{width:100%;max-width:420px;background:rgba(255,255,255,.03);border:0.5px solid rgba(244,197,66,.15);border-radius:20px;padding:36px;backdrop-filter:blur(24px);box-shadow:0 0 80px rgba(0,0,0,.5),inset 0 1px 1px rgba(255,255,255,.04);}
+.ls-card-eyebrow{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,197,66,.5);margin-bottom:22px;}
+.ls-card-dot{width:6px;height:6px;border-radius:50%;background:#f4c542;animation:ls-pulse 2s ease-in-out infinite;}
+@keyframes ls-pulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.2)}}
+.ls-card-title{font-size:26px;font-weight:700;margin-bottom:6px;}
+.ls-card-title em{font-family:'Instrument Serif',serif;font-style:italic;color:#f4c542;font-weight:400;}
+.ls-card-sub{font-size:12px;color:rgba(244,236,216,.4);margin-bottom:28px;font-weight:300;}
+.ls-field{position:relative;margin-bottom:16px;}
+.ls-field input{width:100%;height:48px;background:rgba(255,255,255,.04);border:0.5px solid rgba(244,197,66,.15);border-radius:10px;padding:0 44px 0 16px;font-size:13px;color:#f4ecd8;outline:none;font-family:'Almarai',sans-serif;transition:border-color .2s,background .2s;}
+.ls-field input:focus{border-color:rgba(244,197,66,.4);background:rgba(244,197,66,.04);}
+.ls-field input::placeholder{color:rgba(244,236,216,.25);}
+.ls-field-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:rgba(244,236,216,.3);pointer-events:none;}
+.ls-extras{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;}
+.ls-check{display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(244,236,216,.4);cursor:pointer;}
+.ls-check input{accent-color:#f4c542;}
+.ls-forgot{font-size:11px;color:rgba(244,197,66,.45);text-decoration:none;}
+.ls-cta{width:100%;height:50px;background:linear-gradient(135deg,#c9a84c,#f4c542);color:#0a0e1a;font-size:13px;font-weight:700;letter-spacing:.06em;border:none;border-radius:10px;cursor:pointer;font-family:'Almarai',sans-serif;transition:opacity .2s,transform .1s;}
+.ls-cta:hover{opacity:.9;transform:translateY(-1px);}
+.ls-cta:active{transform:translateY(0);}
+.ls-error{display:none;margin-top:14px;font-size:12px;color:#f85149;text-align:center;background:rgba(248,81,73,.08);border:0.5px solid rgba(248,81,73,.2);border-radius:8px;padding:10px;}
+@keyframes ls-fade{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.ls-anim{animation:ls-fade .9s ease-out forwards;opacity:0;}
+.ls-a1{animation-delay:.1s}.ls-a2{animation-delay:.25s}.ls-a3{animation-delay:.4s}.ls-a4{animation-delay:.55s}
+</style>
 
-<div class="app" id="main-app">
+
+<div class="app" id="main-app" style="display:flex;">
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
@@ -591,7 +668,10 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
     <div class="page" id="page-jugadores">
       <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <div><div class="page-title">Jugadores</div><div class="page-sub">Seguimiento individual</div></div>
-        <button class="btn" onclick="openModal('mnj')">+ Nuevo jugador</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" onclick="vincularJugadorExistente()" style="background:rgba(124,111,240,.1);border:0.5px solid rgba(124,111,240,.4);color:#7C6FF0;">🔗 Vincular existente</button>
+          <button class="btn" onclick="openModal('mnj')">+ Nuevo jugador</button>
+        </div>
       </div>
       <div class="toolbar">
         <input type="text" id="jq" placeholder="Buscar jugador..." oninput="renderJugadores()">
@@ -839,7 +919,8 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
     <div class="field"><label>Posición</label><select id="npp"><option>Central</option><option>Lateral</option><option>Pivote</option><option>Interior</option><option>Extremo</option><option>Delantero</option></select></div>
     <div class="field"><label>Equipo / Club</label><input type="text" id="npe" placeholder="Ej: Ontinyent CF Cadete A"></div>
     <div class="field"><label>Categoría</label><select id="npc"><option>Benjamín</option><option>Alevín</option><option>Infantil</option><option>Cadete</option><option>Juvenil</option></select></div>
-    <div class="field"><label>Email del jugador</label><input type="email" id="npe-mail" placeholder="email@jugador.com"><div class="field-hint">El jugador usará este email para acceder a su app.</div></div>
+    <div class="field"><label>Email del jugador *</label><input type="email" id="npe-mail" placeholder="email@jugador.com"><div class="field-hint">El jugador usará este email para acceder a su app.</div></div>
+    <div class="field"><label>Contraseña inicial *</label><input type="text" id="npe-pass" placeholder="Mínimo 6 caracteres (ej: arete2026)" value="arete2026"><div class="field-hint">Pásala al jugador. Podrá cambiarla después.</div></div>
     <div class="field"><label>Próxima sesión de vídeo</label><input type="date" id="nps"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="field"><label>Foto del jugador</label><input type="file" id="j-foto-file" accept="image/*" style="width:100%;padding:6px 0;"><div class="field-hint">Aparece en los informes PDF.</div></div>
@@ -861,7 +942,6 @@ body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s
     </div>
     <div class="tabs">
       <button class="tab active dtab" onclick="switchDT('obj')">🎯 Objetivos</button>
-      <button class="tab dtab" onclick="switchDT('perfil')">📊 Perfil</button>
       <button class="tab dtab" onclick="switchDT('clips')">▶ Clips</button>
       <button class="tab dtab" onclick="switchDT('informe')">📄 Informe</button>
       <button class="tab dtab" onclick="switchDT('historial')">📁 Historial</button>
@@ -1157,7 +1237,37 @@ Texto de variantes...
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="js/app.js"></script>
-<script src="js/patch_chat_tab.js"></script><script src="js/omar-tareas-patch.js"></script></body>
+<script src="js/patch_chat_tab.js"></script><script src="js/omar-tareas-patch.js"></script>
+<script>
+// Autoarranque — antes lo hacía loginAnalista. Ahora la app entra directa.
+(function() {
+  function arrancar() {
+    if (typeof init === 'function') {
+      init();
+    } else {
+      // Si init aún no está definido (carga asíncrona), reintentamos
+      var tries = 0;
+      var iv = setInterval(function() {
+        tries++;
+        if (typeof init === 'function') {
+          clearInterval(iv);
+          init();
+        } else if (tries > 50) {
+          clearInterval(iv);
+          console.error('init() no se definió tras 5s');
+        }
+      }, 100);
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', arrancar);
+  } else {
+    arrancar();
+  }
+})();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</body>
 </html>
