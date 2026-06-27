@@ -9,6 +9,109 @@ const AV_COLORS = {
   Pivote:{bg:'#FAEEDA',color:'#633806'}, Interior:{bg:'#EEEDFE',color:'#3C3489'},
   Extremo:{bg:'#FAECE7',color:'#993C1D'}, Delantero:{bg:'#FCEBEB',color:'#A32D2D'},
 };
+
+// ═══════════════════════════════════════════════════
+// STATS DE PARTIDO POR POSICIÓN (módulo nuevo)
+// ═══════════════════════════════════════════════════
+const STATS_LABELS = {
+  minutos:'Minutos',
+  pases_completados:'Pases completados', pases_intentados:'Pases intentados', pases_clave:'Pases clave',
+  asistencias:'Asistencias',
+  remates_totales:'Remates totales', remates_porteria:'A portería', goles:'Goles',
+  regates_exitosos:'Regates exitosos', regates_intentados:'Regates intentados',
+  centros_completados:'Centros completados', centros_intentados:'Centros intentados',
+  recuperaciones:'Recuperaciones', perdidas:'Pérdidas',
+  tackles:'Tackles', intercepciones:'Intercepciones', despejes:'Despejes',
+  duelos_aereos_ganados:'Duelos aéreos ganados', duelos_aereos_perdidos:'Duelos aéreos perdidos',
+  faltas_cometidas:'Faltas cometidas', faltas_recibidas:'Faltas recibidas',
+  amarillas:'Tarjetas amarillas', rojas:'Tarjetas rojas'
+};
+const STATS_POS_GROUP = {
+  Central:'defensa', Lateral:'defensa',
+  Pivote:'medio', Interior:'medio',
+  Extremo:'ataque', Delantero:'ataque'
+};
+const STATS_BY_GROUP = {
+  defensa: [
+    {section:'General',     keys:['minutos']},
+    {section:'Distribución',keys:['pases_completados','pases_intentados']},
+    {section:'Defensa',     keys:['recuperaciones','tackles','intercepciones','despejes']},
+    {section:'Duelos',      keys:['duelos_aereos_ganados','duelos_aereos_perdidos']},
+    {section:'Disciplina',  keys:['faltas_cometidas','amarillas','rojas']}
+  ],
+  medio: [
+    {section:'General',     keys:['minutos']},
+    {section:'Distribución',keys:['pases_completados','pases_intentados','pases_clave']},
+    {section:'Ofensivo',    keys:['asistencias','remates_totales','remates_porteria','goles']},
+    {section:'Defensa',     keys:['recuperaciones','perdidas','tackles']},
+    {section:'Disciplina',  keys:['faltas_cometidas','faltas_recibidas','amarillas','rojas']}
+  ],
+  ataque: [
+    {section:'General',     keys:['minutos']},
+    {section:'Distribución',keys:['pases_completados','pases_intentados','pases_clave']},
+    {section:'Finalización',keys:['remates_totales','remates_porteria','goles','asistencias']},
+    {section:'Regate/Centro',keys:['regates_exitosos','regates_intentados','centros_completados','centros_intentados']},
+    {section:'Duelos/Disc.',keys:['duelos_aereos_ganados','perdidas','faltas_recibidas','amarillas']}
+  ]
+};
+function getStatsConfigForJugador(jug){
+  const g = STATS_POS_GROUP[(jug&&jug.posicion)||'Central'] || 'defensa';
+  return { group:g, sections: STATS_BY_GROUP[g] };
+}
+function renderStatsForm(jug, existingStats){
+  existingStats = existingStats || {};
+  const cfg = getStatsConfigForJugador(jug);
+  let h = '';
+  cfg.sections.forEach(function(sec){
+    h += '<div style="margin-bottom:10px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:5px;">'+sec.section+'</div>';
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;">';
+    sec.keys.forEach(function(k){
+      const v = (existingStats[k]!=null && existingStats[k]!=='') ? existingStats[k] : '';
+      h += '<div><label style="font-size:9px;color:var(--text3);display:block;margin-bottom:2px;">'+(STATS_LABELS[k]||k)+'</label>';
+      h += '<input type="number" inputmode="numeric" min="0" step="1" id="inf-stat-'+k+'" data-stat-key="'+k+'" value="'+v+'" placeholder="0" style="width:100%;height:30px;background:var(--bg3);border:0.5px solid var(--border);border-radius:6px;padding:0 8px;font-size:12px;color:var(--text);font-family:inherit;outline:none;"></div>';
+    });
+    h += '</div></div>';
+  });
+  return h;
+}
+function collectStatsFromForm(){
+  const inputs = document.querySelectorAll('[data-stat-key]');
+  const stats = {};
+  inputs.forEach(function(el){
+    const k = el.getAttribute('data-stat-key');
+    const v = el.value.trim();
+    if(v !== '' && !isNaN(parseFloat(v))) stats[k] = parseFloat(v);
+  });
+  return stats;
+}
+async function saveStatsForInforme(informeId, jugId){
+  const stats = collectStatsFromForm();
+  if(Object.keys(stats).length === 0){
+    // Si no hay nada, borrar la fila existente si hay
+    await DB.from('stats_partido').delete().eq('informe_id', informeId);
+    return;
+  }
+  // Upsert: borrar y reinsertar (más simple que upsert con onConflict)
+  await DB.from('stats_partido').delete().eq('informe_id', informeId);
+  const { error } = await DB.from('stats_partido').insert({
+    informe_id: informeId, jugador_id: jugId, stats: stats
+  });
+  if(error) console.warn('stats_partido save error:', error.message);
+}
+async function loadStatsForInforme(informeId){
+  if(!informeId) return null;
+  const { data, error } = await DB.from('stats_partido').select('stats').eq('informe_id', informeId).maybeSingle();
+  if(error || !data) return null;
+  return data.stats || null;
+}
+window._fillStatsInputs = function(stats){
+  if(!stats) return;
+  Object.keys(stats).forEach(function(k){
+    const el = document.getElementById('inf-stat-'+k);
+    if(el) el.value = stats[k];
+  });
+};
+
 const FASES = [
   {id:'OF',label:'Fase ofensiva',cls:'badge-of',dot:'#1D9E75'},
   {id:'DE',label:'Fase defensiva',cls:'badge-de',dot:'#378ADD'},
@@ -815,6 +918,13 @@ function renderDT(tab){
         <div style="${SEC_TITLE}">Microconceptos observados</div>
         <select id="inf-mic-sel" onchange="addMicTag()" style="${SI}margin-bottom:8px;"><option value="">Selecciona microconcepto...</option>${micOptions}</select>
         <div id="inf-mic-tags" style="display:flex;flex-wrap:wrap;gap:5px;min-height:20px;"></div>
+      </div>
+      <div style="${CARD}border:0.5px solid rgba(212,175,55,0.25);background:rgba(212,175,55,0.04);">
+        <div style="${SEC_TITLE}color:#D4AF37;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="window._toggleStatsBlock()">
+          <span>📊 Estadísticas del partido <span style="font-size:9px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">· ${(j.posicion||'')}</span></span>
+          <span id="stats-toggle-icon" style="font-size:11px;color:var(--text3);">▼ Mostrar</span>
+        </div>
+        <div id="stats-block-body" style="display:none;margin-top:12px;">${renderStatsForm(j, {})}</div>
       </div>
       <div style="${CARD}">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
@@ -2941,6 +3051,15 @@ async function exportarInformePDF(infId) {
   if(!jug) { showToast('Jugador no encontrado'); return; }
 
   // Extraer color del escudo antes de abrir
+  // Pre-cargar stats del partido para el informe (módulo nuevo)
+  (async()=>{
+    try {
+      if(inf.id){
+        const sp = await loadStatsForInforme(inf.id);
+        if(sp) inf._stats_partido = sp;
+      }
+    } catch(e){ console.warn('preload stats err', e); }
+  })();
   if(jug.logo_club) {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -5179,6 +5298,19 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
     .page { box-shadow:none; margin:0; }
     .no-print { display:none !important; }
   }
+
+  /* STATS DEL PARTIDO */
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; margin-bottom:24px; }
+  .stat-kpi { background:#fff; border:1px solid rgba(0,0,0,.06); border-radius:14px; padding:14px 12px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+  .stat-kpi-v { font-family:'Instrument Serif',serif; font-style:italic; font-size:30px; line-height:1; color:#10161F; }
+  .stat-kpi-l { font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#6b7280; margin-top:6px; }
+  .stat-kpi-sub { font-size:9px; color:#888; margin-top:3px; }
+  .stats-detail { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin-bottom:30px; }
+  .stats-detail-section { background:#fafafa; border-radius:12px; padding:14px 16px; border:1px solid rgba(0,0,0,.04); }
+  .stats-detail-title { font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#8A6E2F; margin-bottom:10px; }
+  .stats-detail-rows { display:flex; flex-direction:column; gap:6px; }
+  .stats-detail-row { display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#333; padding:4px 0; border-bottom:0.5px solid rgba(0,0,0,.04); }
+  .stats-detail-row strong { color:#10161F; font-weight:700; }
 </style>
 </head>
 <body>
@@ -5293,7 +5425,59 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
       </div>
     </div>` : ''}
 
-    <!-- FORTALEZAS Y MEJORAS -->
+<!-- ESTADÍSTICAS DEL PARTIDO -->
+    ${(inf._stats_partido && Object.keys(inf._stats_partido).length) ? `
+    <div class="section-title">
+      <span class="eyebrow">03 · Estadísticas</span>
+      <span class="h2">Métricas del partido<span class="h2-sub">${(jug.posicion||'')}</span></span>
+    </div>
+    <div class="stats-grid">
+      ${(function(){
+        const s = inf._stats_partido;
+        const cfg = (typeof getStatsConfigForJugador === 'function') ? getStatsConfigForJugador(jug) : { sections: [] };
+        const labels = (typeof STATS_LABELS !== 'undefined') ? STATS_LABELS : {};
+        let h = '';
+        // KPIs principales: minutos, pases (con %), goles, asistencias, remates, recuperaciones
+        function kpi(label, value, sub){
+          return '<div class="stat-kpi"><div class="stat-kpi-v">'+value+'</div><div class="stat-kpi-l">'+label+'</div>'+(sub?'<div class="stat-kpi-sub">'+sub+'</div>':'')+'</div>';
+        }
+        if(s.minutos != null) h += kpi('Minutos', s.minutos);
+        if(s.pases_completados != null || s.pases_intentados != null){
+          const pc = s.pases_completados || 0, pi = s.pases_intentados || 0;
+          const pct = pi > 0 ? Math.round((pc/pi)*100) : 0;
+          h += kpi('Pases', pc + (pi ? ' / '+pi : ''), pi>0 ? (pct+'% acierto') : '');
+        }
+        if(s.goles != null) h += kpi('Goles', s.goles);
+        if(s.asistencias != null) h += kpi('Asistencias', s.asistencias);
+        if(s.remates_totales != null || s.remates_porteria != null){
+          const rt = s.remates_totales || 0, rp = s.remates_porteria || 0;
+          h += kpi('Remates', rt + (rp ? ' ('+rp+' a portería)' : ''));
+        }
+        if(s.recuperaciones != null) h += kpi('Recuperaciones', s.recuperaciones);
+        return h;
+      })()}
+    </div>
+    ${(function(){
+      const s = inf._stats_partido;
+      const cfg = (typeof getStatsConfigForJugador === 'function') ? getStatsConfigForJugador(jug) : { sections: [] };
+      const labels = (typeof STATS_LABELS !== 'undefined') ? STATS_LABELS : {};
+      // Tabla detallada: TODAS las stats agrupadas por sección de la posición
+      let h = '<div class="stats-detail">';
+      cfg.sections.forEach(function(sec){
+        const items = sec.keys.filter(function(k){ return s[k] != null; });
+        if(!items.length) return;
+        h += '<div class="stats-detail-section"><div class="stats-detail-title">'+sec.section+'</div><div class="stats-detail-rows">';
+        items.forEach(function(k){
+          h += '<div class="stats-detail-row"><span>'+(labels[k]||k)+'</span><strong>'+s[k]+'</strong></div>';
+        });
+        h += '</div></div>';
+      });
+      h += '</div>';
+      return h;
+    })()}
+    ` : ''}
+
+        <!-- FORTALEZAS Y MEJORAS -->
     ${(fortalezas.length || mejoras.length) ? `
     <div class="section-title">
       <span class="eyebrow">02 · Balance</span>
@@ -5404,6 +5588,16 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
 }
 
 // ─── GUARDAR INFORME DE PARTIDO ───
+
+window._toggleStatsBlock = function(){
+  const body = document.getElementById('stats-block-body');
+  const ic = document.getElementById('stats-toggle-icon');
+  if(!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if(ic) ic.textContent = open ? '▼ Mostrar' : '▲ Ocultar';
+};
+
 async function saveInforme() {
   const jugId = state.currentJugador;
   const jug = state.jugadores.find(x => x.id === jugId);
@@ -5451,6 +5645,9 @@ async function saveInforme() {
 
   // Añadir al estado local
   state.informesPartido.unshift(saved[0]);
+
+  // Guardar stats del partido (si las hay)
+  try { await saveStatsForInforme(saved[0].id, jugId); } catch(e){ console.warn('save stats err', e); }
 
   // Limpiar formulario
   window._stars = {};
