@@ -834,7 +834,7 @@ function renderDT(tab){
         let videoHtml = '';
         if(c.url) {
           const m2 = c.url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || c.url.match(/id=([a-zA-Z0-9_-]+)/);
-          if(m2) videoHtml = '<div style="width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;"><iframe src="https://drive.google.com/file/d/'+m2[1]+'/preview" width="100%" height="100%" style="border:none;" allowfullscreen allow="autoplay"></iframe></div>';
+          if(m2) videoHtml = '<div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;"><iframe src="https://drive.google.com/file/d/'+m2[1]+'/preview" width="100%" height="100%" style="border:none;" allowfullscreen allow="autoplay"></iframe><button type="button" onclick="(function(b){var w=b.parentElement;if(document.fullscreenElement){document.exitFullscreen();}else if(w.requestFullscreen){w.requestFullscreen();}else if(w.webkitRequestFullscreen){w.webkitRequestFullscreen();}})(this)" style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;z-index:3;backdrop-filter:blur(4px);" title="Pantalla completa">⛶ Pantalla completa</button></div>';
           else if(c.url.includes('supabase.co')) videoHtml = '<video controls playsinline style="width:100%;border-radius:8px;max-height:200px;background:#000;" src="'+c.url+'"></video>';
           else videoHtml = '<video controls playsinline style="width:100%;border-radius:8px;max-height:200px;background:#000;" src="'+c.url+'"></video>';
         }
@@ -3810,7 +3810,7 @@ function renderVideoClipItem(c) {
     return `<video controls playsinline style="width:100%;border-radius:8px;max-height:220px;background:#000;" src="${c.url}"></video>`;
   }
   const m = c.url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || c.url.match(/id=([a-zA-Z0-9_-]+)/);
-  if(m) return `<div style="width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;"><iframe src="https://drive.google.com/file/d/${m[1]}/preview" width="100%" height="100%" style="border:none;" allowfullscreen allow="autoplay"></iframe></div>`;
+  if(m) return `<div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;"><iframe src="https://drive.google.com/file/d/${m[1]}/preview" width="100%" height="100%" style="border:none;" allowfullscreen allow="autoplay"></iframe><button type="button" onclick="(function(b){var w=b.parentElement;if(document.fullscreenElement){document.exitFullscreen();}else if(w.requestFullscreen){w.requestFullscreen();}else if(w.webkitRequestFullscreen){w.webkitRequestFullscreen();}})(this)" style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;z-index:3;backdrop-filter:blur(4px);" title="Pantalla completa">⛶ Pantalla completa</button></div>`;
   return `<video controls playsinline style="width:100%;border-radius:8px;max-height:220px;background:#000;" src="${c.url}"></video>`;
 }
 
