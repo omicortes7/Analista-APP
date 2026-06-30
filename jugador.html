@@ -5303,9 +5303,7 @@ window.verAnalisisDetalle = function(id) {
   if(item.video_url) {
     h += '<div class="card" style="margin-bottom:.875rem;">';
     h += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--text3);margin-bottom:.75rem;">🎥 Vídeo del análisis</div>';
-    var m = item.video_url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || item.video_url.match(/id=([a-zA-Z0-9_-]+)/);
-    if(m) h += '<div style="width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;"><iframe src="https://drive.google.com/file/d/'+m[1]+'/preview" width="100%" height="100%" style="border:none;" allowfullscreen></iframe></div>';
-    else h += '<video controls playsinline style="width:100%;border-radius:10px;" src="'+item.video_url+'"></video>';
+    h += window.getVideoEmbedHTML(item.video_url);
     h += '</div>';
   }
   if(item.objetivos_semana) {
@@ -6250,6 +6248,38 @@ if(typeof window.FASES === 'undefined'){
   ];
 }
 var FASES = window.FASES; // exponer como variable de scope para el render
+
+// Devuelve HTML del reproductor adecuado según el origen del vídeo (Drive iframe, YouTube iframe, Vimeo iframe, o <video> nativo)
+window.getVideoEmbedHTML = function(url, opts){
+  opts = opts || {};
+  var styleWrap = opts.styleWrap || 'width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#000;';
+  if(!url || !String(url).trim()) return '';
+  var u = String(url).trim();
+  // Google Drive — varios formatos
+  var dm = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+           u.match(/drive\.google\.com\/(?:open|uc)\?(?:.*&)?id=([a-zA-Z0-9_-]+)/) ||
+           u.match(/docs\.google\.com\/.*\/d\/([a-zA-Z0-9_-]+)/);
+  if(dm){
+    return '<div style="'+styleWrap+'"><iframe src="https://drive.google.com/file/d/'+dm[1]+'/preview" width="100%" height="100%" style="border:none;" allow="autoplay" allowfullscreen></iframe></div>';
+  }
+  // YouTube — varios formatos: youtu.be/ID, watch?v=ID, /embed/ID, /shorts/ID
+  var ym = u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/))([a-zA-Z0-9_-]{11})/);
+  if(ym){
+    return '<div style="'+styleWrap+'"><iframe src="https://www.youtube.com/embed/'+ym[1]+'" width="100%" height="100%" style="border:none;" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>';
+  }
+  // Vimeo
+  var vm = u.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if(vm){
+    return '<div style="'+styleWrap+'"><iframe src="https://player.vimeo.com/video/'+vm[1]+'" width="100%" height="100%" style="border:none;" allow="autoplay; fullscreen" allowfullscreen></iframe></div>';
+  }
+  // Storage de Supabase u otros URLs directos
+  if(/supabase\.co\/storage|\.(mp4|webm|ogv|mov|m4v)(\?|$)/i.test(u)){
+    return '<video controls playsinline style="width:100%;border-radius:10px;background:#000;" src="'+u+'"></video>';
+  }
+  // Por defecto: intentar como vídeo nativo pero también ofrecer el link
+  return '<video controls playsinline style="width:100%;border-radius:10px;background:#000;" src="'+u+'"></video>' +
+         '<div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center;">¿No se reproduce? <a href="'+u+'" target="_blank" rel="noopener" style="color:#58a6ff;">Abrir en pestaña nueva</a></div>';
+};
 
 /* STATS PARTIDO (módulo nuevo) */
 // STATS DE PARTIDO POR POSICIÓN (módulo nuevo)
