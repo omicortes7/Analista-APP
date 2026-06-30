@@ -3051,15 +3051,19 @@ async function exportarInformePDF(infId) {
   if(!jug) { showToast('Jugador no encontrado'); return; }
 
   // Extraer color del escudo antes de abrir
-  // Pre-cargar stats del partido para el informe (módulo nuevo)
-  (async()=>{
+  // Pre-cargar stats del partido y LUEGO renderizar (era race condition: el render se ejecutaba antes de tener los datos)
+  (async () => {
     try {
       if(inf.id){
         const sp = await loadStatsForInforme(inf.id);
         if(sp) inf._stats_partido = sp;
       }
     } catch(e){ console.warn('preload stats err', e); }
+    // Continuar con el render sólo cuando los stats estén cargados
+    _doRenderInforme();
   })();
+  return; // salimos: el resto del flujo (logo + render) se ejecuta dentro de _doRenderInforme
+  function _doRenderInforme(){
   if(jug.logo_club) {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -4598,6 +4602,7 @@ function generarInformeVisual(jugId, infId) {
     img.src = jug.logo_club;
   } else {
     _renderInformeVisualPremium(jug, inf, '#1a3a5c', win);
+  }
   }
 }
 
