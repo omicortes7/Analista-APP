@@ -5801,6 +5801,27 @@ window.renderEvolucionJugador = async function() {
     MATCH_RECALL:    { dia:5, dia_lbl:'VIE', nombre:'Práctica imaginativa partido', icono:'🎞️', material:'Solo el cerebro', descripcion:'Recordar 3 jugadas tras visualizar 5 min', metrics:[
       {key:'metric_1', label:'Jugadas recordadas',   unit:'/3', lowerIsBetter:false},
       {key:'metric_2', label:'Nivel de detalle',     unit:'/3', lowerIsBetter:false}
+    ]},
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ARETÉ · FASE 1 VISUAL — 4 protocolos adicionales (Quevedo & Solé)
+    // ═══════════════════════════════════════════════════════════════════
+
+    HART_CHART:      { dia:2, dia_lbl:'MAR', nombre:'Hart Chart de sacadas',   icono:'👁️‍🗨️', material:'2 cartas con letras (1 cerca a 40cm, 1 lejos a 3m). Imprimibles gratis.', descripcion:'Movimientos sacádicos rápidos cerca-lejos. Mejora la velocidad de cambio de foco que necesita el jugador al pasar del balón al rival lejano.', metrics:[
+      {key:'metric_1', label:'Sacadas por minuto',   unit:'spm', lowerIsBetter:false},
+      {key:'metric_2', label:'Errores de lectura',   unit:'',    lowerIsBetter:true}
+    ]},
+    MARSDEN_TRACK:   { dia:3, dia_lbl:'MIÉ', nombre:'Seguimiento Marsden',     icono:'🎾', material:'Pelota de tenis colgando de una cuerda (~3€).', descripcion:'Seguimiento ocular fluido (tracking) sin mover la cabeza. Base para anticipar trayectorias del balón en el partido.', metrics:[
+      {key:'metric_1', label:'Aciertos de letras visibles', unit:'/10', lowerIsBetter:false},
+      {key:'metric_2', label:'Tiempo de seguimiento fluido', unit:'s',  lowerIsBetter:false}
+    ]},
+    FLIPPERS_ACC:    { dia:4, dia_lbl:'JUE', nombre:'Flippers acomodación ±2.00', icono:'🔍', material:'Flipper óptico ±2.00 dioptrías (cualquier óptica deportiva, ~30€).', descripcion:'Velocidad de cambio de foco cerca-lejos (acomodación). Crítica para porteros y jugadores que reciben balones aéreos.', metrics:[
+      {key:'metric_1', label:'Ciclos por minuto',    unit:'cpm', lowerIsBetter:false},
+      {key:'metric_2', label:'Borrosidad residual',  unit:'/5',  lowerIsBetter:true}
+    ]},
+    ANAGLYPH_STEREO: { dia:5, dia_lbl:'VIE', nombre:'Anaglifos estereopsis',   icono:'🥽', material:'Gafas anaglifo rojo-cian + láminas (~15€) o app móvil.', descripcion:'Percepción de profundidad y cálculo de distancias 3D. Crucial para juego aéreo, centros y anticipación de pases largos.', metrics:[
+      {key:'metric_1', label:'Umbral estereopsis',   unit:'″arc', lowerIsBetter:true},
+      {key:'metric_2', label:'Aciertos profundidad', unit:'/10',  lowerIsBetter:false}
     ]}
   };
   window.COG_EX_MAP = COG_EX_MAP;
