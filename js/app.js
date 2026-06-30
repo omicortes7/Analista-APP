@@ -7059,9 +7059,15 @@ async function renderAnalisisTab() {
           <input id="anal-fecha" type="date" value="${new Date().toISOString().slice(0,10)}" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;">
         </div>
       </div>
-      <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">URL del vídeo de análisis (Google Drive, YouTube...)</div>
-      <input id="anal-video" placeholder="https://drive.google.com/..." style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;">
-      <button onclick="guardarAnalisisSemanal('${j.id}')" class="btn" style="width:100%;height:38px;font-size:12px;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Subir desde tu PC (MP4, hasta 50MB)</div>
+      <input type="file" id="anal-video-file" accept="video/mp4,video/*" style="width:100%;font-size:12px;margin-bottom:10px;color:var(--text2);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="flex:1;height:0.5px;background:var(--border);"></div>
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">o pega una URL</div>
+        <div style="flex:1;height:0.5px;background:var(--border);"></div>
+      </div>
+      <input id="anal-video" placeholder="https://drive.google.com/... o YouTube" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;">
+      <button id="anal-btn-submit" onclick="guardarAnalisisSemanal('${j.id}')" class="btn" style="width:100%;height:38px;font-size:12px;">
         ✓ Subir análisis
       </button>
     </div>`;
@@ -7089,16 +7095,41 @@ async function renderAnalisisTab() {
 async function guardarAnalisisSemanal(jugId) {
   const titulo    = document.getElementById('anal-titulo')?.value.trim();
   const fecha     = document.getElementById('anal-fecha')?.value;
-  const video_url = document.getElementById('anal-video')?.value.trim();
+  let   video_url = document.getElementById('anal-video')?.value.trim();
+  const fi        = document.getElementById('anal-video-file');
+  const btn       = document.getElementById('anal-btn-submit');
 
   if(!titulo) { showToast('Escribe un título'); return; }
-  if(!video_url) { showToast('Añade la URL del vídeo'); return; }
 
+  // Si hay archivo seleccionado, subirlo al storage y usar la URL resultante
+  if(fi && fi.files && fi.files[0]){
+    const f = fi.files[0];
+    if(f.size > 50*1024*1024){ showToast('El archivo supera 50MB'); return; }
+    if(btn){ btn.disabled = true; btn.textContent = 'Subiendo vídeo…'; }
+    const uploaded = await uploadVideoClip(f);
+    if(!uploaded){
+      if(btn){ btn.disabled = false; btn.textContent = '✓ Subir análisis'; }
+      return;
+    }
+    video_url = uploaded;
+  }
+
+  if(!video_url) {
+    showToast('Selecciona un archivo o pega una URL');
+    if(btn){ btn.disabled = false; btn.textContent = '✓ Subir análisis'; }
+    return;
+  }
+
+  if(btn){ btn.disabled = true; btn.textContent = 'Guardando…'; }
   const { error } = await DB.from('analisis_semanal').insert({
     jugador_id: jugId, titulo, fecha, video_url
   });
 
-  if(error) { showToast('Error al guardar'); console.error(error); return; }
+  if(error) {
+    showToast('Error al guardar: '+error.message); console.error(error);
+    if(btn){ btn.disabled = false; btn.textContent = '✓ Subir análisis'; }
+    return;
+  }
   showToast('✓ Análisis subido');
   renderAnalisisTab();
 }
