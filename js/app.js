@@ -7033,6 +7033,21 @@ function renderGuionIA(data, jug, partido, pos, fase) {
 // ─── NAVEGACIÓN IA: integrado en renderPage ───
 
 // ─── TAB ANÁLISIS SEMANAL (app analista) ───
+
+// Convierte URLs de Google Drive a formato /preview (reproducible). Mantiene otras URLs igual.
+function getPlayableVideoUrl(url){
+  if(!url) return '';
+  url = String(url).trim();
+  // Google Drive: /file/d/ID/view → /file/d/ID/preview
+  let m = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if(m) return 'https://drive.google.com/file/d/' + m[1] + '/preview';
+  // Google Drive: ?id=ID
+  m = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
+  if(m) return 'https://drive.google.com/file/d/' + m[1] + '/preview';
+  return url;
+}
+window.getPlayableVideoUrl = getPlayableVideoUrl;
+
 async function renderAnalisisTab() {
   const id = state.currentJugador;
   const j = state.jugadores.find(x => x.id === id);
@@ -7066,7 +7081,10 @@ async function renderAnalisisTab() {
         <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">o pega una URL</div>
         <div style="flex:1;height:0.5px;background:var(--border);"></div>
       </div>
-      <input id="anal-video" placeholder="https://drive.google.com/... o YouTube" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;">
+      <input id="anal-video" placeholder="https://drive.google.com/... o YouTube" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;margin-bottom:6px;">
+      <div style="font-size:10px;color:var(--text3);line-height:1.4;margin-bottom:10px;padding:6px 8px;background:rgba(88,166,255,0.06);border-left:2px solid rgba(88,166,255,0.4);border-radius:4px;">
+        💡 Si usas Drive: pulsa <strong>Compartir</strong> → <strong>"Cualquier persona con el enlace"</strong>. Si no, el vídeo aparecerá como "Sin acceso".
+      </div>
       <button id="anal-btn-submit" onclick="guardarAnalisisSemanal('${j.id}')" class="btn" style="width:100%;height:38px;font-size:12px;">
         ✓ Subir análisis
       </button>
@@ -7081,7 +7099,7 @@ async function renderAnalisisTab() {
           <div style="font-size:13px;font-weight:600;">${item.titulo||'Análisis semanal'}</div>
           <div style="font-size:10px;color:var(--text3);margin-top:2px;">${fecha}</div>
         </div>
-        ${item.video_url ? '<a href="'+item.video_url+'" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;flex-shrink:0;">▶ Ver</a>' : ''}
+        ${item.video_url ? '<a href="'+getPlayableVideoUrl(item.video_url)+'" target="_blank" rel="noopener" style="font-size:11px;background:rgba(88,166,255,0.12);border:0.5px solid rgba(88,166,255,0.3);color:#58a6ff;text-decoration:none;flex-shrink:0;padding:5px 11px;border-radius:99px;font-weight:600;">▶ Ver</a>' : ''}
         <button onclick="eliminarAnalisis('${item.id}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:16px;padding:0 4px;">×</button>
       </div>`;
     });
@@ -7100,6 +7118,18 @@ async function guardarAnalisisSemanal(jugId) {
   const btn       = document.getElementById('anal-btn-submit');
 
   if(!titulo) { showToast('Escribe un título'); return; }
+
+  // Validación: detectar URLs de Drive que NO son del archivo (home, folders, my-drive...)
+  if(video_url){
+    const v = video_url.toLowerCase();
+    const esDriveLink = /drive\.google\.com|docs\.google\.com/.test(v);
+    const esArchivoDrive = /\/file\/d\/[a-zA-Z0-9_-]+/.test(v) || /\?id=[a-zA-Z0-9_-]+|&id=[a-zA-Z0-9_-]+/.test(v);
+    const esCarpetaOHome = /\/drive\/folders\/|\/drive\/u\/\d+\/home|\/drive\/u\/\d+\/my-drive|\/drive\/home|\/drive\/my-drive/.test(v);
+    if(esDriveLink && !esArchivoDrive){
+      alert('❌ El enlace que has pegado NO es del vídeo.\n\nLo que has pegado abre tu Drive entero o una carpeta, no el archivo concreto.\n\n✅ Cómo obtener el enlace correcto:\n\n1. Abre Drive y busca el vídeo\n2. Clic derecho sobre el archivo → "Obtener enlace"\n3. Cambia a "Cualquier persona con el enlace"\n4. Pulsa "Copiar enlace"\n5. Pégalo aquí\n\nEl enlace bueno tiene esta forma:\nhttps://drive.google.com/file/d/XXXXX/view?usp=sharing');
+      return;
+    }
+  }
 
   // Si hay archivo seleccionado, subirlo al storage y usar la URL resultante
   if(fi && fi.files && fi.files[0]){
