@@ -9,6 +9,109 @@ const AV_COLORS = {
   Pivote:{bg:'#FAEEDA',color:'#633806'}, Interior:{bg:'#EEEDFE',color:'#3C3489'},
   Extremo:{bg:'#FAECE7',color:'#993C1D'}, Delantero:{bg:'#FCEBEB',color:'#A32D2D'},
 };
+
+// ═══════════════════════════════════════════════════
+// STATS DE PARTIDO POR POSICIÓN (módulo nuevo)
+// ═══════════════════════════════════════════════════
+const STATS_LABELS = {
+  minutos:'Minutos',
+  pases_completados:'Pases completados', pases_intentados:'Pases intentados', pases_clave:'Pases clave',
+  asistencias:'Asistencias',
+  remates_totales:'Remates totales', remates_porteria:'A portería', goles:'Goles',
+  regates_exitosos:'Regates exitosos', regates_intentados:'Regates intentados',
+  centros_completados:'Centros completados', centros_intentados:'Centros intentados',
+  recuperaciones:'Recuperaciones', perdidas:'Pérdidas',
+  tackles:'Tackles', intercepciones:'Intercepciones', despejes:'Despejes',
+  duelos_aereos_ganados:'Duelos aéreos ganados', duelos_aereos_perdidos:'Duelos aéreos perdidos',
+  faltas_cometidas:'Faltas cometidas', faltas_recibidas:'Faltas recibidas',
+  amarillas:'Tarjetas amarillas', rojas:'Tarjetas rojas'
+};
+const STATS_POS_GROUP = {
+  Central:'defensa', Lateral:'defensa',
+  Pivote:'medio', Interior:'medio',
+  Extremo:'ataque', Delantero:'ataque'
+};
+const STATS_BY_GROUP = {
+  defensa: [
+    {section:'General',     keys:['minutos']},
+    {section:'Distribución',keys:['pases_completados','pases_intentados']},
+    {section:'Defensa',     keys:['recuperaciones','tackles','intercepciones','despejes']},
+    {section:'Duelos',      keys:['duelos_aereos_ganados','duelos_aereos_perdidos']},
+    {section:'Disciplina',  keys:['faltas_cometidas','amarillas','rojas']}
+  ],
+  medio: [
+    {section:'General',     keys:['minutos']},
+    {section:'Distribución',keys:['pases_completados','pases_intentados','pases_clave']},
+    {section:'Ofensivo',    keys:['asistencias','remates_totales','remates_porteria','goles']},
+    {section:'Defensa',     keys:['recuperaciones','perdidas','tackles']},
+    {section:'Disciplina',  keys:['faltas_cometidas','faltas_recibidas','amarillas','rojas']}
+  ],
+  ataque: [
+    {section:'General',     keys:['minutos']},
+    {section:'Distribución',keys:['pases_completados','pases_intentados','pases_clave']},
+    {section:'Finalización',keys:['remates_totales','remates_porteria','goles','asistencias']},
+    {section:'Regate/Centro',keys:['regates_exitosos','regates_intentados','centros_completados','centros_intentados']},
+    {section:'Duelos/Disc.',keys:['duelos_aereos_ganados','perdidas','faltas_recibidas','amarillas']}
+  ]
+};
+function getStatsConfigForJugador(jug){
+  const g = STATS_POS_GROUP[(jug&&jug.posicion)||'Central'] || 'defensa';
+  return { group:g, sections: STATS_BY_GROUP[g] };
+}
+function renderStatsForm(jug, existingStats){
+  existingStats = existingStats || {};
+  const cfg = getStatsConfigForJugador(jug);
+  let h = '';
+  cfg.sections.forEach(function(sec){
+    h += '<div style="margin-bottom:10px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:5px;">'+sec.section+'</div>';
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;">';
+    sec.keys.forEach(function(k){
+      const v = (existingStats[k]!=null && existingStats[k]!=='') ? existingStats[k] : '';
+      h += '<div><label style="font-size:9px;color:var(--text3);display:block;margin-bottom:2px;">'+(STATS_LABELS[k]||k)+'</label>';
+      h += '<input type="number" inputmode="numeric" min="0" step="1" id="inf-stat-'+k+'" data-stat-key="'+k+'" value="'+v+'" placeholder="0" style="width:100%;height:30px;background:var(--bg3);border:0.5px solid var(--border);border-radius:6px;padding:0 8px;font-size:12px;color:var(--text);font-family:inherit;outline:none;"></div>';
+    });
+    h += '</div></div>';
+  });
+  return h;
+}
+function collectStatsFromForm(){
+  const inputs = document.querySelectorAll('[data-stat-key]');
+  const stats = {};
+  inputs.forEach(function(el){
+    const k = el.getAttribute('data-stat-key');
+    const v = el.value.trim();
+    if(v !== '' && !isNaN(parseFloat(v))) stats[k] = parseFloat(v);
+  });
+  return stats;
+}
+async function saveStatsForInforme(informeId, jugId){
+  const stats = collectStatsFromForm();
+  if(Object.keys(stats).length === 0){
+    // Si no hay nada, borrar la fila existente si hay
+    await DB.from('stats_partido').delete().eq('informe_id', informeId);
+    return;
+  }
+  // Upsert: borrar y reinsertar (más simple que upsert con onConflict)
+  await DB.from('stats_partido').delete().eq('informe_id', informeId);
+  const { error } = await DB.from('stats_partido').insert({
+    informe_id: informeId, jugador_id: jugId, stats: stats
+  });
+  if(error) console.warn('stats_partido save error:', error.message);
+}
+async function loadStatsForInforme(informeId){
+  if(!informeId) return null;
+  const { data, error } = await DB.from('stats_partido').select('stats').eq('informe_id', informeId).maybeSingle();
+  if(error || !data) return null;
+  return data.stats || null;
+}
+window._fillStatsInputs = function(stats){
+  if(!stats) return;
+  Object.keys(stats).forEach(function(k){
+    const el = document.getElementById('inf-stat-'+k);
+    if(el) el.value = stats[k];
+  });
+};
+
 const FASES = [
   {id:'OF',label:'Fase ofensiva',cls:'badge-of',dot:'#1D9E75'},
   {id:'DE',label:'Fase defensiva',cls:'badge-de',dot:'#378ADD'},
@@ -731,7 +834,7 @@ function renderDT(tab){
         let videoHtml = '';
         if(c.url) {
           const m2 = c.url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || c.url.match(/id=([a-zA-Z0-9_-]+)/);
-          if(m2) videoHtml = '<div style="width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;"><iframe src="https://drive.google.com/file/d/'+m2[1]+'/preview" width="100%" height="100%" style="border:none;" allowfullscreen allow="autoplay"></iframe></div>';
+          if(m2) videoHtml = '<div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;"><iframe src="https://drive.google.com/file/d/'+m2[1]+'/preview" width="100%" height="100%" style="border:none;" allowfullscreen allow="autoplay"></iframe><button type="button" onclick="(function(b){var w=b.parentElement;if(document.fullscreenElement){document.exitFullscreen();}else if(w.requestFullscreen){w.requestFullscreen();}else if(w.webkitRequestFullscreen){w.webkitRequestFullscreen();}})(this)" style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;z-index:3;backdrop-filter:blur(4px);" title="Pantalla completa">⛶ Pantalla completa</button></div>';
           else if(c.url.includes('supabase.co')) videoHtml = '<video controls playsinline style="width:100%;border-radius:8px;max-height:200px;background:#000;" src="'+c.url+'"></video>';
           else videoHtml = '<video controls playsinline style="width:100%;border-radius:8px;max-height:200px;background:#000;" src="'+c.url+'"></video>';
         }
@@ -815,6 +918,13 @@ function renderDT(tab){
         <div style="${SEC_TITLE}">Microconceptos observados</div>
         <select id="inf-mic-sel" onchange="addMicTag()" style="${SI}margin-bottom:8px;"><option value="">Selecciona microconcepto...</option>${micOptions}</select>
         <div id="inf-mic-tags" style="display:flex;flex-wrap:wrap;gap:5px;min-height:20px;"></div>
+      </div>
+      <div style="${CARD}border:0.5px solid rgba(212,175,55,0.25);background:rgba(212,175,55,0.04);">
+        <div style="${SEC_TITLE}color:#D4AF37;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="window._toggleStatsBlock()">
+          <span>📊 Estadísticas del partido <span style="font-size:9px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">· ${(j.posicion||'')}</span></span>
+          <span id="stats-toggle-icon" style="font-size:11px;color:var(--text3);">▼ Mostrar</span>
+        </div>
+        <div id="stats-block-body" style="display:none;margin-top:12px;">${renderStatsForm(j, {})}</div>
       </div>
       <div style="${CARD}">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
@@ -1028,12 +1138,6 @@ function renderDT(tab){
 
   if(tab==='material'){
     renderMaterialAnalista(id);
-    return;
-  }
-
-  if(tab==='perfil'){
-    body.innerHTML = '<div id="perfil-container" style="padding:.5rem 0;"><div style="text-align:center;padding:2rem;color:var(--text3);font-size:12px;">Cargando perfil...</div></div>';
-    setTimeout(function(){ if(window.renderPerfilJugador) window.renderPerfilJugador(id); }, 50);
     return;
   }
 }
@@ -2947,6 +3051,19 @@ async function exportarInformePDF(infId) {
   if(!jug) { showToast('Jugador no encontrado'); return; }
 
   // Extraer color del escudo antes de abrir
+  // Pre-cargar stats del partido y LUEGO renderizar (era race condition: el render se ejecutaba antes de tener los datos)
+  (async () => {
+    try {
+      if(inf.id){
+        const sp = await loadStatsForInforme(inf.id);
+        if(sp) inf._stats_partido = sp;
+      }
+    } catch(e){ console.warn('preload stats err', e); }
+    // Continuar con el render sólo cuando los stats estén cargados
+    _doRenderInforme();
+  })();
+  return; // salimos: el resto del flujo (logo + render) se ejecuta dentro de _doRenderInforme
+  function _doRenderInforme(){
   if(jug.logo_club) {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -3070,6 +3187,31 @@ function _abrirPDF(inf, jug, clubColor) {
             '<line x1="96" y1="7" x2="170" y2="7" stroke="#8A6E2F" stroke-width="0.8"/>' +
           '</svg>' +
           '<div class="concl-cols ' + _colsClass + '">' + sectionsHtml + '</div>' +
+          '<div class="concl-foot">' +
+            '<div class="concl-foot-left"><strong>Areté Academy</strong><br><span class="sub">Análisis individual · ' + _esc(jug.nombre||'') + '</span></div>' +
+            '<div class="concl-foot-sig">' +
+              '<span class="hand">Omar Cortés</span>' +
+              '<span class="role">Analista Individual</span>' +
+            '</div>' +
+          '</div>' +
+        '</section>';
+
+    } else if(inf.conclusion && String(inf.conclusion).trim()) {
+      // Fallback: si el texto no tiene formato markdown (## ### -), mostrarlo como párrafo simple
+      const _esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      const _plainText = _esc(inf.conclusion).replace(/\n/g, '<br>');
+      conclHtml =
+        '<section class="concl-section">' +
+          '<div class="concl-eyebrow">Conclusión del partido</div>' +
+          '<h2 class="concl-title">Conclusión<span class="amp">.</span></h2>' +
+          '<div class="concl-kicker">Acciones prioritarias a entrenar</div>' +
+          '<svg class="concl-rule" width="170" height="14" viewBox="0 0 170 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+            '<line x1="0" y1="7" x2="74" y2="7" stroke="#8A6E2F" stroke-width="0.8"/>' +
+            '<circle cx="85" cy="7" r="3" stroke="#8A6E2F" stroke-width="0.8" fill="none"/>' +
+            '<circle cx="85" cy="7" r="1" fill="#8A6E2F"/>' +
+            '<line x1="96" y1="7" x2="170" y2="7" stroke="#8A6E2F" stroke-width="0.8"/>' +
+          '</svg>' +
+          '<div style="font-family:Georgia,serif;font-size:14px;line-height:1.75;color:#3a3a3a;padding:10px 4px;text-align:left;max-width:780px;margin:0 auto;">' + _plainText + '</div>' +
           '<div class="concl-foot">' +
             '<div class="concl-foot-left"><strong>Areté Academy</strong><br><span class="sub">Análisis individual · ' + _esc(jug.nombre||'') + '</span></div>' +
             '<div class="concl-foot-sig">' +
@@ -3668,7 +3810,7 @@ function renderVideoClipItem(c) {
     return `<video controls playsinline style="width:100%;border-radius:8px;max-height:220px;background:#000;" src="${c.url}"></video>`;
   }
   const m = c.url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || c.url.match(/id=([a-zA-Z0-9_-]+)/);
-  if(m) return `<div style="width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;"><iframe src="https://drive.google.com/file/d/${m[1]}/preview" width="100%" height="100%" style="border:none;" allowfullscreen allow="autoplay"></iframe></div>`;
+  if(m) return `<div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;"><iframe src="https://drive.google.com/file/d/${m[1]}/preview" width="100%" height="100%" style="border:none;" allowfullscreen allow="autoplay"></iframe><button type="button" onclick="(function(b){var w=b.parentElement;if(document.fullscreenElement){document.exitFullscreen();}else if(w.requestFullscreen){w.requestFullscreen();}else if(w.webkitRequestFullscreen){w.webkitRequestFullscreen();}})(this)" style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;z-index:3;backdrop-filter:blur(4px);" title="Pantalla completa">⛶ Pantalla completa</button></div>`;
   return `<video controls playsinline style="width:100%;border-radius:8px;max-height:220px;background:#000;" src="${c.url}"></video>`;
 }
 
@@ -4411,6 +4553,10 @@ function generarInformeVisual(jugId, infId) {
       microconceptos_obs: (window._micTags || []).join(', '),
       objetivos_trabajados: '',
       notas: document.getElementById('inf-notas')?.value.trim() || '',
+      conclusion: document.getElementById('inf-conclusion')?.value.trim() || '',
+      positivos: document.getElementById('inf-positivos')?.value.trim() || '',
+      mejoras: document.getElementById('inf-mejoras')?.value.trim() || '',
+      obs_imagenes: JSON.stringify(window.getObsData ? window.getObsData() : []),
     };
   }
 
@@ -4456,6 +4602,7 @@ function generarInformeVisual(jugId, infId) {
     img.src = jug.logo_club;
   } else {
     _renderInformeVisualPremium(jug, inf, '#1a3a5c', win);
+  }
   }
 }
 
@@ -4521,6 +4668,31 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
         obsHtml += '</div>';
       });
       obsHtml += '</section>';
+
+    } else if(inf.conclusion && String(inf.conclusion).trim()) {
+      // Fallback: si el texto no tiene formato markdown (## ### -), mostrarlo como párrafo simple
+      const _esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      const _plainText = _esc(inf.conclusion).replace(/\n/g, '<br>');
+      conclHtml =
+        '<section class="concl-section">' +
+          '<div class="concl-eyebrow">Conclusión del partido</div>' +
+          '<h2 class="concl-title">Conclusión<span class="amp">.</span></h2>' +
+          '<div class="concl-kicker">Acciones prioritarias a entrenar</div>' +
+          '<svg class="concl-rule" width="170" height="14" viewBox="0 0 170 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+            '<line x1="0" y1="7" x2="74" y2="7" stroke="#8A6E2F" stroke-width="0.8"/>' +
+            '<circle cx="85" cy="7" r="3" stroke="#8A6E2F" stroke-width="0.8" fill="none"/>' +
+            '<circle cx="85" cy="7" r="1" fill="#8A6E2F"/>' +
+            '<line x1="96" y1="7" x2="170" y2="7" stroke="#8A6E2F" stroke-width="0.8"/>' +
+          '</svg>' +
+          '<div style="font-family:Georgia,serif;font-size:14px;line-height:1.75;color:#3a3a3a;padding:10px 4px;text-align:left;max-width:780px;margin:0 auto;">' + _plainText + '</div>' +
+          '<div class="concl-foot">' +
+            '<div class="concl-foot-left"><strong>Areté Academy</strong><br><span class="sub">Análisis individual · ' + _esc(jug.nombre||'') + '</span></div>' +
+            '<div class="concl-foot-sig">' +
+              '<span class="hand">Omar Cortés</span>' +
+              '<span class="role">Analista Individual</span>' +
+            '</div>' +
+          '</div>' +
+        '</section>';
     }
   } catch(e) {}
 
@@ -5131,6 +5303,19 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
     .page { box-shadow:none; margin:0; }
     .no-print { display:none !important; }
   }
+
+  /* STATS DEL PARTIDO */
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; margin-bottom:24px; }
+  .stat-kpi { background:#fff; border:1px solid rgba(0,0,0,.06); border-radius:14px; padding:14px 12px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+  .stat-kpi-v { font-family:'Instrument Serif',serif; font-style:italic; font-size:30px; line-height:1; color:#10161F; }
+  .stat-kpi-l { font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#6b7280; margin-top:6px; }
+  .stat-kpi-sub { font-size:9px; color:#888; margin-top:3px; }
+  .stats-detail { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin-bottom:30px; }
+  .stats-detail-section { background:#fafafa; border-radius:12px; padding:14px 16px; border:1px solid rgba(0,0,0,.04); }
+  .stats-detail-title { font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#8A6E2F; margin-bottom:10px; }
+  .stats-detail-rows { display:flex; flex-direction:column; gap:6px; }
+  .stats-detail-row { display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#333; padding:4px 0; border-bottom:0.5px solid rgba(0,0,0,.04); }
+  .stats-detail-row strong { color:#10161F; font-weight:700; }
 </style>
 </head>
 <body>
@@ -5245,7 +5430,59 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
       </div>
     </div>` : ''}
 
-    <!-- FORTALEZAS Y MEJORAS -->
+<!-- ESTADÍSTICAS DEL PARTIDO -->
+    ${(inf._stats_partido && Object.keys(inf._stats_partido).length) ? `
+    <div class="section-title">
+      <span class="eyebrow">03 · Estadísticas</span>
+      <span class="h2">Métricas del partido<span class="h2-sub">${(jug.posicion||'')}</span></span>
+    </div>
+    <div class="stats-grid">
+      ${(function(){
+        const s = inf._stats_partido;
+        const cfg = (typeof getStatsConfigForJugador === 'function') ? getStatsConfigForJugador(jug) : { sections: [] };
+        const labels = (typeof STATS_LABELS !== 'undefined') ? STATS_LABELS : {};
+        let h = '';
+        // KPIs principales: minutos, pases (con %), goles, asistencias, remates, recuperaciones
+        function kpi(label, value, sub){
+          return '<div class="stat-kpi"><div class="stat-kpi-v">'+value+'</div><div class="stat-kpi-l">'+label+'</div>'+(sub?'<div class="stat-kpi-sub">'+sub+'</div>':'')+'</div>';
+        }
+        if(s.minutos != null) h += kpi('Minutos', s.minutos);
+        if(s.pases_completados != null || s.pases_intentados != null){
+          const pc = s.pases_completados || 0, pi = s.pases_intentados || 0;
+          const pct = pi > 0 ? Math.round((pc/pi)*100) : 0;
+          h += kpi('Pases', pc + (pi ? ' / '+pi : ''), pi>0 ? (pct+'% acierto') : '');
+        }
+        if(s.goles != null) h += kpi('Goles', s.goles);
+        if(s.asistencias != null) h += kpi('Asistencias', s.asistencias);
+        if(s.remates_totales != null || s.remates_porteria != null){
+          const rt = s.remates_totales || 0, rp = s.remates_porteria || 0;
+          h += kpi('Remates', rt + (rp ? ' ('+rp+' a portería)' : ''));
+        }
+        if(s.recuperaciones != null) h += kpi('Recuperaciones', s.recuperaciones);
+        return h;
+      })()}
+    </div>
+    ${(function(){
+      const s = inf._stats_partido;
+      const cfg = (typeof getStatsConfigForJugador === 'function') ? getStatsConfigForJugador(jug) : { sections: [] };
+      const labels = (typeof STATS_LABELS !== 'undefined') ? STATS_LABELS : {};
+      // Tabla detallada: TODAS las stats agrupadas por sección de la posición
+      let h = '<div class="stats-detail">';
+      cfg.sections.forEach(function(sec){
+        const items = sec.keys.filter(function(k){ return s[k] != null; });
+        if(!items.length) return;
+        h += '<div class="stats-detail-section"><div class="stats-detail-title">'+sec.section+'</div><div class="stats-detail-rows">';
+        items.forEach(function(k){
+          h += '<div class="stats-detail-row"><span>'+(labels[k]||k)+'</span><strong>'+s[k]+'</strong></div>';
+        });
+        h += '</div></div>';
+      });
+      h += '</div>';
+      return h;
+    })()}
+    ` : ''}
+
+        <!-- FORTALEZAS Y MEJORAS -->
     ${(fortalezas.length || mejoras.length) ? `
     <div class="section-title">
       <span class="eyebrow">02 · Balance</span>
@@ -5356,6 +5593,16 @@ function _renderInformeVisualPremium(jug, inf, clubColor, win) {
 }
 
 // ─── GUARDAR INFORME DE PARTIDO ───
+
+window._toggleStatsBlock = function(){
+  const body = document.getElementById('stats-block-body');
+  const ic = document.getElementById('stats-toggle-icon');
+  if(!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if(ic) ic.textContent = open ? '▼ Mostrar' : '▲ Ocultar';
+};
+
 async function saveInforme() {
   const jugId = state.currentJugador;
   const jug = state.jugadores.find(x => x.id === jugId);
@@ -5403,6 +5650,9 @@ async function saveInforme() {
 
   // Añadir al estado local
   state.informesPartido.unshift(saved[0]);
+
+  // Guardar stats del partido (si las hay)
+  try { await saveStatsForInforme(saved[0].id, jugId); } catch(e){ console.warn('save stats err', e); }
 
   // Limpiar formulario
   window._stars = {};
@@ -6783,6 +7033,21 @@ function renderGuionIA(data, jug, partido, pos, fase) {
 // ─── NAVEGACIÓN IA: integrado en renderPage ───
 
 // ─── TAB ANÁLISIS SEMANAL (app analista) ───
+
+// Convierte URLs de Google Drive a formato /preview (reproducible). Mantiene otras URLs igual.
+function getPlayableVideoUrl(url){
+  if(!url) return '';
+  url = String(url).trim();
+  // Google Drive: /file/d/ID/view → /file/d/ID/preview
+  let m = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if(m) return 'https://drive.google.com/file/d/' + m[1] + '/preview';
+  // Google Drive: ?id=ID
+  m = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
+  if(m) return 'https://drive.google.com/file/d/' + m[1] + '/preview';
+  return url;
+}
+window.getPlayableVideoUrl = getPlayableVideoUrl;
+
 async function renderAnalisisTab() {
   const id = state.currentJugador;
   const j = state.jugadores.find(x => x.id === id);
@@ -6809,9 +7074,18 @@ async function renderAnalisisTab() {
           <input id="anal-fecha" type="date" value="${new Date().toISOString().slice(0,10)}" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;">
         </div>
       </div>
-      <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">URL del vídeo de análisis (Google Drive, YouTube...)</div>
-      <input id="anal-video" placeholder="https://drive.google.com/..." style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;">
-      <button onclick="guardarAnalisisSemanal('${j.id}')" class="btn" style="width:100%;height:38px;font-size:12px;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Subir desde tu PC (MP4, hasta 50MB)</div>
+      <input type="file" id="anal-video-file" accept="video/mp4,video/*" style="width:100%;font-size:12px;margin-bottom:10px;color:var(--text2);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="flex:1;height:0.5px;background:var(--border);"></div>
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">o pega una URL</div>
+        <div style="flex:1;height:0.5px;background:var(--border);"></div>
+      </div>
+      <input id="anal-video" placeholder="https://drive.google.com/... o YouTube" style="width:100%;height:36px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;margin-bottom:6px;">
+      <div style="font-size:10px;color:var(--text3);line-height:1.4;margin-bottom:10px;padding:6px 8px;background:rgba(88,166,255,0.06);border-left:2px solid rgba(88,166,255,0.4);border-radius:4px;">
+        💡 Si usas Drive: pulsa <strong>Compartir</strong> → <strong>"Cualquier persona con el enlace"</strong>. Si no, el vídeo aparecerá como "Sin acceso".
+      </div>
+      <button id="anal-btn-submit" onclick="guardarAnalisisSemanal('${j.id}')" class="btn" style="width:100%;height:38px;font-size:12px;">
         ✓ Subir análisis
       </button>
     </div>`;
@@ -6825,7 +7099,7 @@ async function renderAnalisisTab() {
           <div style="font-size:13px;font-weight:600;">${item.titulo||'Análisis semanal'}</div>
           <div style="font-size:10px;color:var(--text3);margin-top:2px;">${fecha}</div>
         </div>
-        ${item.video_url ? '<a href="'+item.video_url+'" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;flex-shrink:0;">▶ Ver</a>' : ''}
+        ${item.video_url ? '<a href="'+getPlayableVideoUrl(item.video_url)+'" target="_blank" rel="noopener" style="font-size:11px;background:rgba(88,166,255,0.12);border:0.5px solid rgba(88,166,255,0.3);color:#58a6ff;text-decoration:none;flex-shrink:0;padding:5px 11px;border-radius:99px;font-weight:600;">▶ Ver</a>' : ''}
         <button onclick="eliminarAnalisis('${item.id}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:16px;padding:0 4px;">×</button>
       </div>`;
     });
@@ -6839,16 +7113,53 @@ async function renderAnalisisTab() {
 async function guardarAnalisisSemanal(jugId) {
   const titulo    = document.getElementById('anal-titulo')?.value.trim();
   const fecha     = document.getElementById('anal-fecha')?.value;
-  const video_url = document.getElementById('anal-video')?.value.trim();
+  let   video_url = document.getElementById('anal-video')?.value.trim();
+  const fi        = document.getElementById('anal-video-file');
+  const btn       = document.getElementById('anal-btn-submit');
 
   if(!titulo) { showToast('Escribe un título'); return; }
-  if(!video_url) { showToast('Añade la URL del vídeo'); return; }
 
+  // Validación: detectar URLs de Drive que NO son del archivo (home, folders, my-drive...)
+  if(video_url){
+    const v = video_url.toLowerCase();
+    const esDriveLink = /drive\.google\.com|docs\.google\.com/.test(v);
+    const esArchivoDrive = /\/file\/d\/[a-zA-Z0-9_-]+/.test(v) || /\?id=[a-zA-Z0-9_-]+|&id=[a-zA-Z0-9_-]+/.test(v);
+    const esCarpetaOHome = /\/drive\/folders\/|\/drive\/u\/\d+\/home|\/drive\/u\/\d+\/my-drive|\/drive\/home|\/drive\/my-drive/.test(v);
+    if(esDriveLink && !esArchivoDrive){
+      alert('❌ El enlace que has pegado NO es del vídeo.\n\nLo que has pegado abre tu Drive entero o una carpeta, no el archivo concreto.\n\n✅ Cómo obtener el enlace correcto:\n\n1. Abre Drive y busca el vídeo\n2. Clic derecho sobre el archivo → "Obtener enlace"\n3. Cambia a "Cualquier persona con el enlace"\n4. Pulsa "Copiar enlace"\n5. Pégalo aquí\n\nEl enlace bueno tiene esta forma:\nhttps://drive.google.com/file/d/XXXXX/view?usp=sharing');
+      return;
+    }
+  }
+
+  // Si hay archivo seleccionado, subirlo al storage y usar la URL resultante
+  if(fi && fi.files && fi.files[0]){
+    const f = fi.files[0];
+    if(f.size > 50*1024*1024){ showToast('El archivo supera 50MB'); return; }
+    if(btn){ btn.disabled = true; btn.textContent = 'Subiendo vídeo…'; }
+    const uploaded = await uploadVideoClip(f);
+    if(!uploaded){
+      if(btn){ btn.disabled = false; btn.textContent = '✓ Subir análisis'; }
+      return;
+    }
+    video_url = uploaded;
+  }
+
+  if(!video_url) {
+    showToast('Selecciona un archivo o pega una URL');
+    if(btn){ btn.disabled = false; btn.textContent = '✓ Subir análisis'; }
+    return;
+  }
+
+  if(btn){ btn.disabled = true; btn.textContent = 'Guardando…'; }
   const { error } = await DB.from('analisis_semanal').insert({
     jugador_id: jugId, titulo, fecha, video_url
   });
 
-  if(error) { showToast('Error al guardar'); console.error(error); return; }
+  if(error) {
+    showToast('Error al guardar: '+error.message); console.error(error);
+    if(btn){ btn.disabled = false; btn.textContent = '✓ Subir análisis'; }
+    return;
+  }
   showToast('✓ Análisis subido');
   renderAnalisisTab();
 }
@@ -7263,474 +7574,4 @@ window._toggleMaterial = async function(jugId, itemId) {
 
   showToast(ids.includes(itemId) ? '✅ Material añadido' : 'Material eliminado');
   renderMaterialAnalista(jugId);
-};
-
-// ════════════════════════════════════════════════════════════════════
-// MÓDULO PERFIL DEL JUGADOR (Radar + Score global + Evolución)
-// ════════════════════════════════════════════════════════════════════
-
-// Schema completo de 52 parámetros agrupados en 5 dimensiones
-window._PERFIL_SCHEMA = {
-  atleticas: {
-    label: '🏃 ATLÉTICAS',
-    color: '#3fb950',
-    params: [
-      {key:'fuerza', label:'Fuerza'},
-      {key:'resist_aerobica', label:'Resistencia aeróbica'},
-      {key:'resist_anaerobica', label:'Resistencia anaeróbica'},
-      {key:'velocidad', label:'Velocidad'},
-      {key:'sprint', label:'Sprint'},
-      {key:'aceleracion', label:'Aceleración'},
-      {key:'agilidad', label:'Agilidad'},
-      {key:'cambio_direccion', label:'Cambio de dirección'},
-      {key:'coordinacion', label:'Coordinación'},
-      {key:'salto', label:'Salto'},
-      {key:'equilibrio', label:'Equilibrio'}
-    ]
-  },
-  tecnicas: {
-    label: '⚙️ TÉCNICAS',
-    color: '#58a6ff',
-    params: [
-      {key:'pie_pred', label:'Pie predominante'},
-      {key:'pie_no_pred', label:'Pie no predominante'},
-      {key:'pase_corto', label:'Pase corto'},
-      {key:'pase_largo', label:'Pase largo'},
-      {key:'pase_cruzado', label:'Pase cruzado'},
-      {key:'primera_intencion', label:'Primera intención'},
-      {key:'control_orientado', label:'Control orientado'},
-      {key:'recepcion', label:'Recepción'},
-      {key:'conduccion', label:'Conducción'},
-      {key:'regate', label:'Regate'},
-      {key:'tiro', label:'Tiro'},
-      {key:'juego_aereo', label:'Juego aéreo'}
-    ]
-  },
-  ofensivas: {
-    label: '⚔️ OFENSIVAS',
-    color: '#D4AF37',
-    params: [
-      {key:'desmarque_ruptura', label:'Desmarque de ruptura'},
-      {key:'desmarque_apoyo', label:'Desmarque de apoyo'},
-      {key:'cobertura_balon', label:'Cobertura del balón'},
-      {key:'vision_juego', label:'Visión de juego'},
-      {key:'asociacion', label:'Asociación / juego en corto'},
-      {key:'llegada_area', label:'Llegada al área'},
-      {key:'finalizacion', label:'Finalización'},
-      {key:'cap_goleadora', label:'Capacidad goleadora'},
-      {key:'creacion_espacios', label:'Creación de espacios'},
-      {key:'transicion_ofensiva', label:'Transición ofensiva'}
-    ]
-  },
-  defensivas: {
-    label: '🛡️ DEFENSIVAS',
-    color: '#D85A30',
-    params: [
-      {key:'posicionamiento', label:'Posicionamiento'},
-      {key:'marcajes', label:'Marcajes'},
-      {key:'def_1v1', label:'1×1 defensivo'},
-      {key:'anticipacion', label:'Anticipación táctica'},
-      {key:'lectura_lineas', label:'Lectura de líneas'},
-      {key:'presion_tras_perdida', label:'Presión tras pérdida'},
-      {key:'cobertura_compa', label:'Cobertura del compañero'},
-      {key:'def_aerea', label:'Defensa aérea'},
-      {key:'transicion_defensiva', label:'Transición defensiva'}
-    ]
-  },
-  psicologicas: {
-    label: '🧠 PSICOLÓGICAS',
-    color: '#a371f7',
-    params: [
-      {key:'liderazgo', label:'Liderazgo'},
-      {key:'sacrificio', label:'Sacrificio'},
-      {key:'fair_play', label:'Fair play'},
-      {key:'coraje', label:'Coraje'},
-      {key:'esp_equipo', label:'Espíritu de equipo'},
-      {key:'personalidad', label:'Personalidad'},
-      {key:'decision_presion', label:'Toma de decisiones bajo presión'},
-      {key:'resiliencia', label:'Resiliencia / gestión del error'},
-      {key:'concentracion', label:'Concentración'},
-      {key:'autoexigencia', label:'Autoexigencia'}
-    ]
-  }
-};
-
-// Calcular media por dimensión
-window._mediaDimension = function(parametros, dimKey) {
-  const dim = window._PERFIL_SCHEMA[dimKey];
-  if(!dim) return 0;
-  let suma = 0, count = 0;
-  dim.params.forEach(p => {
-    const v = parametros[p.key];
-    if(typeof v === 'number' && v >= 1 && v <= 5) {
-      suma += v;
-      count++;
-    }
-  });
-  return count > 0 ? +(suma / count).toFixed(2) : 0;
-};
-
-// Calcular score global (media de las 5 dimensiones × 20 = escala /100)
-window._scoreGlobal = function(parametros) {
-  const dims = Object.keys(window._PERFIL_SCHEMA);
-  let suma = 0, count = 0;
-  dims.forEach(d => {
-    const m = window._mediaDimension(parametros, d);
-    if(m > 0) { suma += m; count++; }
-  });
-  if(count === 0) return 0;
-  return Math.round((suma / count) * 20);
-};
-
-// Render principal del tab Perfil
-window.renderPerfilJugador = async function(jugId) {
-  const cont = document.getElementById('perfil-container');
-  if(!cont) return;
-  const j = state.jugadores.find(x => x.id === jugId);
-  if(!j) { cont.innerHTML = ''; return; }
-
-  // Cargar evaluaciones (todas las del jugador, ordenadas por fecha desc)
-  let evals = [];
-  try {
-    const { data, error } = await DB.from('perfil_jugador').select('*')
-      .eq('jugador_id', jugId)
-      .order('fecha_evaluacion', { ascending: false });
-    if(error) {
-      if(error.message && error.message.includes('does not exist')){
-        cont.innerHTML = '<div style="background:rgba(216,90,48,.1);border:0.5px solid #D85A30;border-radius:8px;padding:1rem;color:#D85A30;font-size:12px;line-height:1.6;">⚠ Tabla <code>perfil_jugador</code> no existe en Supabase. Ejecuta el SQL que te paso al final del mensaje y vuelve a abrir esta pestaña.</div>';
-        return;
-      }
-      console.error(error);
-    }
-    if(data) evals = data;
-  } catch(e) { console.error(e); }
-
-  // Última evaluación
-  const ultima = evals.length > 0 ? evals[0] : null;
-  const params = ultima ? (typeof ultima.parametros === 'string' ? JSON.parse(ultima.parametros) : ultima.parametros) : {};
-  const scoreActual = window._scoreGlobal(params);
-
-  // Mes anterior para comparar (si hay)
-  let scoreAnterior = null;
-  if(evals.length >= 2) {
-    const prev = typeof evals[1].parametros === 'string' ? JSON.parse(evals[1].parametros) : evals[1].parametros;
-    scoreAnterior = window._scoreGlobal(prev);
-  }
-  const delta = scoreAnterior !== null ? scoreActual - scoreAnterior : null;
-
-  let html = '';
-
-  // Card score global
-  html += '<div style="background:linear-gradient(135deg, rgba(212,175,55,0.08), rgba(255,255,255,0.02));border:0.5px solid rgba(212,175,55,0.3);border-radius:14px;padding:1.25rem;margin-bottom:1rem;">';
-  html += '<div style="display:flex;align-items:center;gap:1rem;">';
-  html += '<div style="flex:1;">';
-  html += '<div style="font-size:10px;color:#D4AF37;font-weight:800;text-transform:uppercase;letter-spacing:.1em;">📊 Perfil del jugador</div>';
-  html += '<div style="font-size:13px;color:#fff;margin-top:2px;">'+(j.nombre||'-')+' · '+(j.posicion||'-')+'</div>';
-  html += '<div style="font-size:10px;color:var(--text3);margin-top:4px;">'+evals.length+' evaluacion'+(evals.length===1?'':'es')+' · '+(ultima?'última: '+ultima.fecha_evaluacion:'sin evaluaciones aún')+'</div>';
-  html += '</div>';
-  // Score grande
-  html += '<div style="text-align:right;">';
-  html += '<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">Score global</div>';
-  html += '<div style="font-size:42px;font-weight:800;color:#D4AF37;line-height:1;letter-spacing:-.02em;">'+(scoreActual||'—')+'</div>';
-  if(delta !== null && delta !== 0) {
-    const dColor = delta > 0 ? '#3fb950' : '#D85A30';
-    const dArrow = delta > 0 ? '↗' : '↘';
-    html += '<div style="font-size:10px;color:'+dColor+';font-weight:700;margin-top:2px;">'+dArrow+' '+(delta>0?'+':'')+delta+' vs anterior</div>';
-  }
-  html += '</div></div></div>';
-
-  // Si no hay evaluaciones, CTA grande
-  if(evals.length === 0) {
-    html += '<div style="background:rgba(212,175,55,0.04);border:1px dashed rgba(212,175,55,0.4);border-radius:14px;padding:2rem 1.25rem;text-align:center;">';
-    html += '<div style="font-size:42px;margin-bottom:.5rem;">📊</div>';
-    html += '<div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:.5rem;">Crea la primera evaluación</div>';
-    html += '<div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:1.25rem;max-width:380px;margin-left:auto;margin-right:auto;">52 parámetros profesionales organizados en 5 dimensiones. Cada uno del 1 al 5. La primera evaluación es tu punto de partida.</div>';
-    html += '<button onclick="window.evaluarPerfilJugador(\''+jugId+'\')" style="background:#D4AF37;border:none;color:#000;padding:10px 22px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.04em;">+ NUEVA EVALUACIÓN</button>';
-    html += '</div>';
-    cont.innerHTML = html;
-    return;
-  }
-
-  // Radar pentágono (Chart.js)
-  html += '<div style="background:var(--card);border:0.5px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:1rem;">';
-  html += '<div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;">Radar por dimensión</div>';
-  html += '<div style="position:relative;height:300px;"><canvas id="perfil-radar-canvas"></canvas></div>';
-  // Tabla medias por dimensión
-  html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:.75rem;">';
-  Object.keys(window._PERFIL_SCHEMA).forEach(function(dimKey){
-    const dim = window._PERFIL_SCHEMA[dimKey];
-    const m = window._mediaDimension(params, dimKey);
-    html += '<div style="text-align:center;background:rgba(0,0,0,0.2);border-radius:6px;padding:6px 2px;border-top:2px solid '+dim.color+';">';
-    html += '<div style="font-size:14px;font-weight:800;color:'+dim.color+';line-height:1;">'+(m||'—')+'</div>';
-    html += '<div style="font-size:8px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:.04em;line-height:1.2;">'+dim.label.replace(/^[^ ]+ /,'')+'</div>';
-    html += '</div>';
-  });
-  html += '</div></div>';
-
-  // Evolución del score (si hay 2+ evaluaciones)
-  if(evals.length >= 2) {
-    html += '<div style="background:var(--card);border:0.5px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:1rem;">';
-    html += '<div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;">Evolución del score global</div>';
-    html += '<div style="position:relative;height:140px;"><canvas id="perfil-evol-canvas"></canvas></div>';
-    html += '</div>';
-  }
-
-  // Desglose completo colapsable
-  html += '<details style="background:var(--card);border:0.5px solid var(--border);border-radius:14px;padding:.875rem 1rem;margin-bottom:1rem;">';
-  html += '<summary style="cursor:pointer;font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;list-style:none;">📋 Ver desglose completo de los 52 parámetros</summary>';
-  html += '<div style="margin-top:1rem;display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
-  Object.keys(window._PERFIL_SCHEMA).forEach(function(dimKey){
-    const dim = window._PERFIL_SCHEMA[dimKey];
-    html += '<div style="background:rgba(0,0,0,0.18);border-left:3px solid '+dim.color+';border-radius:6px;padding:8px 10px;">';
-    html += '<div style="font-size:9px;font-weight:800;color:'+dim.color+';letter-spacing:.06em;margin-bottom:6px;">'+dim.label+'</div>';
-    dim.params.forEach(function(p){
-      const v = params[p.key];
-      const vDisplay = (typeof v === 'number' && v >= 1) ? v : '—';
-      const vColor = vDisplay === '—' ? 'var(--text3)' : dim.color;
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:10px;">';
-      html += '<span style="color:var(--text2);">'+p.label+'</span>';
-      html += '<span style="font-weight:800;color:'+vColor+';">'+vDisplay+'</span>';
-      html += '</div>';
-    });
-    html += '</div>';
-  });
-  html += '</div></details>';
-
-  // Botón nueva evaluación
-  html += '<div style="text-align:center;margin-top:1rem;">';
-  html += '<button onclick="window.evaluarPerfilJugador(\''+jugId+'\')" style="background:#D4AF37;border:none;color:#000;padding:10px 22px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.04em;">+ NUEVA EVALUACIÓN</button>';
-  html += '</div>';
-
-  cont.innerHTML = html;
-
-  // Renderizar charts después de pintar el HTML
-  setTimeout(function(){
-    // RADAR
-    const canvasR = document.getElementById('perfil-radar-canvas');
-    if(canvasR && typeof Chart !== 'undefined') {
-      const labels = Object.keys(window._PERFIL_SCHEMA).map(function(d){ return window._PERFIL_SCHEMA[d].label.replace(/^[^ ]+ /,''); });
-      const data = Object.keys(window._PERFIL_SCHEMA).map(function(d){ return window._mediaDimension(params, d); });
-      try {
-        new Chart(canvasR.getContext('2d'), {
-          type: 'radar',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: j.nombre,
-              data: data,
-              backgroundColor: 'rgba(212,175,55,0.15)',
-              borderColor: '#D4AF37',
-              borderWidth: 2,
-              pointBackgroundColor: '#D4AF37',
-              pointBorderColor: '#fff',
-              pointRadius: 4,
-              pointHoverRadius: 6
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              r: {
-                min: 0, max: 5,
-                ticks: { stepSize: 1, color: 'rgba(255,255,255,0.5)', backdropColor: 'transparent', font:{size:9} },
-                grid: { color: 'rgba(255,255,255,0.1)' },
-                angleLines: { color: 'rgba(255,255,255,0.15)' },
-                pointLabels: { color: '#fff', font: { size: 11, weight: '700' } }
-              }
-            }
-          }
-        });
-      } catch(e) { console.error('Error radar:', e); }
-    }
-
-    // EVOLUCIÓN SCORE
-    const canvasE = document.getElementById('perfil-evol-canvas');
-    if(canvasE && evals.length >= 2 && typeof Chart !== 'undefined') {
-      const ordenadas = [...evals].reverse(); // ascendente para gráfico
-      const labels = ordenadas.map(function(e){
-        const f = new Date(e.fecha_evaluacion);
-        return ('0'+f.getDate()).slice(-2)+'/'+('0'+(f.getMonth()+1)).slice(-2);
-      });
-      const data = ordenadas.map(function(e){
-        const p = typeof e.parametros === 'string' ? JSON.parse(e.parametros) : e.parametros;
-        return window._scoreGlobal(p);
-      });
-      try {
-        new Chart(canvasE.getContext('2d'), {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [{
-              data: data,
-              borderColor: '#D4AF37',
-              backgroundColor: 'rgba(212,175,55,0.1)',
-              borderWidth: 2,
-              tension: 0.35,
-              fill: true,
-              pointBackgroundColor: '#D4AF37',
-              pointRadius: 4
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              y: { beginAtZero: false, min: 40, max: 100, ticks:{color:'rgba(255,255,255,0.5)',font:{size:9}}, grid:{color:'rgba(255,255,255,0.08)'} },
-              x: { ticks:{color:'rgba(255,255,255,0.5)',font:{size:9}}, grid:{display:false} }
-            }
-          }
-        });
-      } catch(e) { console.error('Error evol:', e); }
-    }
-  }, 60);
-};
-
-// Modal de evaluación
-window.evaluarPerfilJugador = async function(jugId) {
-  const j = state.jugadores.find(x => x.id === jugId);
-  if(!j) return;
-
-  const prev = document.getElementById('modal-perfil-edit');
-  if(prev) prev.remove();
-
-  // Cargar última evaluación para pre-rellenar
-  let params = {};
-  try {
-    const { data } = await DB.from('perfil_jugador').select('parametros')
-      .eq('jugador_id', jugId)
-      .order('fecha_evaluacion', { ascending: false })
-      .limit(1).maybeSingle();
-    if(data && data.parametros) {
-      params = typeof data.parametros === 'string' ? JSON.parse(data.parametros) : data.parametros;
-    }
-  } catch(e) {}
-
-  const modal = document.createElement('div');
-  modal.id = 'modal-perfil-edit';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto;';
-
-  let html = '<div style="background:var(--bg2);border-radius:14px;max-width:780px;width:100%;max-height:none;margin-bottom:2rem;padding:1.25rem;">';
-
-  // Header
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:10px;border-bottom:0.5px solid var(--border);position:sticky;top:-1.25rem;background:var(--bg2);padding-top:.5rem;z-index:2;">';
-  html += '<div>';
-  html += '<div style="font-size:9px;color:#D4AF37;font-weight:800;text-transform:uppercase;letter-spacing:.1em;">📊 Nueva evaluación de perfil</div>';
-  html += '<div style="font-size:14px;font-weight:800;color:#fff;margin-top:2px;">'+j.nombre+' · '+(j.posicion||'-')+'</div>';
-  html += '<div style="font-size:10px;color:var(--text3);margin-top:2px;">Fecha: '+new Date().toLocaleDateString('es-ES')+' · Escala 1-5 (1=Muy bajo, 3=Medio, 5=Excelente)</div>';
-  html += '</div>';
-  html += '<button id="pf-btn-cerrar" style="background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">×</button>';
-  html += '</div>';
-
-  // Render cada dimensión
-  Object.keys(window._PERFIL_SCHEMA).forEach(function(dimKey){
-    const dim = window._PERFIL_SCHEMA[dimKey];
-    html += '<div style="background:rgba(255,255,255,0.02);border-left:3px solid '+dim.color+';border-radius:6px;padding:12px;margin-bottom:10px;">';
-    html += '<div style="font-size:11px;font-weight:800;color:'+dim.color+';letter-spacing:.08em;margin-bottom:10px;">'+dim.label+'</div>';
-
-    dim.params.forEach(function(p){
-      const valor = params[p.key] || 0;
-      html += '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid rgba(255,255,255,.03);">';
-      html += '<div style="flex:1;font-size:11px;color:var(--text);">'+p.label+'</div>';
-      html += '<div style="display:flex;gap:3px;">';
-      for(let v = 1; v <= 5; v++) {
-        const activo = valor === v;
-        html += '<button type="button" data-key="'+p.key+'" data-val="'+v+'" class="pf-star-btn" style="width:26px;height:26px;border-radius:50%;border:1px solid '+(activo?dim.color:'var(--border)')+';background:'+(activo?dim.color:'transparent')+';color:'+(activo?'#fff':'var(--text3)')+';font-size:11px;font-weight:700;cursor:pointer;padding:0;font-family:inherit;">'+v+'</button>';
-      }
-      html += '</div>';
-      html += '</div>';
-    });
-
-    html += '</div>';
-  });
-
-  // Notas
-  html += '<div style="background:rgba(255,255,255,0.02);border-left:3px solid var(--text3);border-radius:6px;padding:12px;margin-bottom:10px;">';
-  html += '<div style="font-size:11px;font-weight:800;color:var(--text2);letter-spacing:.06em;margin-bottom:8px;">📝 NOTAS DE ESTA EVALUACIÓN (opcional)</div>';
-  html += '<textarea id="pf-notas" placeholder="Contexto, observaciones generales, qué destaca, qué hay que trabajar..." style="width:100%;min-height:60px;border:0.5px solid var(--border2);border-radius:6px;padding:8px;font-size:12px;background:var(--bg);color:var(--text);resize:vertical;font-family:inherit;outline:none;line-height:1.5;box-sizing:border-box;"></textarea>';
-  html += '</div>';
-
-  // Botones
-  html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;position:sticky;bottom:-1.25rem;background:var(--bg2);padding:.75rem 0 .5rem;border-top:0.5px solid var(--border);">';
-  html += '<button id="pf-btn-cancelar" style="background:var(--bg3);border:0.5px solid var(--border);color:var(--text);padding:9px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>';
-  html += '<button id="pf-btn-guardar" style="background:#D4AF37;border:none;color:#000;padding:9px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">💾 Guardar evaluación</button>';
-  html += '</div>';
-
-  html += '</div>';
-  modal.innerHTML = html;
-  document.body.appendChild(modal);
-
-  // Estado local
-  const valoresActuales = Object.assign({}, params);
-
-  // Event listeners
-  const cerrar = () => { const m = document.getElementById('modal-perfil-edit'); if(m) m.remove(); };
-  document.getElementById('pf-btn-cerrar').addEventListener('click', cerrar);
-  document.getElementById('pf-btn-cancelar').addEventListener('click', cerrar);
-
-  // Botones estrellas
-  modal.querySelectorAll('.pf-star-btn').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      const k = btn.getAttribute('data-key');
-      const v = parseInt(btn.getAttribute('data-val'), 10);
-      valoresActuales[k] = v;
-
-      // Actualizar visuales: encontrar todos los botones del mismo data-key y resetearlos
-      const dimColor = btn.style.backgroundColor; // recordar color de este botón si está activo
-      modal.querySelectorAll('.pf-star-btn[data-key="'+k+'"]').forEach(function(b){
-        const bv = parseInt(b.getAttribute('data-val'), 10);
-        const activo = bv === v;
-        // Buscar color de la dimensión del padre
-        const parent = b.closest('[style*="border-left:3px solid"]');
-        let color = '#D4AF37';
-        if(parent) {
-          const m = parent.getAttribute('style').match(/border-left:3px solid (#[0-9A-Fa-f]+|rgba?\([^)]+\))/);
-          if(m) color = m[1];
-        }
-        b.style.background = activo ? color : 'transparent';
-        b.style.color = activo ? '#fff' : 'var(--text3)';
-        b.style.borderColor = activo ? color : 'var(--border)';
-      });
-    });
-  });
-
-  // Guardar
-  document.getElementById('pf-btn-guardar').addEventListener('click', async function(){
-    const btn = document.getElementById('pf-btn-guardar');
-    btn.disabled = true; btn.textContent = 'Guardando...';
-
-    // Verificar que hay al menos 5 parámetros valorados
-    const keysCon = Object.keys(valoresActuales).filter(function(k){ return typeof valoresActuales[k] === 'number' && valoresActuales[k] >= 1; });
-    if(keysCon.length === 0) {
-      btn.disabled = false; btn.textContent = '💾 Guardar evaluación';
-      alert('Valora al menos un parámetro antes de guardar.');
-      return;
-    }
-
-    const notas = (document.getElementById('pf-notas').value || '').trim();
-    const fecha = new Date().toISOString().slice(0,10);
-
-    try {
-      const res = await DB.from('perfil_jugador').insert({
-        jugador_id: jugId,
-        fecha_evaluacion: fecha,
-        tipo: 'staff',
-        parametros: valoresActuales,
-        notas: notas
-      });
-      if(res.error){
-        console.error(res.error);
-        btn.disabled = false; btn.textContent = '💾 Guardar evaluación';
-        alert('❌ Error al guardar:\n\n' + res.error.message + '\n\nCódigo: ' + (res.error.code||'?') + '\n\n¿Has creado la tabla perfil_jugador en Supabase?');
-        return;
-      }
-      cerrar();
-      if(typeof showToast === 'function') showToast('✓ Evaluación guardada');
-      window.renderPerfilJugador(jugId);
-    } catch(e) {
-      console.error(e);
-      btn.disabled = false; btn.textContent = '💾 Guardar evaluación';
-      alert('❌ Excepción: ' + (e.message || e));
-    }
-  });
 };
